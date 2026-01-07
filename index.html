@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logsheet Kontrol 5R & Fasilitas</title>
+    <!-- Tailwind CSS untuk styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- HTML2PDF Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <style>
+        /* CSS Print & PDF */
+        @media print {
+            @page { size: landscape; margin: 5mm; }
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background-color: white; }
+            .no-print { display: none !important; }
+            .page-break { page-break-before: always; }
+            
+            /* Hide UI elements */
+            .hide-on-print { display: none !important; }
+            .show-on-print { display: block !important; }
+            
+            /* Ensure inputs look like text */
+            input { border: none !important; padding: 0 !important; background: transparent !important; }
+            select { appearance: none; border: none; background: transparent; }
+        }
+
+        /* PDF Generation Mode Styles - FULL WIDTH LEFT ALIGN STRATEGY */
+        .pdf-mode {
+            /* Pastikan tidak ada margin kiri/kanan agar tidak terpotong */
+            margin: 0 !important; 
+            padding: 0 !important;
+            width: 100% !important;
+            max-width: none !important;
+            background: white !important;
+        }
+
+        .pdf-mode .no-print { display: none !important; }
+        .pdf-mode .hide-on-print { display: none !important; }
+        .pdf-mode .show-on-print { display: block !important; }
+        
+        /* Container Reset */
+        .pdf-mode .sheet-page {
+            width: 100% !important;
+            max-width: none !important;
+            margin: 0 !important;
+            border: none !important;
+            box-shadow: none !important;
+            border-radius: 0 !important;
+        }
+
+        .pdf-mode table { 
+            font-size: 9px !important; 
+            table-layout: fixed !important; /* Paksa kolom fix */
+            width: 100% !important;
+        }
+        
+        .pdf-mode th, .pdf-mode td { 
+            padding: 3px 1px !important; 
+            border-color: #4b5563 !important; 
+            overflow: hidden; 
+            white-space: normal !important; /* Teks turun ke bawah */
+            vertical-align: middle !important;
+            line-height: 1.1 !important;
+        }
+        
+        /* PROPORSIONAL KOLOM PDF (Total 100%) */
+        .pdf-mode .col-no { width: 3% !important; text-align: center; }
+        .pdf-mode .col-item { width: 37% !important; text-align: left; padding-left: 4px !important; } /* Diperlebar */
+        .pdf-mode .col-date { width: 1.93% !important; padding: 0 !important; } /* Sisa ruang dibagi 31 hari */
+
+        .pdf-mode .text-xl { font-size: 14px !important; } 
+        .pdf-mode .check-cell div { font-size: 8px !important; min-height: 12px !important; display: flex; align-items: center; justify-content: center; }
+        
+        /* General Styles */
+        .cursor-pointer { cursor: pointer; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #d1d5db; }
+        
+        .check-cell:hover { background-color: #f3f4f6; }
+        .check-cell.active { background-color: #dcfce7 !important; color: #15803d; font-weight: bold; }
+        .check-cell.sunday { background-color: #fef2f2; }
+        .check-cell.sunday:hover { background-color: #fee2e2; }
+        .check-cell.sunday.active { background-color: #dcfce7 !important; }
+
+        /* Page Container Style */
+        .sheet-page {
+            background: white;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border-radius: 0.5rem;
+            overflow: hidden;
+            margin-bottom: 2rem;
+            width: 100%;
+            max-width: 1400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        @media print {
+            .sheet-page {
+                box-shadow: none;
+                margin-bottom: 0;
+                border-radius: 0;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans min-h-screen p-4 print:p-0 print:bg-white">
+
+    <!-- Controls (Top) -->
+    <div class="max-w-[1400px] mx-auto mb-4 flex flex-wrap justify-between items-center no-print">
+        <div>
+            <h2 class="text-lg font-bold text-gray-700">Formulir 5R Digital</h2>
+            <p class="text-xs text-gray-500">Data tersimpan otomatis di browser.</p>
+        </div>
+        <div class="flex gap-2">
+            <button id="btnReset" type="button" class="flex items-center gap-2 px-4 py-2 text-red-600 bg-white border border-red-200 rounded hover:bg-red-50 text-sm transition-colors cursor-pointer">
+                <i data-lucide="trash-2" class="w-4 h-4"></i> Reset
+            </button>
+            <button id="btnDownloadPDF" type="button" class="flex items-center gap-2 px-4 py-2 text-blue-700 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 shadow-sm text-sm font-bold transition-colors cursor-pointer">
+                <i data-lucide="download" class="w-4 h-4"></i> Download PDF (Final)
+            </button>
+        </div>
+    </div>
+
+    <div id="contentToPrint">
+        
+        <!-- ================= PAGE 1 ================= -->
+        <div class="sheet-page" id="page1">
+            <!-- Header Page 1 -->
+            <div class="bg-blue-900 text-white p-4 print:bg-white print:text-black print:border-b-2 print:border-black">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center gap-3">
+                        <i data-lucide="clipboard-check" class="w-8 h-8 text-white print:text-black"></i>
+                        <div>
+                            <h1 class="text-xl font-bold uppercase">Logsheet Kontrol 5R - Halaman 1</h1>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Metadata Page 1 -->
+            <div class="p-4 grid grid-cols-1 md:grid-cols-4 gap-4 bg-gray-50 border-b print:grid-cols-4 print:text-xs print:p-2 print:bg-transparent">
+                <div class="flex flex-col">
+                    <label class="text-xs font-bold text-gray-500 uppercase mb-1">Bulan & Tahun</label>
+                    <div class="flex gap-2 no-print hide-on-print">
+                        <select id="monthSelect" class="border p-1 rounded text-sm w-full border-gray-300"></select>
+                        <select id="yearSelect" class="border p-1 rounded text-sm w-24 border-gray-300"></select>
+                    </div>
+                    <div class="hidden print:block show-on-print font-bold text-lg dateDisplay"></div>
+                </div>
+                <div class="flex flex-col md:col-span-2">
+                    <label class="text-xs font-bold text-gray-500 uppercase mb-1">Area / Lokasi</label>
+                    <input type="text" id="areaInput1" placeholder="Isi Lokasi..." class="border p-1 rounded text-sm w-full border-gray-300 print:border-none print:p-0 print:font-bold">
+                </div>
+                <div class="flex flex-col">
+                    <label class="text-xs font-bold text-gray-500 uppercase mb-1">Penanggung Jawab</label>
+                    <input type="text" id="inspectorInput1" placeholder="Nama Leader" class="border p-1 rounded text-sm w-full border-gray-300 print:border-none print:p-0 print:font-bold">
+                </div>
+            </div>
+
+            <!-- Table Page 1 (Sections A & B) -->
+            <div class="overflow-x-auto p-4 print:p-0 print:overflow-visible">
+                <table class="text-xs w-full">
+                    <thead>
+                        <tr class="bg-gray-100 print:bg-gray-200">
+                            <!-- Class col-* added for Fixed Layout targeting -->
+                            <th rowspan="2" class="p-2 border-gray-400 col-no">No</th>
+                            <th rowspan="2" class="p-2 text-left border-gray-400 col-item">Item Pemeriksaan <span class="font-normal italic">(* Mingguan)</span></th>
+                            <th class="p-1 text-center font-bold border-gray-400 daysHeader" colspan="31">Tanggal</th>
+                        </tr>
+                        <tr class="bg-gray-50 print:bg-white dateRow">
+                            <!-- JS Generated -->
+                        </tr>
+                    </thead>
+                    <tbody id="tbody1">
+                        <!-- JS Generated Content A & B -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Footer Page 1 -->
+            <div class="p-4 text-xs text-gray-600">
+                <div class="flex justify-between items-end">
+                    <p class="italic">Bersambung ke Halaman 2...</p>
+                    <div class="text-right">
+                        <p class="font-bold">Hal 1 dari 2</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- PAGE BREAK FOR PRINT -->
+        <div class="page-break"></div>
+
+        <!-- ================= PAGE 2 ================= -->
+        <div class="sheet-page" id="page2">
+            <!-- Header Page 2 -->
+            <div class="bg-blue-900 text-white p-4 print:bg-white print:text-black print:border-b-2 print:border-black">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center gap-3">
+                        <i data-lucide="clipboard-check" class="w-8 h-8 text-white print:text-black"></i>
+                        <div>
+                            <h1 class="text-xl font-bold uppercase">Logsheet Kontrol 5R - Halaman 2</h1>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Metadata Page 2 (Read Only / Synced) -->
+            <div class="p-4 grid grid-cols-1 md:grid-cols-4 gap-4 bg-gray-50 border-b print:grid-cols-4 print:text-xs print:p-2 print:bg-transparent">
+                <div class="flex flex-col">
+                    <label class="text-xs font-bold text-gray-500 uppercase mb-1">Bulan & Tahun</label>
+                    <div class="font-bold text-lg dateDisplay pt-1"></div>
+                </div>
+                <div class="flex flex-col md:col-span-2">
+                    <label class="text-xs font-bold text-gray-500 uppercase mb-1">Area / Lokasi</label>
+                    <div id="areaDisplay2" class="font-bold text-sm pt-1 border-b border-dashed border-gray-300 min-h-[20px]"></div>
+                </div>
+                <div class="flex flex-col">
+                    <label class="text-xs font-bold text-gray-500 uppercase mb-1">Penanggung Jawab</label>
+                    <div id="inspectorDisplay2" class="font-bold text-sm pt-1 border-b border-dashed border-gray-300 min-h-[20px]"></div>
+                </div>
+            </div>
+
+            <!-- Table Page 2 (Sections C & D) -->
+            <div class="overflow-x-auto p-4 print:p-0 print:overflow-visible">
+                <table class="text-xs w-full">
+                    <thead>
+                        <tr class="bg-gray-100 print:bg-gray-200">
+                            <th rowspan="2" class="p-2 border-gray-400 col-no">No</th>
+                            <th rowspan="2" class="p-2 text-left border-gray-400 col-item">Item Pemeriksaan <span class="font-normal italic">(* Mingguan)</span></th>
+                            <th class="p-1 text-center font-bold border-gray-400 daysHeader" colspan="31">Tanggal</th>
+                        </tr>
+                        <tr class="bg-gray-50 print:bg-white dateRow">
+                            <!-- JS Generated -->
+                        </tr>
+                    </thead>
+                    <tbody id="tbody2">
+                        <!-- JS Generated Content C & D -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Footer Page 2 (Signatures) -->
+            <div class="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-gray-600 print:grid-cols-2">
+                <div>
+                    <p class="font-bold mb-1">Keterangan:</p>
+                    <ul class="list-disc pl-4 space-y-1">
+                        <li>Centang (✓) jika <strong>OK</strong>. Kosongkan jika <strong>Tidak Sesuai</strong>.</li>
+                        <li>Kolom merah = Hari Minggu/Libur.</li>
+                    </ul>
+                </div>
+                <div class="flex justify-end items-end gap-8 print:gap-16 mt-4">
+                    <div class="text-center">
+                        <p class="mb-8 font-bold">Dibuat Oleh,</p>
+                        <p class="border-t border-black min-w-[100px] pt-1" id="signerName">Leader Area</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="mb-8 font-bold">Diketahui Oleh,</p>
+                        <p class="border-t border-black min-w-[100px] pt-1">Supervisor / Manager</p>
+                    </div>
+                </div>
+                <div class="col-span-2 text-right">
+                    <p class="font-bold">Hal 2 dari 2</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // --- DATA DEFINITION ---
+        const page1Sections = [
+            {
+                title: "A. AREA PROSES",
+                items: [
+                    { id: 1, category: 'Resik', question: 'Pembuangan Sampah All Proses (Sudah dibuang/Kosong)' },
+                    { id: 2, category: 'Resik', question: 'Permukaan Lantai All Area Steril dan bersih' },
+                    { id: 3, category: 'Ringkas', question: 'Marka Pedestrian terbebas dari Barang-barang maupun Tools' },
+                    { id: 4, category: 'Resik', question: 'Area HV, Dokumen dan Non Halal dalam kondisi Steril dan Bersih' },
+                    { id: 5, category: 'Rapi', question: 'Area Leader dalam keadaan rapi' },
+                    { id: 6, category: 'Rapi', question: 'Barang Holding tersimpan pada Area Holding dengan benar' },
+                ]
+            },
+            {
+                title: "B. TOOLS & PERALATAN",
+                items: [
+                    { id: 7, category: 'Rapi', question: 'Tool diletakkan pada Checkpoint yang ditentukan' },
+                    { id: 8, category: 'Ringkas', question: 'Melakukan Sortiran MB Bekas serta merapikan di area Limbah' },
+                    { id: 9, category: 'Rawat', question: 'Perawatan Sorting Basket (Kondisi baik/bersih)' },
+                    { id: 10, category: 'Rawat', question: 'Perawatan Pigeon Hole (Kondisi baik/bersih)' },
+                    { id: 11, category: 'Rawat', question: 'Perawatan Trolly Cage (Roda lancar, tidak rusak)' },
+                    { id: 12, category: 'Rawat', question: 'Perawatan Pallet Mesh (Tidak penyok/rusak)' },
+                ]
+            }
+        ];
+
+        const page2Sections = [
+            {
+                title: "C. RAK PENYIMPANAN",
+                items: [
+                    { id: 13, category: 'Rawat', question: 'Perawatan Rak Dokumen dan Tools', isWeekly: true },
+                    { id: 14, category: 'Rapi', question: 'Rak dokumen dan Tools dalam keadaan tertata Rapih' },
+                ]
+            },
+            {
+                title: "D. PRASARANA & FASILITAS",
+                items: [
+                    { id: 15, category: 'Rapi', question: 'Area Istirahat/Musholla rapih & terbebas dari barang pribadi' },
+                    { id: 16, category: 'Safety', question: 'Memastikan persediaan P3K sesuai dengan standar K3', isWeekly: true },
+                    { id: 17, category: 'Rajin', question: 'Informasi board di update (KPI/Pengumuman)', isWeekly: true },
+                ]
+            }
+        ];
+
+        const monthNames = [
+            "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+            "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+        ];
+
+        let currentYear = new Date().getFullYear();
+        let currentMonth = new Date().getMonth();
+        let checks = {}; 
+        const STORAGE_PREFIX = "5R_LOGSHEET_V2_";
+
+        document.addEventListener('DOMContentLoaded', () => {
+            init();
+            
+            const btnReset = document.getElementById('btnReset');
+            const btnDownload = document.getElementById('btnDownloadPDF');
+
+            if(btnReset) btnReset.addEventListener('click', (e) => { e.preventDefault(); resetData(); });
+            if(btnDownload) btnDownload.addEventListener('click', (e) => { e.preventDefault(); downloadPDF(); });
+
+            const area1 = document.getElementById('areaInput1');
+            const insp1 = document.getElementById('inspectorInput1');
+            
+            area1.addEventListener('input', (e) => {
+                document.getElementById('areaDisplay2').innerText = e.target.value;
+                saveMetadata();
+            });
+            
+            insp1.addEventListener('input', (e) => {
+                const val = e.target.value;
+                document.getElementById('inspectorDisplay2').innerText = val;
+                document.getElementById('signerName').innerText = val || 'Leader Area';
+                saveMetadata();
+            });
+        });
+
+        function init() {
+            const storedMonth = localStorage.getItem(STORAGE_PREFIX + 'lastMonth');
+            const storedYear = localStorage.getItem(STORAGE_PREFIX + 'lastYear');
+            
+            if(storedMonth !== null) currentMonth = parseInt(storedMonth);
+            if(storedYear !== null) currentYear = parseInt(storedYear);
+
+            const yearSelect = document.getElementById('yearSelect');
+            for(let y = new Date().getFullYear() - 2; y <= new Date().getFullYear() + 2; y++) {
+                const opt = document.createElement('option');
+                opt.value = y;
+                opt.text = y;
+                if(y === currentYear) opt.selected = true;
+                yearSelect.appendChild(opt);
+            }
+
+            const monthSelect = document.getElementById('monthSelect');
+            monthNames.forEach((m, i) => {
+                const opt = document.createElement('option');
+                opt.value = i;
+                opt.text = m;
+                if(i === currentMonth) opt.selected = true;
+                monthSelect.appendChild(opt);
+            });
+
+            yearSelect.addEventListener('change', (e) => { 
+                currentYear = parseInt(e.target.value); 
+                localStorage.setItem(STORAGE_PREFIX + 'lastYear', currentYear);
+                loadDataForCurrentMonth(); 
+                renderAll(); 
+            });
+            
+            monthSelect.addEventListener('change', (e) => { 
+                currentMonth = parseInt(e.target.value); 
+                localStorage.setItem(STORAGE_PREFIX + 'lastMonth', currentMonth);
+                loadDataForCurrentMonth(); 
+                renderAll(); 
+            });
+
+            loadDataForCurrentMonth();
+            renderAll();
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function getStorageKey() {
+            return `${STORAGE_PREFIX}${currentYear}_${currentMonth}`;
+        }
+
+        function loadDataForCurrentMonth() {
+            const key = getStorageKey();
+            const rawData = localStorage.getItem(key);
+            
+            const area1 = document.getElementById('areaInput1');
+            const insp1 = document.getElementById('inspectorInput1');
+            const area2 = document.getElementById('areaDisplay2');
+            const insp2 = document.getElementById('inspectorDisplay2');
+            const signer = document.getElementById('signerName');
+
+            if (rawData) {
+                const data = JSON.parse(rawData);
+                checks = data.checks || {};
+                
+                if(data.area) {
+                    area1.value = data.area;
+                    area2.innerText = data.area;
+                }
+                if(data.inspector) {
+                    insp1.value = data.inspector;
+                    insp2.innerText = data.inspector;
+                    signer.innerText = data.inspector;
+                }
+            } else {
+                checks = {};
+            }
+        }
+
+        function saveMetadata() {
+            const key = getStorageKey();
+            const dataToSave = {
+                checks: checks,
+                area: document.getElementById('areaInput1').value,
+                inspector: document.getElementById('inspectorInput1').value
+            };
+            localStorage.setItem(key, JSON.stringify(dataToSave));
+        }
+
+        function renderAll() {
+            const dateStr = `${monthNames[currentMonth]} ${currentYear}`;
+            document.querySelectorAll('.dateDisplay').forEach(el => el.innerText = dateStr);
+            renderTablePart('tbody1', page1Sections);
+            renderTablePart('tbody2', page2Sections);
+        }
+
+        function renderTablePart(tbodyId, sectionsToRender) {
+            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+            const daysHeaderCols = document.querySelectorAll('.daysHeader');
+            const dateRows = document.querySelectorAll('.dateRow');
+            const tbody = document.getElementById(tbodyId);
+
+            daysHeaderCols.forEach(header => header.colSpan = daysInMonth);
+            dateRows.forEach(row => {
+                row.innerHTML = '';
+                for (let d = 1; d <= daysInMonth; d++) {
+                    const th = document.createElement('th');
+                    // Add col-date class for Fixed Layout
+                    th.className = "border border-gray-300 w-6 text-center text-[10px] p-1 col-date";
+                    th.innerText = d;
+                    row.appendChild(th);
+                }
+            });
+
+            tbody.innerHTML = '';
+            
+            sectionsToRender.forEach(section => {
+                const sectionRow = document.createElement('tr');
+                sectionRow.className = "bg-blue-100 print:bg-gray-300";
+                sectionRow.innerHTML = `
+                    <td colspan="${daysInMonth + 2}" class="p-2 font-bold text-sm border border-gray-400 text-blue-900 print:text-black">
+                        ${section.title}
+                    </td>
+                `;
+                tbody.appendChild(sectionRow);
+
+                section.items.forEach(item => {
+                    const row = document.createElement('tr');
+                    const rowClass = item.isWeekly ? "hover:bg-blue-50 transition-colors bg-yellow-50/50" : "hover:bg-blue-50 transition-colors";
+                    row.className = rowClass;
+
+                    let badgeClass = 'bg-gray-50 text-gray-700 border-gray-200';
+                    if(item.category === 'Ringkas') badgeClass = 'bg-red-50 text-red-700 border-red-200';
+                    if(item.category === 'Rapi') badgeClass = 'bg-blue-50 text-blue-700 border-blue-200';
+                    if(item.category === 'Resik') badgeClass = 'bg-green-50 text-green-700 border-green-200';
+                    if(item.category === 'Rawat') badgeClass = 'bg-purple-50 text-purple-700 border-purple-200';
+                    if(item.category === 'Safety') badgeClass = 'bg-orange-50 text-orange-700 border-orange-200';
+
+                    const weeklyBadge = item.isWeekly ? `⚠️` : '';
+                    const weeklyAsterisk = item.isWeekly ? `<span class="text-red-500 font-bold ml-1">*</span>` : '';
+
+                    let html = `
+                        <td class="border border-gray-300 text-center p-1 font-mono text-[10px] text-gray-500 col-no">${item.id}</td>
+                        <td class="border border-gray-300 p-1 px-2 col-item">
+                            <div class="font-semibold text-gray-700 mb-0.5 flex items-center gap-1">
+                                <span class="px-1 rounded text-[9px] border ${badgeClass} print:border-none print:bg-transparent print:text-black print:px-0 print:font-bold">
+                                    [${item.category}]
+                                </span>
+                                <span class="text-[9px]">${weeklyBadge}</span>
+                            </div>
+                            <div class="leading-tight text-[11px] text-gray-600 print:text-black">
+                                ${item.question} ${weeklyAsterisk}
+                            </div>
+                        </td>
+                    `;
+
+                    for (let d = 1; d <= daysInMonth; d++) {
+                        const dateObj = new Date(currentYear, currentMonth, d);
+                        const isSunday = dateObj.getDay() === 0;
+                        const key = `${item.id}-${d}`;
+                        const isChecked = checks[key] === true;
+                        
+                        const cellClass = `border border-gray-300 text-center p-0 check-cell ${isSunday ? 'sunday' : ''} ${isChecked ? 'active' : ''} col-date`;
+                        
+                        html += `
+                            <td class="${cellClass}" onclick="toggleCheck(${item.id}, ${d}, this)">
+                                <div class="w-full h-full min-h-[24px] flex items-center justify-center text-[14px]">
+                                    ${isChecked ? '✓' : ''}
+                                </div>
+                            </td>
+                        `;
+                    }
+                    row.innerHTML = html;
+                    tbody.appendChild(row);
+                });
+            });
+
+            const parafRow = document.createElement('tr');
+            parafRow.className = "print:h-12";
+            let parafHtml = `
+                <td colspan="2" class="border border-gray-300 p-2 text-right font-bold italic text-gray-500">
+                    Paraf Leader
+                </td>
+            `;
+            for (let d = 1; d <= daysInMonth; d++) {
+                parafHtml += `<td class="border border-gray-300"></td>`;
+            }
+            parafRow.innerHTML = parafHtml;
+            tbody.appendChild(parafRow);
+        }
+
+        window.toggleCheck = function(itemId, day, cellElement) {
+            const key = `${itemId}-${day}`;
+            if (checks[key]) {
+                delete checks[key];
+                cellElement.classList.remove('active');
+                cellElement.querySelector('div').innerText = '';
+            } else {
+                checks[key] = true;
+                cellElement.classList.add('active');
+                cellElement.querySelector('div').innerText = '✓';
+            }
+            saveMetadata();
+        }
+
+        window.resetData = function() {
+            Swal.fire({
+                title: 'Hapus Data Bulan Ini?',
+                text: "Data " + monthNames[currentMonth] + " akan dihapus.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                confirmButtonText: 'Hapus!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    checks = {};
+                    saveMetadata();
+                    renderAll();
+                    Swal.fire('Terhapus!', '', 'success');
+                }
+            })
+        }
+
+        window.downloadPDF = function() {
+            const element = document.getElementById('contentToPrint');
+            element.classList.add('pdf-mode');
+            
+            const inputs = element.querySelectorAll('input');
+            inputs.forEach(input => { input.setAttribute('value', input.value); });
+
+            const opt = {
+                margin:       [3, 3, 3, 3], /* Margin 3mm */
+                filename:     `Logsheet_5R_${monthNames[currentMonth]}_${currentYear}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { 
+                    scale: 2, 
+                    useCORS: true, 
+                    scrollX: 0,
+                    scrollY: 0,
+                    windowWidth: 1200 /* Lebar virtual window yang pas */
+                },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' },
+                pagebreak:    { mode: ['css', 'legacy'] }
+            };
+
+            html2pdf().set(opt).from(element).save().then(() => {
+                element.classList.remove('pdf-mode');
+            });
+        }
+    </script>
+</body>
+</html>
