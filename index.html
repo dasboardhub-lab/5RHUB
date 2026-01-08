@@ -196,8 +196,10 @@
                     <label class="block text-sm font-bold mb-1">Kode User</label>
                     <select id="loginUser" class="w-full border p-2 rounded bg-white">
                         <option value="">Pilih User...</option>
-                        <option value="MKS">MKS (User)</option>
-                        <option value="Spv">Spv (Admin)</option>
+                        <option value="HUB MKS">MKS</option>
+                        <option value="HUB BPP">BPP</option>
+                        <option value="HUB BJM">BJM</option>
+                        <option value="Coordinator">Coordinator</option>
                     </select>
                 </div>
                 <div class="mb-6">
@@ -339,8 +341,10 @@
 
         const MONTHS = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
         const ACCOUNTS = { 
-            'Spv': { p: 'TAB123', role: 'admin' }, 
+            'Coordinator': { p: 'TAB123', role: 'admin' }, 
             'MKS': { p: 'MKS01', role: 'user', name: 'Muhammad fahri', area: 'HUB Makassar' } 
+            'BPP': { p: 'BPP01', role: 'user', name: 'Mulyadi', area: 'HUB Balikpapan' } 
+            'BJM': { p: 'BJM01', role: 'user', name: 'Muhammad Ridho', area: 'HUB Banjarmasin' } 
         };
 
         let state = { user: null, year: new Date().getFullYear(), month: new Date().getMonth(), checks: {} };
