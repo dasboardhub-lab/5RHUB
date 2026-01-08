@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Logsheet 5R</title>
+    <title>Logsheet 5R (Online)</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -104,6 +104,18 @@
             margin-bottom: 2px;
         }
 
+        /* Style untuk Header Kategori (Area Proses, Tools, dll) */
+        .group-header {
+            background-color: #e0f2fe; /* Sky 100 */
+            color: #0c4a6e; /* Sky 900 */
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 11px;
+            padding: 6px 10px;
+            border-bottom: 1px solid #bae6fd;
+            border-right: 1px solid #e2e8f0;
+        }
+
         .check-box {
             cursor: pointer;
             height: 25px;
@@ -112,9 +124,23 @@
             justify-content: center;
             font-weight: bold;
             font-size: 14px;
+            transition: all 0.1s;
         }
+        .check-box:hover { background-color: #f0fdf4; }
         .check-box.checked { background-color: #dcfce7; color: #166534; }
         .cell-sunday { background-color: #fef2f2; }
+
+        /* Status Koneksi */
+        .status-badge {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 99px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .status-online { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+        .status-offline { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
 
         /* --- 5. PRINT CSS --- */
         @media print {
@@ -122,7 +148,7 @@
             
             body { margin: 0; padding: 0; background: white; height: auto; }
             
-            .no-print, #loginModal, button { display: none !important; }
+            .no-print, #loginModal, button, .admin-select-wrapper { display: none !important; }
             
             .main-container {
                 box-shadow: none; margin: 0; border: none; 
@@ -150,6 +176,7 @@
 
             thead th { position: static; background: #eee !important; border: 1px solid black; color: black; }
             td { border: 1px solid black; padding: 2px; }
+            .group-header { background-color: #f0f9ff !important; color: black !important; border: 1px solid black; font-weight: bold; }
 
             .col-no { width: 3%; text-align: center; }
             .col-item { width: 40%; text-align: left; }
@@ -159,7 +186,6 @@
                 border: none; background: transparent; padding: 0; 
                 font-weight: bold; appearance: none;
             }
-            /* Hilangkan panah select saat print */
             select::-ms-expand { display: none; }
         }
     </style>
@@ -177,7 +203,7 @@
                     <i data-lucide="shield-check" class="w-10 h-10"></i>
                 </div>
                 <h2 class="text-2xl font-bold text-gray-800 tracking-tight">Login Sistem 5R</h2>
-                <p class="text-gray-500 text-sm mt-1">Silakan masuk untuk akses data logsheet</p>
+                <p class="text-gray-500 text-sm mt-1">Sistem Online & Real-time</p>
             </div>
 
             <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-5">
@@ -210,9 +236,8 @@
                     </div>
                 </div>
 
-                <button type="submit" class="w-full bg-gradient-to-r from-blue-700 to-indigo-800 text-white font-bold py-3.5 rounded-xl hover:from-blue-800 hover:to-indigo-900 transform transition-all active:scale-[0.98] shadow-lg hover:shadow-blue-500/30 flex items-center justify-center gap-2 mt-2">
-                    <span>MASUK APLIKASI</span>
-                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                <button type="submit" id="btnLogin" disabled class="w-full bg-gray-400 cursor-not-allowed text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 mt-2 transition-all">
+                    <span>MENGHUBUNGKAN...</span>
                 </button>
                 
                 <!-- Error Box Modern -->
@@ -221,14 +246,15 @@
                         <i data-lucide="alert-circle" class="w-5 h-5 text-red-600 mt-0.5"></i>
                         <div>
                             <p class="text-sm font-bold text-red-800">Gagal Masuk</p>
-                            <p class="text-xs text-red-600">Username atau password yang Anda masukkan salah.</p>
+                            <p class="text-xs text-red-600">Username atau password salah.</p>
                         </div>
                     </div>
                 </div>
             </form>
             
-            <div class="mt-8 pt-4 border-t border-gray-100 text-center">
-                <p class="text-[10px] text-gray-400 uppercase tracking-widest font-semibold">Digital Logsheet System v1.0</p>
+            <div class="mt-8 pt-4 border-t border-gray-100 text-center flex justify-center gap-2 items-center">
+                <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                <p class="text-[10px] text-gray-400 uppercase tracking-widest font-semibold">Server Connected</p>
             </div>
         </div>
     </div>
@@ -238,10 +264,34 @@
         
         <!-- Controls -->
         <div class="max-w-[1400px] mx-auto mt-4 px-4 flex justify-between items-center no-print">
-            <div class="text-sm font-bold text-gray-600 bg-white px-3 py-1 rounded-full shadow-sm border border-gray-200 flex items-center gap-2">
-                <i data-lucide="user-circle" class="w-4 h-4 text-blue-600"></i>
-                User: <span id="displayUser" class="text-blue-800">Guest</span>
+            
+            <!-- User Info & Admin Switcher -->
+            <div class="flex items-center gap-3">
+                <div class="text-sm font-bold text-gray-600 bg-white px-3 py-1 rounded-full shadow-sm border border-gray-200 flex items-center gap-2">
+                    <i data-lucide="user-circle" class="w-4 h-4 text-blue-600"></i>
+                    <span id="displayUser" class="text-blue-800">Guest</span>
+                    
+                    <!-- SELECTOR KHUSUS ADMIN -->
+                    <div id="adminControls" class="hidden flex items-center border-l border-gray-300 ml-2 pl-2">
+                        <span class="text-xs text-gray-400 mr-1">DATA:</span>
+                        <select id="adminViewSelector" class="text-xs font-bold bg-transparent outline-none text-gray-700 cursor-pointer hover:text-blue-600 border rounded border-gray-300 px-1">
+                            <!-- Options generated by JS -->
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Status Badge -->
+                <div class="status-badge status-online">
+                    <div class="w-1.5 h-1.5 rounded-full bg-green-600 animate-pulse"></div>
+                    Online
+                </div>
+                
+                <!-- Saving Indicator -->
+                <div id="savingIndicator" class="hidden text-xs text-gray-400 italic">
+                    Menyimpan...
+                </div>
             </div>
+
             <div class="flex gap-2">
                 <button onclick="doReset()" id="btnReset" class="hidden px-4 py-2 bg-red-600 text-white text-xs font-bold rounded hover:bg-red-700 transition-colors shadow-sm">
                     RESET DATA
@@ -339,31 +389,61 @@
     </div>
 
     <!-- LOGIC -->
-    <script>
-        // DATA
-        const ITEMS = [
-            { cat: 'RESIK', txt: 'Pembuangan Sampah All Proses' },
-            { cat: 'RESIK', txt: 'Permukaan Lantai All Area Steril' },
-            { cat: 'RINGKAS', txt: 'Marka Pedestrian terbebas dari barang' },
-            { cat: 'RESIK', txt: 'Area HV & Dokumen Steril' },
-            { cat: 'RAPI', txt: 'Area Leader Rapi' },
-            { cat: 'RAPI', txt: 'Barang Holding tersimpan benar' },
-            { cat: 'RAPI', txt: 'Tool diletakkan pada Checkpoint' },
-            { cat: 'RINGKAS', txt: 'Sortiran MB Bekas & Limbah' },
-            { cat: 'RAWAT', txt: 'Perawatan Sorting Basket' },
-            { cat: 'RAWAT', txt: 'Perawatan Pigeon Hole' },
-            { cat: 'RAWAT', txt: 'Perawatan Trolly Cage' },
-            { cat: 'RAWAT', txt: 'Perawatan Pallet Mesh' },
-            { cat: 'RAWAT', txt: 'Perawatan Rak Dokumen & Tools', week: true },
-            { cat: 'RAPI', txt: 'Rak dokumen tertata Rapih' },
-            { cat: 'RAPI', txt: 'Area Istirahat/Musholla Rapi' },
-            { cat: 'SAFETY', txt: 'P3K sesuai standar K3', week: true },
-            { cat: 'RAJIN', txt: 'Update Info Board (KPI)', week: true }
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+
+        // --- FIREBASE CONFIGURATION ---
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+        // --- DATA CONSTANTS (NEW GROUPING) ---
+        const GROUPS = [
+            {
+                title: "Area Proses",
+                items: [
+                    { cat: 'RESIK', txt: 'Pembuangan Sampah All Proses' },
+                    { cat: 'RESIK', txt: 'Permukaan Lantai All Area Steril dan bersih' },
+                    { cat: 'RINGKAS', txt: 'Marka Pedestrian terbebas dari Barang-barang/Tools' },
+                    { cat: 'RESIK', txt: 'Area HV, Dokument dan Non Halal dalam kondisi Steril & Bersih' },
+                    { cat: 'RAPI', txt: 'Area Leader dalam keadaan rapi' },
+                    { cat: 'RAPI', txt: 'Barang Holding tersimpan pada Area Holding' }
+                ]
+            },
+            {
+                title: "Tools",
+                items: [
+                    { cat: 'RAPI', txt: 'Tool diletakkan pada Checkpoint' },
+                    { cat: 'RINGKAS', txt: 'Melakukan Sortiran MB Bekas serta merapikan di area Limbah' },
+                    { cat: 'RAWAT', txt: 'Perawatan Sorting Basket' },
+                    { cat: 'RAWAT', txt: 'Perawatan Pigeon Hole' },
+                    { cat: 'RAWAT', txt: 'Perawatan Trolly Cage' },
+                    { cat: 'RAWAT', txt: 'Perawatan Pallet Mesh' }
+                ]
+            },
+            {
+                title: "Rak",
+                items: [
+                    { cat: 'RAWAT', txt: 'Perawatan Rak Dokument dan Tools', week: true },
+                    { cat: 'RAPI', txt: 'Rak dokument dan Tools dalam keadaan tertata Rapih' }
+                ]
+            },
+            {
+                title: "Prasarana",
+                items: [
+                    { cat: 'RAPI', txt: 'Area Istirahat/Musholla dalam keadaan Rapih dan terbebas dari barang pribadi' },
+                    { cat: 'SAFETY', txt: 'Memastikan persediaan P3K sesuai dengan standar K3', week: true },
+                    { cat: 'RAJIN', txt: 'Informasi board di update', week: true }
+                ]
+            }
         ];
 
         const MONTHS = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
         
-        // AKUN PENGGUNA
         const ACCOUNTS = { 
             'Coordinator': { p: 'TAB123', role: 'admin' }, 
             'MKS': { p: 'MKS01', role: 'user', name: 'Muhammad fahri', area: 'HUB Makassar' },
@@ -371,18 +451,35 @@
             'BJM': { p: 'BJM01', role: 'user', name: 'Muhammad Ridho', area: 'HUB Banjarmasin' } 
         };
 
-        let state = { user: null, year: new Date().getFullYear(), month: new Date().getMonth(), checks: {} };
+        // --- GLOBAL STATE ---
+        let state = { user: null, viewUser: null, year: new Date().getFullYear(), month: new Date().getMonth(), checks: {} };
+        let unsubscribeListener = null;
 
-        // INIT
+        // --- INIT ---
+        async function initAuth() {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+                const btn = document.getElementById('btnLogin');
+                btn.disabled = false;
+                btn.classList.remove('bg-gray-400', 'cursor-not-allowed');
+                btn.classList.add('bg-gradient-to-r', 'from-blue-700', 'to-indigo-800', 'hover:from-blue-800', 'hover:to-indigo-900', 'shadow-lg');
+                btn.innerHTML = `<span>MASUK APLIKASI</span><i data-lucide="arrow-right" class="w-4 h-4"></i>`;
+                lucide.createIcons();
+            } catch (error) {
+                console.error("Auth Error:", error);
+                Swal.fire('Error Koneksi', 'Gagal terhubung ke database server.', 'error');
+            }
+        }
+        initAuth();
+
+        // 2. Setup UI
         document.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons();
             
-            const sess = sessionStorage.getItem('5R_LOGIN');
-            if(sess) {
-                state.user = JSON.parse(sess);
-                showApp();
-            }
-
             const ySel = document.getElementById('selYear');
             for(let i=state.year-1; i<=state.year+2; i++) ySel.add(new Option(i, i));
             ySel.value = state.year;
@@ -391,109 +488,167 @@
             MONTHS.forEach((m, i) => mSel.add(new Option(m, i)));
             mSel.value = state.month;
 
-            ySel.onchange = (e) => { state.year = parseInt(e.target.value); loadData(); render(); };
-            mSel.onchange = (e) => { state.month = parseInt(e.target.value); loadData(); render(); };
+            // Debounced save for inputs
+            let timeout;
+            const debouncedSave = () => {
+                clearTimeout(timeout);
+                timeout = setTimeout(saveData, 1000);
+            };
 
-            document.getElementById('inpArea').oninput = saveData;
+            document.getElementById('inpArea').oninput = debouncedSave;
             document.getElementById('inpPic').oninput = (e) => {
                 document.getElementById('txtSigner').innerText = e.target.value || 'Leader';
-                saveData();
+                debouncedSave();
             };
+            
+            window.handleLogin = handleLogin;
+            window.toggleCheck = toggleCheck;
+            window.doReset = doReset;
+            window.doLogout = doLogout;
         });
 
-        // AUTH
+        // --- AUTH LOGIC (CLIENT SIDE) ---
         function handleLogin(e) {
             e.preventDefault();
             const u = document.getElementById('loginUser').value;
             const p = document.getElementById('loginPass').value;
             const errBox = document.getElementById('loginErrorMsg');
 
-            // Cek apakah user ada di daftar dan password cocok
             if(u && ACCOUNTS[u] && ACCOUNTS[u].p === p) {
                 state.user = { id: u, ...ACCOUNTS[u] };
-                sessionStorage.setItem('5R_LOGIN', JSON.stringify(state.user));
                 errBox.classList.add('hidden'); 
                 showApp();
             } else {
-                errBox.classList.remove('hidden'); // Tampilkan pesan error
+                errBox.classList.remove('hidden'); 
             }
         }
 
         function showApp() {
-            // Sembunyikan login modal
-            const loginModal = document.getElementById('loginModal');
-            loginModal.classList.remove('flex');
-            loginModal.classList.add('hidden');
-
+            document.getElementById('loginModal').classList.add('hidden');
+            document.getElementById('loginModal').classList.remove('flex');
             document.getElementById('appContainer').classList.remove('hidden');
+            
             document.getElementById('displayUser').innerText = state.user.id;
 
             const area = document.getElementById('inpArea');
             const pic = document.getElementById('inpPic');
             const btnReset = document.getElementById('btnReset');
+            const adminControls = document.getElementById('adminControls');
+            const adminSelect = document.getElementById('adminViewSelector');
 
-            if(state.user.role === 'user') {
-                area.value = state.user.area; area.readOnly = true;
-                pic.value = state.user.name; pic.readOnly = true;
-                document.getElementById('txtSigner').innerText = state.user.name;
-                btnReset.classList.add('hidden');
-            } else {
-                area.readOnly = false; pic.readOnly = false;
+            if(state.user.role === 'admin') {
+                adminControls.classList.remove('hidden');
                 btnReset.classList.remove('hidden');
+                
+                adminSelect.innerHTML = '';
+                let firstUser = '';
+                Object.keys(ACCOUNTS).forEach(key => {
+                    if(ACCOUNTS[key].role === 'user') {
+                        if(!firstUser) firstUser = key;
+                        adminSelect.add(new Option(key, key));
+                    }
+                });
+
+                state.viewUser = firstUser;
+                adminSelect.value = firstUser;
+
+                adminSelect.onchange = (e) => {
+                    state.viewUser = e.target.value;
+                    setupRealtimeListener();
+                };
+
+                area.readOnly = false; pic.readOnly = false;
+
+            } else {
+                adminControls.classList.add('hidden');
+                btnReset.classList.add('hidden');
+                state.viewUser = state.user.id;
+                area.readOnly = true; pic.readOnly = true;
             }
 
-            loadData();
-            render();
+            setupRealtimeListener();
         }
 
-        // FUNGSI LOGOUT YANG DIPERBAIKI
-        window.doLogout = function() {
-            // Hapus sesi
-            sessionStorage.removeItem('5R_LOGIN');
+        function doLogout() {
+            if(unsubscribeListener) unsubscribeListener();
             state.user = null;
-
-            // Reset Form Login
+            state.viewUser = null;
             document.getElementById('loginPass').value = '';
             document.getElementById('loginUser').value = '';
-            document.getElementById('loginErrorMsg').classList.add('hidden');
-
-            // Sembunyikan App
             document.getElementById('appContainer').classList.add('hidden');
-
-            // Tampilkan Modal Login
             const loginModal = document.getElementById('loginModal');
             loginModal.classList.remove('hidden');
-            loginModal.classList.add('flex'); // Kembalikan flex agar di tengah
+            loginModal.classList.add('flex');
         }
 
-        function getKey() { return `5R_${state.year}_${state.month}`; }
+        // --- FIRESTORE LOGIC ---
+        function getDocId() {
+            return `${state.viewUser}_${state.year}_${state.month}`; 
+        }
 
-        function loadData() {
-            const raw = localStorage.getItem(getKey());
-            if(raw) {
-                const data = JSON.parse(raw);
-                state.checks = data.checks || {};
-                if(state.user.role === 'admin') {
-                    if(data.area) document.getElementById('inpArea').value = data.area;
-                    if(data.pic) {
-                        document.getElementById('inpPic').value = data.pic;
-                        document.getElementById('txtSigner').innerText = data.pic;
+        function setupRealtimeListener() {
+            if (unsubscribeListener) unsubscribeListener();
+            
+            const docId = getDocId();
+            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'logsheet_5r', docId);
+
+            unsubscribeListener = onSnapshot(docRef, (docSnap) => {
+                const targetAccount = ACCOUNTS[state.viewUser];
+                let defaultArea = targetAccount ? targetAccount.area : '';
+                let defaultPic = targetAccount ? targetAccount.name : '';
+
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    state.checks = data.checks || {};
+                    
+                    const areaEl = document.getElementById('inpArea');
+                    const picEl = document.getElementById('inpPic');
+                    
+                    if(document.activeElement !== areaEl) areaEl.value = data.area || defaultArea;
+                    if(document.activeElement !== picEl) {
+                        picEl.value = data.pic || defaultPic;
+                        document.getElementById('txtSigner').innerText = (data.pic || defaultPic);
                     }
+                } else {
+                    state.checks = {};
+                    document.getElementById('inpArea').value = defaultArea;
+                    document.getElementById('inpPic').value = defaultPic;
+                    document.getElementById('txtSigner').innerText = defaultPic;
                 }
-            } else {
-                state.checks = {};
+                render();
+            }, (error) => {
+                console.error("Firestore Listen Error:", error);
+            });
+        }
+
+        async function saveData() {
+            if(!auth.currentUser) return;
+
+            const docId = getDocId();
+            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'logsheet_5r', docId);
+
+            const dataToSave = {
+                checks: state.checks,
+                area: document.getElementById('inpArea').value,
+                pic: document.getElementById('inpPic').value,
+                updatedAt: new Date().toISOString(),
+                updatedBy: state.user.id
+            };
+
+            const indicator = document.getElementById('savingIndicator');
+            indicator.classList.remove('hidden');
+
+            try {
+                await setDoc(docRef, dataToSave, { merge: true });
+                setTimeout(() => indicator.classList.add('hidden'), 500);
+            } catch (e) {
+                console.error("Save failed", e);
+                indicator.innerText = "Gagal simpan!";
+                indicator.classList.add('text-red-500');
             }
         }
 
-        function saveData() {
-            const data = {
-                checks: state.checks,
-                area: document.getElementById('inpArea').value,
-                pic: document.getElementById('inpPic').value
-            };
-            localStorage.setItem(getKey(), JSON.stringify(data));
-        }
-
+        // --- RENDER & INTERACTION ---
         function render() {
             const daysInMonth = new Date(state.year, state.month + 1, 0).getDate();
             const dateRow = document.getElementById('headerDatesRow');
@@ -507,61 +662,81 @@
             dateRow.innerHTML = hHtml;
 
             let bHtml = '';
-            ITEMS.forEach((item, idx) => {
-                const no = idx + 1;
-                let badgeClass = 'bg-gray-100 text-gray-600 border-gray-300';
-                if(item.cat === 'RESIK') badgeClass = 'bg-green-50 text-green-700 border-green-200';
-                if(item.cat === 'RAPI') badgeClass = 'bg-blue-50 text-blue-700 border-blue-200';
-                if(item.cat === 'RINGKAS') badgeClass = 'bg-red-50 text-red-700 border-red-200';
-                if(item.cat === 'RAWAT') badgeClass = 'bg-purple-50 text-purple-700 border-purple-200';
-                if(item.cat === 'RAJIN') badgeClass = 'bg-orange-50 text-orange-700 border-orange-200';
-                
-                const weekBadge = item.week ? '<span class="text-red-500 ml-1 font-bold">*</span>' : '';
+            let globalNo = 0; // Nomor urut lanjut terus antar grup
 
+            GROUPS.forEach(group => {
+                // RENDER GROUP HEADER
+                // Colspan = No + Item + DaysInMonth
                 bHtml += `
                 <tr>
-                    <td class="text-center font-mono text-gray-500 bg-gray-50">${no}</td>
-                    <td class="p-2">
-                        <span class="badge ${badgeClass}">${item.cat}</span>
-                        <div class="text-[11px] leading-tight font-medium mt-1">${item.txt} ${weekBadge}</div>
+                    <td colspan="${2 + daysInMonth}" class="group-header">
+                        ${group.title}
                     </td>
+                </tr>
                 `;
 
-                for(let d=1; d<=daysInMonth; d++) {
-                    const key = `${no}-${d}`;
-                    const isChecked = state.checks[key];
-                    const isSun = new Date(state.year, state.month, d).getDay() === 0;
+                group.items.forEach(item => {
+                    globalNo++;
                     
-                    const bgClass = isSun ? 'cell-sunday' : '';
-                    const activeClass = isChecked ? 'checked' : '';
-                    const val = isChecked ? '✓' : '';
+                    let badgeClass = 'bg-gray-100 text-gray-600 border-gray-300';
+                    if(item.cat === 'RESIK') badgeClass = 'bg-green-50 text-green-700 border-green-200';
+                    if(item.cat === 'RAPI') badgeClass = 'bg-blue-50 text-blue-700 border-blue-200';
+                    if(item.cat === 'RINGKAS') badgeClass = 'bg-red-50 text-red-700 border-red-200';
+                    if(item.cat === 'RAWAT') badgeClass = 'bg-purple-50 text-purple-700 border-purple-200';
+                    if(item.cat === 'RAJIN') badgeClass = 'bg-orange-50 text-orange-700 border-orange-200';
+                    if(item.cat === 'SAFETY') badgeClass = 'bg-yellow-50 text-yellow-700 border-yellow-200';
+                    
+                    const weekBadge = item.week ? '<span class="text-red-500 ml-1 font-bold">*</span>' : '';
 
                     bHtml += `
-                    <td class="${bgClass}">
-                        <div class="check-box ${activeClass}" onclick="toggleCheck(${no}, ${d})">${val}</div>
-                    </td>`;
-                }
-                bHtml += `</tr>`;
+                    <tr>
+                        <td class="text-center font-mono text-gray-500 bg-gray-50">${globalNo}</td>
+                        <td class="p-2">
+                            <span class="badge ${badgeClass}">${item.cat}</span>
+                            <div class="text-[11px] leading-tight font-medium mt-1">${item.txt} ${weekBadge}</div>
+                        </td>
+                    `;
+
+                    for(let d=1; d<=daysInMonth; d++) {
+                        const key = `${globalNo}-${d}`;
+                        const isChecked = state.checks[key];
+                        const isSun = new Date(state.year, state.month, d).getDay() === 0;
+                        
+                        const bgClass = isSun ? 'cell-sunday' : '';
+                        const activeClass = isChecked ? 'checked' : '';
+                        const val = isChecked ? '✓' : '';
+
+                        bHtml += `
+                        <td class="${bgClass}">
+                            <div class="check-box ${activeClass}" onclick="toggleCheck(${globalNo}, ${d})">${val}</div>
+                        </td>`;
+                    }
+                    bHtml += `</tr>`;
+                });
             });
+
             tbody.innerHTML = bHtml;
         }
 
-        window.toggleCheck = function(id, day) {
+        function toggleCheck(id, day) {
             const key = `${id}-${day}`;
             if(state.checks[key]) delete state.checks[key];
             else state.checks[key] = true;
-            saveData();
             render();
+            saveData(); 
         }
 
-        window.doReset = function() {
+        function doReset() {
             Swal.fire({
-                title: 'Hapus Data?', text: 'Data bulan ini akan hilang selamanya.', icon: 'warning',
+                title: 'Hapus Data?', text: 'Data akan terhapus dari server.', icon: 'warning',
                 showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Ya, Hapus'
-            }).then(r => {
+            }).then(async (r) => {
                 if(r.isConfirmed) {
                     state.checks = {};
-                    saveData(); render();
+                    render();
+                    const docId = getDocId();
+                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'logsheet_5r', docId);
+                    await setDoc(docRef, { checks: {} }, { merge: true });
                     Swal.fire('Terhapus', '', 'success');
                 }
             });
