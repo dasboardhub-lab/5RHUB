@@ -68,18 +68,6 @@
             border-top: 4px solid #0052CC;
         }
 
-        /* --- STYLE PRINT BIASA --- */
-        @media print {
-            @page { size: landscape; margin: 1mm; }
-            body { margin: 0; padding: 0; background: white; }
-            .sheet-page { box-shadow: none; margin: 0; width: 100%; max-width: none; border: none; }
-            .no-print { display: none !important; }
-            .hide-on-print { display: none !important; }
-            .show-on-print { display: block !important; }
-            thead { display: table-header-group; }
-            tr { page-break-inside: avoid; }
-        }
-
         /* ==========================================================================
            [PENGATURAN PDF] - Edit bagian ini untuk menyesuaikan hasil Download PDF
            ========================================================================== */
