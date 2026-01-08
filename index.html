@@ -58,6 +58,10 @@
             font-size: 12px;
         }
 
+        /* --- PENGATURAN LEBAR KOLOM --- */
+        .col-no { width: 40px; min-width: 40px; }
+        .col-item { width: 250px; min-width: 200px; max-width: 300px; }
+
         /* Header Sticky */
         thead th {
             position: sticky;
@@ -70,20 +74,9 @@
         }
 
         /* Baris 1: Judul Kolom */
-        .th-row-1 th {
-            top: 0;
-            height: 40px;
-            z-index: 20; 
-            border-top: 1px solid #e2e8f0;
-        }
-
+        .th-row-1 th { top: 0; height: 40px; z-index: 20; border-top: 1px solid #e2e8f0; }
         /* Baris 2: Tanggal */
-        .th-row-2 th {
-            top: 40px; 
-            height: 30px;
-            background-color: white; 
-            z-index: 15;
-        }
+        .th-row-2 th { top: 40px; height: 30px; background-color: white; z-index: 15; }
 
         td {
             border-bottom: 1px solid #e2e8f0;
@@ -104,10 +97,10 @@
             margin-bottom: 2px;
         }
 
-        /* Style untuk Header Kategori (Area Proses, Tools, dll) */
+        /* Style untuk Header Kategori */
         .group-header {
-            background-color: #e0f2fe; /* Sky 100 */
-            color: #0c4a6e; /* Sky 900 */
+            background-color: #e0f2fe; 
+            color: #0c4a6e; 
             font-weight: bold;
             text-transform: uppercase;
             font-size: 11px;
@@ -116,6 +109,7 @@
             border-right: 1px solid #e2e8f0;
         }
 
+        /* Checkbox Styles */
         .check-box {
             cursor: pointer;
             height: 25px;
@@ -128,6 +122,21 @@
         }
         .check-box:hover { background-color: #f0fdf4; }
         .check-box.checked { background-color: #dcfce7; color: #166534; }
+        
+        /* Locked State */
+        .check-box.locked {
+            background-color: #f1f5f9; /* Abu-abu */
+            color: #94a3b8;
+            cursor: not-allowed;
+            pointer-events: none; /* Mencegah klik */
+            background-image: repeating-linear-gradient(45deg, transparent, transparent 2px, #e2e8f0 2px, #e2e8f0 4px);
+        }
+        .check-box.locked.checked {
+            background-color: #e2e8f0;
+            color: #64748b; /* Hijau pudar */
+            border: 1px solid #cbd5e1;
+        }
+
         .cell-sunday { background-color: #fef2f2; }
 
         /* Status Koneksi */
@@ -145,47 +154,26 @@
         /* --- 5. PRINT CSS --- */
         @media print {
             @page { size: landscape; margin: 5mm; }
-            
             body { margin: 0; padding: 0; background: white; height: auto; }
-            
             .no-print, #loginModal, button, .admin-select-wrapper { display: none !important; }
-            
             .main-container {
                 box-shadow: none; margin: 0; border: none; 
                 width: 100%; max-width: none; height: auto;
                 display: block;
             }
-
             .header-section { background: white; color: black; border-bottom: 2px solid black; padding: 5px 0; }
             .header-section h1 { font-size: 18px; text-transform: uppercase; }
-            
             .meta-section { border: none; padding: 5px 0; }
-            
-            .table-container {
-                overflow: visible !important;
-                height: auto !important;
-                display: block !important;
-            }
-            
-            table {
-                font-size: 10px; 
-                border-collapse: collapse; 
-                width: 100%;
-                table-layout: fixed; 
-            }
-
+            .table-container { overflow: visible !important; height: auto !important; display: block !important; }
+            table { font-size: 10px; border-collapse: collapse; width: 100%; table-layout: fixed; }
             thead th { position: static; background: #eee !important; border: 1px solid black; color: black; }
             td { border: 1px solid black; padding: 2px; }
             .group-header { background-color: #f0f9ff !important; color: black !important; border: 1px solid black; font-weight: bold; }
-
             .col-no { width: 3%; text-align: center; }
-            .col-item { width: 30%; text-align: left; }
+            .col-item { width: 40%; text-align: left; }
             .col-date { width: auto; text-align: center; } 
-
-            input, select { 
-                border: none; background: transparent; padding: 0; 
-                font-weight: bold; appearance: none;
-            }
+            .check-box.locked { background: transparent; color: black; } /* Hilangkan efek locked saat print */
+            input, select { border: none; background: transparent; padding: 0; font-weight: bold; appearance: none; }
             select::-ms-expand { display: none; }
         }
     </style>
@@ -195,9 +183,7 @@
     <!-- MODERN LOGIN SCREEN -->
     <div id="loginModal" class="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/90 backdrop-blur-sm transition-all duration-500">
         <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md relative overflow-hidden transform transition-all scale-100">
-            <!-- Decorative Header Line -->
             <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-800"></div>
-            
             <div class="text-center mb-8 mt-2">
                 <div class="bg-blue-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-700 shadow-sm ring-4 ring-blue-50/50">
                     <i data-lucide="shield-check" class="w-10 h-10"></i>
@@ -205,7 +191,6 @@
                 <h2 class="text-2xl font-bold text-gray-800 tracking-tight">Login Sistem 5R</h2>
                 <p class="text-gray-500 text-sm mt-1">Sistem Online & Real-time</p>
             </div>
-
             <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-5">
                 <div>
                     <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 ml-1">Pilih User</label>
@@ -225,7 +210,6 @@
                         </div>
                     </div>
                 </div>
-                
                 <div>
                     <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 ml-1">Password</label>
                     <div class="relative group">
@@ -235,12 +219,9 @@
                         <input type="password" id="loginPass" class="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50/50 hover:bg-white transition-all text-gray-700 outline-none" placeholder="Masukkan PIN/Password">
                     </div>
                 </div>
-
                 <button type="submit" id="btnLogin" disabled class="w-full bg-gray-400 cursor-not-allowed text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 mt-2 transition-all">
                     <span>MENGHUBUNGKAN...</span>
                 </button>
-                
-                <!-- Error Box Modern -->
                 <div id="loginErrorMsg" class="hidden animate-pulse">
                     <div class="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-3 mt-2">
                         <i data-lucide="alert-circle" class="w-5 h-5 text-red-600 mt-0.5"></i>
@@ -251,7 +232,6 @@
                     </div>
                 </div>
             </form>
-            
             <div class="mt-8 pt-4 border-t border-gray-100 text-center flex justify-center gap-2 items-center">
                 <div id="statusDot" class="w-2 h-2 rounded-full bg-yellow-500 animate-pulse"></div>
                 <p id="statusText" class="text-[10px] text-gray-400 uppercase tracking-widest font-semibold">Connecting to Server...</p>
@@ -265,43 +245,44 @@
         <!-- Controls -->
         <div class="max-w-[1400px] mx-auto mt-4 px-4 flex justify-between items-center no-print">
             
-            <!-- User Info & Admin Switcher -->
             <div class="flex items-center gap-3">
                 <div class="text-sm font-bold text-gray-600 bg-white px-3 py-1 rounded-full shadow-sm border border-gray-200 flex items-center gap-2">
                     <i data-lucide="user-circle" class="w-4 h-4 text-blue-600"></i>
                     <span id="displayUser" class="text-blue-800">Guest</span>
                     
                     <!-- SELECTOR KHUSUS ADMIN -->
-                    <div id="adminControls" class="hidden flex items-center border-l border-gray-300 ml-2 pl-2">
-                        <span class="text-xs text-gray-400 mr-1">DATA:</span>
-                        <select id="adminViewSelector" class="text-xs font-bold bg-transparent outline-none text-gray-700 cursor-pointer hover:text-blue-600 border rounded border-gray-300 px-1">
-                            <!-- Options generated by JS -->
-                        </select>
+                    <div id="adminControls" class="hidden flex items-center border-l border-gray-300 ml-2 pl-2 gap-2">
+                        <!-- View Selector -->
+                        <div class="flex items-center">
+                            <span class="text-xs text-gray-400 mr-1">DATA:</span>
+                            <select id="adminViewSelector" class="text-xs font-bold bg-transparent outline-none text-gray-700 cursor-pointer hover:text-blue-600 border rounded border-gray-300 px-1">
+                                <!-- Options generated by JS -->
+                            </select>
+                        </div>
+
+                        <!-- NEW: LOCKING FEATURE -->
+                        <div class="flex items-center gap-1 ml-2 bg-slate-100 px-2 py-0.5 rounded border border-slate-300">
+                            <i data-lucide="lock" class="w-3 h-3 text-slate-500"></i>
+                            <span class="text-[10px] font-bold text-slate-500">KUNCI <</span>
+                            <input type="date" id="adminLockDate" class="text-[10px] bg-white border border-slate-300 rounded px-1 h-5 w-24">
+                            <button onclick="saveLockDate()" class="bg-slate-700 hover:bg-slate-800 text-white text-[10px] px-2 py-0.5 rounded font-bold">SET</button>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Status Badge -->
                 <div class="status-badge status-online">
                     <div class="w-1.5 h-1.5 rounded-full bg-green-600 animate-pulse"></div>
                     Online
                 </div>
                 
-                <!-- Saving Indicator -->
-                <div id="savingIndicator" class="hidden text-xs text-gray-400 italic">
-                    Menyimpan...
-                </div>
+                <div id="savingIndicator" class="hidden text-xs text-gray-400 italic">Menyimpan...</div>
             </div>
 
             <div class="flex gap-2">
-                <button onclick="doReset()" id="btnReset" class="hidden px-4 py-2 bg-red-600 text-white text-xs font-bold rounded hover:bg-red-700 transition-colors shadow-sm">
-                    RESET DATA
-                </button>
-                
-                <!-- TOMBOL CETAK LANGSUNG -->
+                <button onclick="doReset()" id="btnReset" class="hidden px-4 py-2 bg-red-600 text-white text-xs font-bold rounded hover:bg-red-700 transition-colors shadow-sm">RESET DATA</button>
                 <button type="button" onclick="window.print();" class="px-6 py-2 bg-blue-600 text-white text-xs font-bold rounded hover:bg-blue-700 flex items-center gap-2 cursor-pointer shadow-lg active:bg-blue-800 transition-all hover:-translate-y-0.5">
                     <i data-lucide="printer" class="w-4 h-4"></i> CETAK / PDF
                 </button>
-                
                 <button onclick="doLogout()" class="px-4 py-2 text-red-500 text-xs font-bold hover:bg-red-50 rounded transition-colors flex items-center gap-1">
                     <i data-lucide="log-out" class="w-3 h-3"></i> Keluar
                 </button>
@@ -310,7 +291,6 @@
 
         <!-- Paper Container -->
         <div class="main-container">
-            
             <!-- 1. Header -->
             <div class="header-section">
                 <div class="flex items-center gap-4">
@@ -352,13 +332,9 @@
                             </th>
                             <th colspan="31" class="text-center bg-gray-100" id="headerDatesTitle">TANGGAL</th>
                         </tr>
-                        <tr class="th-row-2" id="headerDatesRow">
-                            <!-- Generated -->
-                        </tr>
+                        <tr class="th-row-2" id="headerDatesRow"></tr>
                     </thead>
-                    <tbody id="tableBody">
-                        <!-- Generated -->
-                    </tbody>
+                    <tbody id="tableBody"></tbody>
                 </table>
             </div>
 
@@ -371,6 +347,7 @@
                         <li>Biarkan kosong jika Tidak Sesuai.</li>
                         <li>Kolom Merah = Hari Libur.</li>
                         <li>(*) = Cek Mingguan.</li>
+                        <li>Kolom Abu-abu / Arsiran = <b>DATA TERKUNCI</b>.</li>
                     </ul>
                 </div>
                 <div class="flex justify-end gap-16 mt-4">
@@ -384,29 +361,16 @@
                     </div>
                 </div>
             </div>
-
         </div>
     </div>
 
     <!-- LOGIC -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, doc, setDoc, onSnapshot, collection, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
-        // =========================================================================================
-        // PETUNJUK PENGGUNAAN DI GITHUB / HOSTING SENDIRI:
-        // =========================================================================================
-        // 1. Buka console.firebase.google.com -> Buat Project Baru.
-        // 2. Klik icon "Web" (</>) untuk menambahkan aplikasi web.
-        // 3. Salin "firebaseConfig" yang muncul dan GANTI variabel 'manualConfig' di bawah ini.
-        // 4. Di Console Firebase:
-        //    - Masuk ke menu "Build" -> "Firestore Database" -> "Create Database".
-        //    - Pilih "Start in test mode" (agar bisa langsung write/read tanpa login user khusus).
-        //    - Masuk ke menu "Build" -> "Authentication" -> "Get Started" -> Tab "Sign-in method".
-        //    - Aktifkan "Anonymous" (Login Anonim).
-        // =========================================================================================
-
+        // CONFIG
         const manualConfig = {
             apiKey: "AIzaSyAqbDeVLDBRDEIfi4RliLMC-3Qrwh8p96k",
             authDomain: "logsheet-5r.firebaseapp.com",
@@ -416,82 +380,33 @@
             appId: "1:358725557740:web:664cca8d2ae984221ff4c9"
         };
 
-        // --- FIREBASE CONFIGURATION LOGIC ---
         let app, auth, db, appId;
 
         try {
-            // Cek apakah berjalan di lingkungan Canvas (otomatis)
             if (typeof __firebase_config !== 'undefined') {
                 const firebaseConfig = JSON.parse(__firebase_config);
                 app = initializeApp(firebaseConfig);
                 appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
             } else {
-                // Jika di GitHub/Lokal, gunakan konfigurasi manual
-                if (manualConfig.apiKey === "ISI_API_KEY_DISINI") {
-                    throw new Error("Konfigurasi Firebase Belum Diisi! Silakan edit file index.html baris ~530");
-                }
+                if (manualConfig.apiKey === "ISI_API_KEY_DISINI") throw new Error("Config Error");
                 app = initializeApp(manualConfig);
-                appId = '5r-logsheet-app'; // ID default untuk path database
+                appId = '5r-logsheet-app'; 
             }
-            
             auth = getAuth(app);
             db = getFirestore(app);
-            
-            // Auto Init Auth
             initAuth();
-
         } catch (error) {
             console.error("Firebase Init Error:", error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Konfigurasi Error',
-                text: 'Gagal terhubung ke Firebase. Pastikan Anda sudah mengisi manualConfig di dalam file HTML jika menjalankannya di GitHub.',
-                footer: '<a href="#">Lihat Baris 530 di index.html</a>'
-            });
             document.getElementById('statusText').innerText = "Config Error (Cek Script)";
             document.getElementById('statusDot').classList.remove('bg-yellow-500');
             document.getElementById('statusDot').classList.add('bg-red-500');
         }
 
-        // --- DATA CONSTANTS (NEW GROUPING) ---
         const GROUPS = [
-            {
-                title: "Area Proses",
-                items: [
-                    { cat: 'RESIK', txt: 'Pembuangan Sampah All Proses' },
-                    { cat: 'RESIK', txt: 'Permukaan Lantai All Area Steril dan bersih' },
-                    { cat: 'RINGKAS', txt: 'Marka Pedestrian terbebas dari Barang-barang/Tools' },
-                    { cat: 'RESIK', txt: 'Area HV, Dokument dan Non Halal dalam kondisi Steril & Bersih' },
-                    { cat: 'RAPI', txt: 'Area Leader dalam keadaan rapi' },
-                    { cat: 'RAPI', txt: 'Barang Holding tersimpan pada Area Holding' }
-                ]
-            },
-            {
-                title: "Tools",
-                items: [
-                    { cat: 'RAPI', txt: 'Tool diletakkan pada Checkpoint' },
-                    { cat: 'RINGKAS', txt: 'Melakukan Sortiran MB Bekas serta merapikan di area Limbah' },
-                    { cat: 'RAWAT', txt: 'Perawatan Sorting Basket' },
-                    { cat: 'RAWAT', txt: 'Perawatan Pigeon Hole' },
-                    { cat: 'RAWAT', txt: 'Perawatan Trolly Cage' },
-                    { cat: 'RAWAT', txt: 'Perawatan Pallet Mesh' }
-                ]
-            },
-            {
-                title: "Rak",
-                items: [
-                    { cat: 'RAWAT', txt: 'Perawatan Rak Dokument dan Tools', week: true },
-                    { cat: 'RAPI', txt: 'Rak dokument dan Tools dalam keadaan tertata Rapih' }
-                ]
-            },
-            {
-                title: "Prasarana",
-                items: [
-                    { cat: 'RAPI', txt: 'Area Istirahat/Musholla dalam keadaan Rapih dan terbebas dari barang pribadi' },
-                    { cat: 'SAFETY', txt: 'Memastikan persediaan P3K sesuai dengan standar K3', week: true },
-                    { cat: 'RAJIN', txt: 'Informasi board di update', week: true }
-                ]
-            }
+            { title: "Area Proses", items: [{ cat: 'RESIK', txt: 'Pembuangan Sampah All Proses' }, { cat: 'RESIK', txt: 'Permukaan Lantai All Area Steril dan bersih' }, { cat: 'RINGKAS', txt: 'Marka Pedestrian terbebas dari Barang-barang/Tools' }, { cat: 'RESIK', txt: 'Area HV, Dokument dan Non Halal dalam kondisi Steril & Bersih' }, { cat: 'RAPI', txt: 'Area Leader dalam keadaan rapi' }, { cat: 'RAPI', txt: 'Barang Holding tersimpan pada Area Holding' }] },
+            { title: "Tools", items: [{ cat: 'RAPI', txt: 'Tool diletakkan pada Checkpoint' }, { cat: 'RINGKAS', txt: 'Melakukan Sortiran MB Bekas serta merapikan di area Limbah' }, { cat: 'RAWAT', txt: 'Perawatan Sorting Basket' }, { cat: 'RAWAT', txt: 'Perawatan Pigeon Hole' }, { cat: 'RAWAT', txt: 'Perawatan Trolly Cage' }, { cat: 'RAWAT', txt: 'Perawatan Pallet Mesh' }] },
+            { title: "Rak", items: [{ cat: 'RAWAT', txt: 'Perawatan Rak Dokument dan Tools', week: true }, { cat: 'RAPI', txt: 'Rak dokument dan Tools dalam keadaan tertata Rapih' }] },
+            { title: "Prasarana", items: [{ cat: 'RAPI', txt: 'Area Istirahat/Musholla dalam keadaan Rapih dan terbebas dari barang pribadi' }, { cat: 'SAFETY', txt: 'Memastikan persediaan P3K sesuai dengan standar K3', week: true }, { cat: 'RAJIN', txt: 'Informasi board di update', week: true }] }
         ];
 
         const MONTHS = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
@@ -503,40 +418,38 @@
             'BJM': { p: 'BJM01', role: 'user', name: 'Muhammad Ridho', area: 'HUB Banjarmasin' } 
         };
 
-        // --- GLOBAL STATE ---
-        let state = { user: null, viewUser: null, year: new Date().getFullYear(), month: new Date().getMonth(), checks: {} };
+        // GLOBAL STATE
+        let state = { user: null, viewUser: null, year: new Date().getFullYear(), month: new Date().getMonth(), checks: {}, lockDate: null };
         let unsubscribeListener = null;
 
-        // --- INIT ---
         async function initAuth() {
             try {
-                // Di GitHub, kita langsung pakai Anonymous Auth saja karena custom token tidak ada
                 await signInAnonymously(auth);
-                
                 const btn = document.getElementById('btnLogin');
                 btn.disabled = false;
                 btn.classList.remove('bg-gray-400', 'cursor-not-allowed');
-                btn.classList.add('bg-gradient-to-r', 'from-blue-700', 'to-indigo-800', 'hover:from-blue-800', 'hover:to-indigo-900', 'shadow-lg');
+                btn.classList.add('bg-gradient-to-r', 'from-blue-700', 'to-indigo-800', 'shadow-lg');
                 btn.innerHTML = `<span>MASUK APLIKASI</span><i data-lucide="arrow-right" class="w-4 h-4"></i>`;
-                
                 document.getElementById('statusText').innerText = "Server Connected";
-                document.getElementById('statusDot').classList.remove('bg-yellow-500');
-                document.getElementById('statusDot').classList.add('bg-green-500');
-
+                document.getElementById('statusDot').classList.replace('bg-yellow-500', 'bg-green-500');
                 lucide.createIcons();
             } catch (error) {
-                console.error("Auth Error:", error);
+                console.error(error);
                 document.getElementById('statusText').innerText = "Connection Failed";
-                document.getElementById('statusDot').classList.remove('bg-yellow-500');
-                document.getElementById('statusDot').classList.add('bg-red-500');
-                Swal.fire('Error Koneksi', 'Gagal login ke database. Pastikan "Anonymous Auth" aktif di Firebase Console.', 'error');
+                document.getElementById('statusDot').classList.replace('bg-yellow-500', 'bg-red-500');
+                
+                // --- FIX: Show helpful error if auth fails ---
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal Terhubung',
+                    text: 'Pastikan "Anonymous Auth" sudah diaktifkan di Firebase Console.',
+                    footer: '<a href="https://console.firebase.google.com" target="_blank">Buka Firebase Console</a>'
+                });
             }
         }
 
-        // 2. Setup UI
         document.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons();
-            
             const ySel = document.getElementById('selYear');
             for(let i=state.year-1; i<=state.year+2; i++) ySel.add(new Option(i, i));
             ySel.value = state.year;
@@ -545,12 +458,8 @@
             MONTHS.forEach((m, i) => mSel.add(new Option(m, i)));
             mSel.value = state.month;
 
-            // Debounced save for inputs
             let timeout;
-            const debouncedSave = () => {
-                clearTimeout(timeout);
-                timeout = setTimeout(saveData, 1000);
-            };
+            const debouncedSave = () => { clearTimeout(timeout); timeout = setTimeout(saveData, 1000); };
 
             document.getElementById('inpArea').oninput = debouncedSave;
             document.getElementById('inpPic').oninput = (e) => {
@@ -558,13 +467,16 @@
                 debouncedSave();
             };
             
+            ySel.onchange = (e) => { state.year = parseInt(e.target.value); setupRealtimeListener(); };
+            mSel.onchange = (e) => { state.month = parseInt(e.target.value); setupRealtimeListener(); };
+            
             window.handleLogin = handleLogin;
             window.toggleCheck = toggleCheck;
             window.doReset = doReset;
             window.doLogout = doLogout;
+            window.saveLockDate = saveLockDate;
         });
 
-        // --- AUTH LOGIC (CLIENT SIDE) ---
         function handleLogin(e) {
             e.preventDefault();
             const u = document.getElementById('loginUser').value;
@@ -586,17 +498,16 @@
             document.getElementById('appContainer').classList.remove('hidden');
             
             document.getElementById('displayUser').innerText = state.user.id;
-
-            const area = document.getElementById('inpArea');
-            const pic = document.getElementById('inpPic');
-            const btnReset = document.getElementById('btnReset');
             const adminControls = document.getElementById('adminControls');
-            const adminSelect = document.getElementById('adminViewSelector');
+            const btnReset = document.getElementById('btnReset');
 
             if(state.user.role === 'admin') {
                 adminControls.classList.remove('hidden');
                 btnReset.classList.remove('hidden');
+                document.getElementById('inpArea').readOnly = false;
+                document.getElementById('inpPic').readOnly = false;
                 
+                const adminSelect = document.getElementById('adminViewSelector');
                 adminSelect.innerHTML = '';
                 let firstUser = '';
                 Object.keys(ACCOUNTS).forEach(key => {
@@ -605,59 +516,48 @@
                         adminSelect.add(new Option(key, key));
                     }
                 });
-
                 state.viewUser = firstUser;
                 adminSelect.value = firstUser;
-
-                adminSelect.onchange = (e) => {
-                    state.viewUser = e.target.value;
-                    setupRealtimeListener();
-                };
-
-                area.readOnly = false; pic.readOnly = false;
-
+                adminSelect.onchange = (e) => { state.viewUser = e.target.value; setupRealtimeListener(); };
             } else {
                 adminControls.classList.add('hidden');
                 btnReset.classList.add('hidden');
                 state.viewUser = state.user.id;
-                area.readOnly = true; pic.readOnly = true;
+                document.getElementById('inpArea').readOnly = true;
+                document.getElementById('inpPic').readOnly = true;
             }
-
             setupRealtimeListener();
         }
 
         function doLogout() {
             if(unsubscribeListener) unsubscribeListener();
-            state.user = null;
-            state.viewUser = null;
+            state.user = null; state.viewUser = null;
             document.getElementById('loginPass').value = '';
             document.getElementById('loginUser').value = '';
             document.getElementById('appContainer').classList.add('hidden');
-            const loginModal = document.getElementById('loginModal');
-            loginModal.classList.remove('hidden');
-            loginModal.classList.add('flex');
+            document.getElementById('loginModal').classList.replace('hidden', 'flex');
         }
 
-        // --- FIRESTORE LOGIC ---
-        function getDocId() {
-            return `${state.viewUser}_${state.year}_${state.month}`; 
-        }
+        function getDocId() { return `${state.viewUser}_${state.year}_${state.month}`; }
 
         function setupRealtimeListener() {
             if (unsubscribeListener) unsubscribeListener();
+            state.checks = {}; 
+            state.lockDate = null;
+            render(); 
             
             const docId = getDocId();
-            // Path menggunakan appId (bisa dari Canvas atau manual)
             const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'logsheet_5r', docId);
 
             unsubscribeListener = onSnapshot(docRef, (docSnap) => {
                 const targetAccount = ACCOUNTS[state.viewUser];
-                let defaultArea = targetAccount ? targetAccount.area : '';
-                let defaultPic = targetAccount ? targetAccount.name : '';
+                const defaultArea = targetAccount ? targetAccount.area : '';
+                const defaultPic = targetAccount ? targetAccount.name : '';
 
                 if (docSnap.exists()) {
                     const data = docSnap.data();
                     state.checks = data.checks || {};
+                    state.lockDate = data.lockDate || null; // Ambil data kunci
                     
                     const areaEl = document.getElementById('inpArea');
                     const picEl = document.getElementById('inpPic');
@@ -667,46 +567,80 @@
                         picEl.value = data.pic || defaultPic;
                         document.getElementById('txtSigner').innerText = (data.pic || defaultPic);
                     }
+                    
+                    // Update input lock date jika admin
+                    if(state.user.role === 'admin' && document.getElementById('adminLockDate')) {
+                        document.getElementById('adminLockDate').value = state.lockDate || '';
+                    }
+
                 } else {
                     state.checks = {};
+                    state.lockDate = null;
                     document.getElementById('inpArea').value = defaultArea;
                     document.getElementById('inpPic').value = defaultPic;
                     document.getElementById('txtSigner').innerText = defaultPic;
+                    if(document.getElementById('adminLockDate')) document.getElementById('adminLockDate').value = '';
                 }
                 render();
             }, (error) => {
                 console.error("Firestore Listen Error:", error);
+                
+                // --- FIX: Tangani Permission Denied ---
+                if (error.code === 'permission-denied') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Akses Ditolak!',
+                        html: `
+                            <p class="mb-4">Database menolak akses data. Ini biasanya karena <b>Firestore Rules</b> belum diatur.</p>
+                            <div class="text-left bg-gray-100 p-4 rounded text-sm">
+                                <strong>Cara Memperbaiki:</strong>
+                                <ol class="list-decimal ml-5 mt-1 space-y-1">
+                                    <li>Buka <a href="https://console.firebase.google.com" target="_blank" class="text-blue-600 underline">Firebase Console</a>.</li>
+                                    <li>Masuk ke menu <b>Firestore Database</b> > Tab <b>Rules</b>.</li>
+                                    <li>Ganti kodenya menjadi:</li>
+                                </ol>
+                                <pre class="bg-black text-green-400 p-2 mt-2 rounded overflow-x-auto">allow read, write: if true;</pre>
+                                <p class="mt-2 text-xs text-gray-500">*Ini adalah mode test agar aplikasi bisa berjalan tanpa auth yang rumit.</p>
+                            </div>
+                        `,
+                        width: '600px'
+                    });
+                }
             });
         }
 
         async function saveData() {
             if(!auth.currentUser) return;
-
             const docId = getDocId();
             const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'logsheet_5r', docId);
-
             const dataToSave = {
                 checks: state.checks,
                 area: document.getElementById('inpArea').value,
                 pic: document.getElementById('inpPic').value,
-                updatedAt: new Date().toISOString(),
-                updatedBy: state.user.id
+                updatedAt: new Date().toISOString()
             };
-
             const indicator = document.getElementById('savingIndicator');
             indicator.classList.remove('hidden');
-
             try {
                 await setDoc(docRef, dataToSave, { merge: true });
                 setTimeout(() => indicator.classList.add('hidden'), 500);
-            } catch (e) {
-                console.error("Save failed", e);
-                indicator.innerText = "Gagal simpan!";
-                indicator.classList.add('text-red-500');
+            } catch (e) { console.error(e); }
+        }
+
+        async function saveLockDate() {
+            if(state.user.role !== 'admin') return;
+            const dateVal = document.getElementById('adminLockDate').value;
+            const docId = getDocId();
+            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'logsheet_5r', docId);
+            
+            try {
+                await setDoc(docRef, { lockDate: dateVal }, { merge: true });
+                Swal.fire('Terkunci', `Data sebelum tanggal ${dateVal} telah dikunci.`, 'success');
+            } catch(e) {
+                Swal.fire('Error', 'Gagal menyimpan kunci.', 'error');
             }
         }
 
-        // --- RENDER & INTERACTION ---
         function render() {
             const daysInMonth = new Date(state.year, state.month + 1, 0).getDate();
             const dateRow = document.getElementById('headerDatesRow');
@@ -720,22 +654,19 @@
             dateRow.innerHTML = hHtml;
 
             let bHtml = '';
-            let globalNo = 0; // Nomor urut lanjut terus antar grup
+            let globalNo = 0; 
+            
+            // Konversi lockDate ke Date Object untuk perbandingan
+            let lockThreshold = null;
+            if(state.lockDate) {
+                lockThreshold = new Date(state.lockDate);
+                lockThreshold.setHours(0,0,0,0);
+            }
 
             GROUPS.forEach(group => {
-                // RENDER GROUP HEADER
-                // Colspan = No + Item + DaysInMonth
-                bHtml += `
-                <tr>
-                    <td colspan="${2 + daysInMonth}" class="group-header">
-                        ${group.title}
-                    </td>
-                </tr>
-                `;
-
+                bHtml += `<tr><td colspan="${2 + daysInMonth}" class="group-header">${group.title}</td></tr>`;
                 group.items.forEach(item => {
                     globalNo++;
-                    
                     let badgeClass = 'bg-gray-100 text-gray-600 border-gray-300';
                     if(item.cat === 'RESIK') badgeClass = 'bg-green-50 text-green-700 border-green-200';
                     if(item.cat === 'RAPI') badgeClass = 'bg-blue-50 text-blue-700 border-blue-200';
@@ -760,13 +691,32 @@
                         const isChecked = state.checks[key];
                         const isSun = new Date(state.year, state.month, d).getDay() === 0;
                         
+                        // LOGIKA PENGUNCIAN
+                        const currentCellDate = new Date(state.year, state.month, d);
+                        currentCellDate.setHours(0,0,0,0);
+                        
+                        let isLocked = false;
+                        if(lockThreshold && currentCellDate < lockThreshold) {
+                            isLocked = true;
+                        }
+
                         const bgClass = isSun ? 'cell-sunday' : '';
                         const activeClass = isChecked ? 'checked' : '';
-                        const val = isChecked ? '✓' : '';
+                        const lockedClass = isLocked ? 'locked' : '';
+                        
+                        // Jika terkunci, hapus event onclick dan ikon centang (jika mau visual gembok bisa pakai lucide, tapi check-box locked css sudah cukup)
+                        const clickEvent = isLocked ? '' : `onclick="toggleCheck(${globalNo}, ${d})"`;
+                        
+                        let displayVal = '';
+                        if (isLocked && isChecked) displayVal = '✓'; // Tampilkan centang pudar jika terkunci tapi ada isinya
+                        else if (!isLocked && isChecked) displayVal = '✓';
+                        else if (isLocked) displayVal = '<i data-lucide="lock" class="w-3 h-3 opacity-50"></i>';
 
                         bHtml += `
                         <td class="${bgClass}">
-                            <div class="check-box ${activeClass}" onclick="toggleCheck(${globalNo}, ${d})">${val}</div>
+                            <div class="check-box ${activeClass} ${lockedClass}" ${clickEvent}>
+                                ${displayVal}
+                            </div>
                         </td>`;
                     }
                     bHtml += `</tr>`;
@@ -774,9 +724,23 @@
             });
 
             tbody.innerHTML = bHtml;
+            lucide.createIcons(); // Refresh icons for locks
         }
 
         function toggleCheck(id, day) {
+            // Validasi Server-Side logic simulation
+            if(state.lockDate) {
+                const lockThreshold = new Date(state.lockDate);
+                lockThreshold.setHours(0,0,0,0);
+                const currentCellDate = new Date(state.year, state.month, day);
+                currentCellDate.setHours(0,0,0,0);
+                
+                if(currentCellDate < lockThreshold) {
+                    Swal.fire('Terkunci', 'Data tanggal ini sudah dikunci oleh Admin.', 'warning');
+                    return;
+                }
+            }
+
             const key = `${id}-${day}`;
             if(state.checks[key]) delete state.checks[key];
             else state.checks[key] = true;
