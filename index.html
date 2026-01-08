@@ -5,15 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistem Pencatatan 5R</title>
     
-    <!-- Font Inter untuk tampilan modern -->
+    <!-- Font Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Icons & Libraries -->
+    <!-- Icons & Alert -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
     <script>
@@ -21,12 +20,7 @@
             theme: {
                 extend: {
                     fontFamily: { sans: ['Inter', 'sans-serif'] },
-                    colors: {
-                        brand: {
-                            blue: '#0052CC',
-                            hover: '#0047B3'
-                        }
-                    }
+                    colors: { brand: { blue: '#0052CC', hover: '#0047B3' } }
                 }
             }
         }
@@ -34,12 +28,11 @@
 
     <style>
         /* --- STYLE GLOBAL --- */
-        body { background-color: #f8fafc; color: #334155; }
+        body { background-color: #f8fafc; color: #334155; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         
-        /* Modern Card Effect */
         .sheet-page {
             background: white;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
             border: 1px solid #e2e8f0;
             border-radius: 0.5rem;
             margin: 20px auto;
@@ -49,11 +42,7 @@
             overflow-x: auto;
         }
 
-        /* Input Styling */
-        select, input { transition: all 0.2s; border-color: #cbd5e1; }
-        select:focus, input:focus { border-color: #0052CC; outline: none; ring: 2px solid rgba(0, 82, 204, 0.1); }
-
-        /* Login Modal */
+        /* --- LOGIN MODAL --- */
         #loginOverlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(15, 23, 42, 0.8);
@@ -69,142 +58,105 @@
         }
 
         /* ==========================================================================
-           [PENGATURAN PDF] - Edit bagian ini untuk menyesuaikan hasil Download PDF
+           PENGATURAN CETAK (PRINT)
+           Bagian ini mengatur tampilan saat tombol Cetak ditekan.
            ========================================================================== */
-          /* ==========================================================
-            PRINT NORMAL
-            ========================================================== */
-            @media print {
-                @page {
-                    size: landscape;
-                    margin: 1mm;
-                }
-
-                body {
-                    margin: 0;
-                    padding: 0;
-                    background: white;
-                }
-
-                .sheet-page {
-                    box-shadow: none;
-                    margin: 0;
-                    width: 100%;
-                    max-width: none;
-                    border: none;
-                }
-
-                .no-print,
-                .hide-on-print {
-                    display: none !important;
-                }
-
-                .show-on-print {
-                    display: block !important;
-                }
-
-                thead {
-                    display: table-header-group;
-                }
-
-                tr {
-                    page-break-inside: avoid;
-                }
+        @media print {
+            /* Atur Kertas Landscape */
+            @page { size: landscape; margin: 5mm; }
+            
+            body { margin: 0; padding: 0; background: white; width: 100%; }
+            
+            .sheet-page {
+                box-shadow: none; 
+                margin: 0; 
+                border: none; 
+                border-radius: 0; 
+                width: 100%; 
+                max-width: none;
             }
 
-            /* ==========================================================
-            PDF MODE – FIX TABEL KE TENGAH & HILANGKAN KANAN KOSONG
-            ========================================================== */
-            @page {
-                size: 330mm 210mm;
-                margin: 1mm;
-            }
+            /* Sembunyikan elemen yang tidak perlu saat cetak */
+            .no-print { display: none !important; }
+            .hide-on-print { display: none !important; }
+            .show-on-print { display: block !important; }
+            #loginOverlay { display: none !important; }
 
-            .pdf-mode {
-                display: flex;
-                justify-content: center;
-                background: white;
-            }
-
-            .pdf-mode body {
-                width: 328mm !important;
-                min-width: 328mm !important;
-                margin: 0 auto !important;
-                padding: 0 !important;
-            }
-
-            .pdf-mode .sheet-page {
+            /* --- FORMAT TABEL SAAT CETAK --- */
+            table {
+                font-size: 10px !important; /* Ukuran font tabel saat dicetak */
                 width: 100% !important;
-                max-width: none !important;
-                margin: 0 auto !important;
-                box-shadow: none !important;
-                border: none !important;
-            }
-
-            /* ================= TABLE ================= */
-            .pdf-mode table {
-                width: 100% !important;
-                table-layout: fixed !important;
                 border-collapse: collapse !important;
-                font-family: "Times New Roman", serif;
-                font-size: 11px !important;
+                table-layout: fixed !important; 
+                font-family: 'Times New Roman', serif; /* Font formal */
             }
 
-            .pdf-mode th,
-            .pdf-mode td {
-                border: 1px solid #333 !important;
-                padding: 4px 2px !important;
-                text-align: center;
-                vertical-align: middle;
-                line-height: 1.1;
+            th, td {
+                padding: 4px 2px !important; 
+                border: 1px solid #333 !important; /* Garis hitam */
+                vertical-align: middle !important;
+                line-height: 1.2 !important;
+                word-wrap: break-word !important;
+                white-space: normal !important;
             }
 
-            /* ================= COLUMN WIDTH ================= */
-            .pdf-mode .col-no {
-                width: 26px !important;
-            }
+            /* --- PENGATURAN LEBAR KOLOM (Sesuaikan Angka Pixel di sini) --- */
+            /* Total Lebar ideal F4 Landscape ~1250px - 1300px */
+            
+            .col-no { width: 35px !important; text-align: center; }
+            
+            /* Kolom Item: Perlebar jika teks terpotong */
+            .col-item { width: 450px !important; text-align: left; padding-left: 5px !important; }
+            
+            /* Kolom Tanggal: Sisa ruang */
+            .col-date { width: auto !important; text-align: center; padding: 0 !important; }
 
-            .pdf-mode .col-item {
-                width: 300px !important;
-                text-align: left;
-                padding-left: 6px !important;
-            }
+            /* Styling Header Tabel */
+            th { background-color: #f1f5f9 !important; color: black !important; font-weight: bold !important; text-transform: uppercase; }
 
-            .pdf-mode .col-date {
-                width: 23px !important;
-                font-size: 9px !important;
-            }
-
-            /* ================= TEXT ================= */
-            .pdf-mode .category-label {
-                font-weight: bold;
-                text-decoration: underline;
-                font-size: 11px;
-            }
-
-            .pdf-mode .item-text {
-                font-size: 10px;
-            }
-
-            /* ================= HEADER ================= */
-            .pdf-mode .header-content {
-                padding: 6px 10px;
-            }
-
-            .pdf-mode h1 {
-                font-size: 18px;
-            }
-
-            /* ================= HIDE UI ================= */
-            .pdf-mode .no-print,
-            .pdf-mode .hide-on-print {
-                display: none !important;
-            }
-
-            .pdf-mode .show-on-print {
+            /* Kategori [Resik] dll */
+            .category-label {
                 display: block !important;
+                font-weight: bold !important;
+                font-size: 9px !important;
+                text-decoration: underline;
+                margin-bottom: 2px;
+            }
+            
+            .item-text { display: block !important; font-size: 10px !important; }
+
+            /* Checkmark */
+            .check-cell div { 
+                font-size: 11px !important; font-weight: bold;
+                display: flex; align-items: center; justify-content: center;
+                height: 100%; min-height: 16px;
             }
 
+            /* Input Metadata jadi Text Biasa */
+            input, select {
+                border: none !important; padding: 0 !important; margin: 0 !important;
+                background: transparent !important; font-size: 11px !important;
+                height: auto !important; display: block !important;
+            }
+            .metadata-container { gap: 10px !important; padding: 5px !important; }
+            
+            /* Header Biru jadi Putih/Hitam Hemat Tinta (Opsional, saat ini tetap berwarna) */
+            .header-content { padding: 5px 0 !important; border-bottom: 2px solid black !important; }
+            .header-content h1 { font-size: 18px !important; color: black !important; }
+            .header-content i, .header-content div { color: black !important; } /* Icon jadi hitam */
+            .bg-blue-900 { background-color: transparent !important; } /* Hapus background biru header */
+        }
+
+        /* --- Styles untuk Tampilan Web (Layar) --- */
+        .check-cell { cursor: pointer; transition: all 0.1s; }
+        .check-cell:hover { background-color: #eff6ff; }
+        .check-cell.active { background-color: #dbeafe !important; color: #1e40af; font-weight: 900; }
+        .check-cell.sunday { background-color: #fef2f2; }
+        .check-cell.sunday.active { background-color: #dcfce7 !important; color: #166534; }
+        
+        .hide-on-print { display: block; }
+        .show-on-print { display: none; }
+        input:read-only { background-color: #f8fafc !important; color: #64748b; cursor: not-allowed; }
     </style>
 </head>
 <body class="p-4 md:p-6 font-sans">
@@ -262,7 +214,7 @@
                     <i data-lucide="user" class="w-5 h-5 text-blue-700"></i>
                 </div>
                 <div>
-                    <p class="text-[10px] text-gray-400 uppercase font-bold tracking-wide">Login Sebagai</p>
+                    <p class="text-[10px] text-gray-400 uppercase font-bold tracking-wide">User Aktif</p>
                     <p id="userBadge" class="text-sm font-bold text-gray-800 leading-none">Guest</p>
                 </div>
             </div>
@@ -283,8 +235,9 @@
                     <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Reset
                 </button>
                 
-                <button id="btnDownloadPDF" type="button" class="flex items-center gap-1.5 px-4 py-1.5 text-white bg-brand-blue rounded-md hover:bg-brand-hover shadow-sm text-xs font-bold transition-all">
-                    <i data-lucide="printer" class="w-3.5 h-3.5"></i> Download PDF
+                <!-- TOMBOL LANGSUNG CETAK -->
+                <button onclick="window.print()" type="button" class="flex items-center gap-1.5 px-4 py-1.5 text-white bg-brand-blue rounded-md hover:bg-brand-hover shadow-sm text-xs font-bold transition-all">
+                    <i data-lucide="printer" class="w-3.5 h-3.5"></i> Cetak / PDF
                 </button>
                 
                 <button onclick="logout()" class="ml-2 text-gray-400 hover:text-red-500 transition-colors" title="Keluar">
@@ -297,36 +250,37 @@
         <div id="contentToPrint">
             <div class="sheet-page">
                 
-                <!-- Clean Header -->
-                <div class="bg-white p-5 border-b border-gray-200 print:border-black header-content">
+                <!-- Header -->
+                <div class="bg-blue-900 text-white p-5 header-content">
                     <div class="flex justify-between items-center">
                         <div class="flex items-center gap-3">
                             <div class="bg-blue-600 p-1.5 rounded text-white print:hidden">
                                 <i data-lucide="check-square" class="w-5 h-5"></i>
                             </div>
-                            <h1 class="text-xl font-extrabold text-gray-800 uppercase tracking-tight print:text-black">Logsheet Kontrol 5R & Fasilitas</h1>
-                        </div>
-                        <div class="text-right">
-                            <!-- Detail Doc No dihapus sesuai request -->
+                            <!-- Logo/Icon untuk Print -->
+                            <i data-lucide="check-square" class="w-6 h-6 hidden print:block text-black"></i>
+                            
+                            <h1 class="text-xl font-extrabold uppercase tracking-tight">Sistem Pencatatan 5R</h1>
                         </div>
                     </div>
                 </div>
 
-                <!-- Input Metadata (Modern Look) -->
-                <div class="p-5 bg-gray-50/50 border-b border-gray-200 print:bg-white print:p-2 metadata-container">
+                <!-- Input Metadata -->
+                <div class="p-5 bg-gray-50/50 border-b border-gray-200 metadata-container">
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-6 print:grid-cols-4 print:gap-4">
                         
                         <div class="space-y-1">
-                            <label class="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Periode Laporan</label>
+                            <label class="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Periode</label>
                             <div class="flex no-print hide-on-print bg-white rounded-md border border-gray-300 overflow-hidden w-full max-w-[200px]">
                                 <select id="monthSelect" class="flex-1 px-3 py-1.5 text-sm font-semibold text-gray-700 bg-transparent focus:outline-none cursor-pointer hover:bg-gray-50 border-r"></select>
                                 <select id="yearSelect" class="w-20 px-2 py-1.5 text-sm font-semibold text-gray-700 bg-transparent focus:outline-none cursor-pointer hover:bg-gray-50 text-center"></select>
                             </div>
+                            <!-- Tampilan Text saat Print -->
                             <div class="hidden print:block show-on-print font-bold text-sm dateDisplay text-black uppercase"></div>
                         </div>
 
                         <div class="md:col-span-2 space-y-1">
-                            <label class="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Lokasi / Area Kerja</label>
+                            <label class="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Lokasi / Area</label>
                             <input type="text" id="areaInput" placeholder="Masukkan Lokasi..." class="w-full border-b border-gray-300 py-1 text-sm font-bold text-gray-800 bg-transparent focus:border-brand-blue focus:outline-none placeholder-gray-300">
                         </div>
 
@@ -342,12 +296,12 @@
                     <table class="w-full text-xs border border-gray-300 shadow-sm print:shadow-none print:border-black">
                         <thead>
                             <tr class="bg-gray-100 print:bg-gray-100">
-                                <th rowspan="2" class="p-2 border border-gray-300 w-10 text-gray-700 col-no">NO</th>
-                                <th rowspan="2" class="p-2 border border-gray-300 text-left text-gray-700 col-item">
+                                <th rowspan="2" class="p-2 border border-gray-300 col-no">NO</th>
+                                <th rowspan="2" class="p-2 border border-gray-300 text-left col-item">
                                     ITEM PEMERIKSAAN 
                                     <span class="block text-[10px] font-normal text-gray-500 mt-0.5 italic">(* = Cek Mingguan)</span>
                                 </th>
-                                <th class="p-1 border border-gray-300 text-center font-bold text-gray-700 bg-gray-200 daysHeader" colspan="31">TANGGAL</th>
+                                <th class="p-1 border border-gray-300 text-center font-bold bg-gray-200 daysHeader" colspan="31">TANGGAL</th>
                             </tr>
                             <tr class="bg-white print:bg-white dateRow text-[10px] text-gray-600">
                                 <!-- Dates Generated by JS -->
@@ -447,7 +401,6 @@
             init();
             
             document.getElementById('btnReset').addEventListener('click', (e) => { e.preventDefault(); resetData(); });
-            document.getElementById('btnDownloadPDF').addEventListener('click', (e) => { e.preventDefault(); downloadPDF(); });
             
             const area = document.getElementById('areaInput');
             const insp = document.getElementById('inspectorInput');
@@ -781,28 +734,6 @@
                     Swal.fire('Terhapus!', '', 'success');
                 }
             })
-        }
-
-        window.downloadPDF = function() {
-            window.scrollTo(0,0);
-            const element = document.getElementById('contentToPrint');
-            element.classList.add('pdf-mode');
-            const inputs = element.querySelectorAll('input');
-            inputs.forEach(input => { input.setAttribute('value', input.value); });
-
-            const opt = {
-                // [EDIT DISINI] Margin kertas PDF: [Atas, Kanan, Bawah, Kiri]
-                margin: [3, 3, 3, 3], 
-                filename: `Logsheet_5R_${monthNames[currentMonth]}_${currentYear}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true, scrollY: 0, windowWidth: 1400 },
-                jsPDF: { unit: 'mm', format: [215, 330], orientation: 'landscape' },
-                pagebreak: { mode: ['css', 'legacy'] } 
-            };
-
-            html2pdf().set(opt).from(element).save().then(() => {
-                element.classList.remove('pdf-mode');
-            });
         }
     </script>
 </body>
