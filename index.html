@@ -742,8 +742,13 @@
             }
 
             const key = `${id}-${day}`;
-            if(state.checks[key]) delete state.checks[key];
-            else state.checks[key] = true;
+            // PERBAIKAN: Gunakan false alih-alih delete agar tertimpa di Firestore (Deep Merge Issue)
+            if(state.checks[key]) {
+                state.checks[key] = false; 
+            } else {
+                state.checks[key] = true;
+            }
+            
             render();
             saveData(); 
         }
