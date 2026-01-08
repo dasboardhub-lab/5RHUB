@@ -3,721 +3,525 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Pencatatan 5R</title>
-    
-    <!-- Font Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title>Logsheet 5R</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Icons & Alert -->
+    <!-- Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Alert -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: { sans: ['Inter', 'sans-serif'] },
-                    colors: { brand: { blue: '#0052CC', hover: '#0047B3' } }
-                }
-            }
-        }
-    </script>
 
     <style>
-        /* --- STYLE GLOBAL --- */
-        body { background-color: #f8fafc; color: #334155; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        /* --- 1. RESET CSS & BASIC --- */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f1f5f9; color: #1e293b; }
         
-        .sheet-page {
+        /* Container Kertas di Layar */
+        .main-container {
             background: white;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            border: 1px solid #e2e8f0;
-            border-radius: 0.5rem;
-            margin: 20px auto;
-            padding: 0;
-            width: 100%;
             max-width: 1400px;
-            overflow-x: auto;
+            margin: 20px auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border: 1px solid #cbd5e1;
+            display: flex;
+            flex-direction: column;
+            height: 90vh; 
         }
 
-        /* --- LOGIN MODAL --- */
-        #loginOverlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(15, 23, 42, 0.8);
-            backdrop-filter: blur(4px);
+        /* --- 2. HEADER & METADATA --- */
+        .header-section {
+            background: #1e3a8a; /* Biru Tua */
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px 8px 0 0;
+        }
+        .meta-section {
+            padding: 15px 20px;
+            background: #f8fafc;
+            border-bottom: 2px solid #e2e8f0;
+            flex-shrink: 0; 
+        }
+
+        /* --- 3. TABEL DENGAN STICKY HEADER --- */
+        .table-container {
+            flex-grow: 1; 
+            overflow: auto; 
+            position: relative;
+            background: white;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate; 
+            border-spacing: 0;
+            font-size: 12px;
+        }
+
+        /* Header Sticky */
+        thead th {
+            position: sticky;
+            z-index: 10;
+            background-color: #f1f5f9; 
+            color: #334155;
+            border-bottom: 1px solid #94a3b8;
+            border-right: 1px solid #e2e8f0;
+            background-clip: padding-box;
+        }
+
+        /* Baris 1: Judul Kolom */
+        .th-row-1 th {
+            top: 0;
+            height: 40px;
+            z-index: 20; 
+            border-top: 1px solid #e2e8f0;
+        }
+
+        /* Baris 2: Tanggal */
+        .th-row-2 th {
+            top: 40px; 
+            height: 30px;
+            background-color: white; 
+            z-index: 15;
+        }
+
+        td {
+            border-bottom: 1px solid #e2e8f0;
+            border-right: 1px solid #e2e8f0;
+            padding: 4px;
+            vertical-align: middle;
+        }
+
+        tbody tr:hover td { background-color: #eff6ff; }
+
+        .badge {
+            display: inline-block;
+            font-size: 9px;
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid #e2e8f0;
+            margin-bottom: 2px;
+        }
+
+        .check-box {
+            cursor: pointer;
+            height: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        .check-box.checked { background-color: #dcfce7; color: #166534; }
+        .cell-sunday { background-color: #fef2f2; }
+
+        /* --- 4. LOGIN MODAL --- */
+        #loginModal {
+            position: fixed; inset: 0; 
+            background: rgba(0,0,0,0.8); 
             z-index: 9999;
             display: flex; justify-content: center; align-items: center;
         }
-        .login-box {
-            background: white; padding: 2.5rem; border-radius: 1rem;
-            width: 100%; max-width: 380px;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-            border-top: 4px solid #0052CC;
+
+        /* Error Message Box */
+        .error-box {
+            background-color: #fee2e2;
+            border: 1px solid #ef4444;
+            color: #b91c1c;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            font-size: 12px;
+            text-align: center;
+            display: none; /* Hidden by default */
         }
 
-        /* ==========================================================================
-           PENGATURAN CETAK (PRINT)
-           ========================================================================== */
+        /* --- 5. PRINT CSS --- */
         @media print {
             @page { size: landscape; margin: 5mm; }
             
-            body { margin: 0; padding: 0; background: white; width: 100%; }
+            body { margin: 0; padding: 0; background: white; height: auto; }
             
-            .sheet-page {
-                box-shadow: none; margin: 0; border: none; border-radius: 0; width: 100%; max-width: none;
+            .no-print, #loginModal, button { display: none !important; }
+            
+            .main-container {
+                box-shadow: none; margin: 0; border: none; 
+                width: 100%; max-width: none; height: auto;
+                display: block;
             }
 
-            .no-print { display: none !important; }
-            .hide-on-print { display: none !important; }
-            .show-on-print { display: block !important; }
-            #loginOverlay { display: none !important; }
-
-            /* Format Tabel Print */
+            .header-section { background: white; color: black; border-bottom: 2px solid black; padding: 5px 0; }
+            .header-section h1 { font-size: 18px; text-transform: uppercase; }
+            
+            .meta-section { border: none; padding: 5px 0; }
+            
+            .table-container {
+                overflow: visible !important;
+                height: auto !important;
+                display: block !important;
+            }
+            
             table {
-                font-size: 10px !important; width: 100% !important;
-                border-collapse: collapse !important; table-layout: fixed !important; 
-                font-family: 'Times New Roman', serif;
+                font-size: 10px; 
+                border-collapse: collapse; 
+                width: 100%;
+                table-layout: fixed; 
             }
 
-            th, td {
-                padding: 4px 2px !important; border: 1px solid #333 !important;
-                vertical-align: middle !important; line-height: 1.2 !important;
-                word-wrap: break-word !important; white-space: normal !important;
+            thead th { position: static; background: #eee !important; border: 1px solid black; color: black; }
+            td { border: 1px solid black; padding: 2px; }
+
+            .col-no { width: 3%; text-align: center; }
+            .col-item { width: 40%; text-align: left; }
+            .col-date { width: auto; text-align: center; } 
+
+            input, select { 
+                border: none; background: transparent; padding: 0; 
+                font-weight: bold; appearance: none;
             }
-
-            /* Lebar Kolom Print */
-            .col-no { width: 35px !important; text-align: center; }
-            .col-item { width: 450px !important; text-align: left; padding-left: 5px !important; }
-            .col-date { width: auto !important; text-align: center; padding: 0 !important; }
-
-            th { background-color: #f1f5f9 !important; color: black !important; font-weight: bold !important; text-transform: uppercase; }
-
-            .category-label { display: block !important; font-weight: bold !important; font-size: 9px !important; text-decoration: underline; margin-bottom: 2px; }
-            .item-text { display: block !important; font-size: 10px !important; }
-            
-            .check-cell div { 
-                font-size: 11px !important; font-weight: bold;
-                display: flex; align-items: center; justify-content: center;
-                height: 100%; min-height: 16px;
-            }
-
-            input, select { border: none !important; padding: 0 !important; margin: 0 !important; background: transparent !important; font-size: 11px !important; height: auto !important; display: block !important; }
-            .metadata-container { gap: 10px !important; padding: 5px !important; }
-            
-            .header-content { padding: 5px 0 !important; border-bottom: 2px solid black !important; }
-            .header-content h1 { font-size: 18px !important; color: black !important; }
-            .header-content i, .header-content div { color: black !important; }
-            .bg-blue-900 { background-color: transparent !important; }
+            /* Hilangkan panah select saat print */
+            select::-ms-expand { display: none; }
         }
-
-        /* --- Styles untuk Tampilan Web (Layar) --- */
-        .check-cell { cursor: pointer; transition: all 0.1s; }
-        .check-cell:hover { background-color: #eff6ff; }
-        .check-cell.active { background-color: #dbeafe !important; color: #1e40af; font-weight: 900; }
-        .check-cell.sunday { background-color: #fef2f2; }
-        .check-cell.sunday.active { background-color: #dcfce7 !important; color: #166534; }
-        
-        .hide-on-print { display: block; }
-        .show-on-print { display: none; }
-        input:read-only { background-color: #f8fafc !important; color: #64748b; cursor: not-allowed; }
     </style>
 </head>
-<body class="p-4 md:p-6 font-sans">
+<body>
 
     <!-- LOGIN SCREEN -->
-    <div id="loginOverlay">
-        <div class="login-box animate-fade-in-down">
-            <div class="text-center mb-6">
-                <div class="w-12 h-12 bg-brand-blue rounded-xl mx-auto flex items-center justify-center shadow-md mb-3">
-                    <i data-lucide="clipboard-check" class="w-6 h-6 text-white"></i>
+    <div id="loginModal">
+        <div class="bg-white p-8 rounded-lg shadow-xl w-96 border-t-4 border-blue-800 relative z-50">
+            <h2 class="text-2xl font-bold text-center mb-6 text-gray-800">LOGIN SISTEM</h2>
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <div class="mb-4">
+                    <label class="block text-sm font-bold mb-1">Kode User</label>
+                    <select id="loginUser" class="w-full border p-2 rounded bg-white">
+                        <option value="">Pilih User...</option>
+                        <option value="MKS">MKS (User)</option>
+                        <option value="Spv">Spv (Admin)</option>
+                    </select>
                 </div>
-                <h2 class="text-xl font-bold text-gray-800 tracking-tight">Sistem Pencatatan 5R</h2>
-                <p class="text-xs text-gray-500 mt-1">Silakan login untuk memulai</p>
-            </div>
-            
-            <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 mb-1.5">KODE USER</label>
-                    <div class="relative">
-                        <i data-lucide="user" class="absolute left-3 top-2.5 w-4 h-4 text-gray-400"></i>
-                        <select id="usernameInput" class="w-full border pl-9 pr-4 py-2 rounded-lg text-sm bg-gray-50 focus:bg-white cursor-pointer appearance-none">
-                            <option value="" disabled selected>Pilih User...</option>
-                            <option value="MKS">MKS</option>
-                            <option value="Spv">Spv</option>
-                        </select>
-                    </div>
+                <div class="mb-6">
+                    <label class="block text-sm font-bold mb-1">Password</label>
+                    <input type="password" id="loginPass" class="w-full border p-2 rounded" placeholder="***">
                 </div>
+                <button type="submit" class="w-full bg-blue-800 text-white font-bold py-2 rounded hover:bg-blue-900">MASUK</button>
                 
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 mb-1.5">PASSWORD</label>
-                    <div class="relative">
-                        <i data-lucide="lock" class="absolute left-3 top-2.5 w-4 h-4 text-gray-400"></i>
-                        <input type="password" id="passwordInput" placeholder="••••••" class="w-full border pl-9 pr-4 py-2 rounded-lg text-sm bg-gray-50 focus:bg-white">
-                    </div>
-                </div>
-
-                <button type="submit" class="w-full bg-brand-blue hover:bg-brand-hover text-white font-semibold py-2.5 rounded-lg shadow-md transition-all mt-2 text-sm">
-                    MASUK
-                </button>
-                
-                <div id="loginError" class="hidden p-2 bg-red-50 text-red-600 text-xs rounded text-center border border-red-100">
-                    Kredensial Salah!
+                <!-- Pesan Error di dalam Kotak -->
+                <div id="loginErrorMsg" class="error-box">
+                    <strong>Akses Ditolak!</strong><br>Username atau Password salah.
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- MAIN DASHBOARD -->
-    <div id="mainApp" class="hidden">
+    <!-- MAIN APP -->
+    <div id="appContainer" class="hidden">
         
-        <!-- Navbar -->
-        <div class="max-w-[1400px] mx-auto mb-6 bg-white rounded-xl shadow-sm border border-gray-200 p-3 flex flex-col md:flex-row justify-between items-center gap-4 no-print">
-            <div class="flex items-center gap-3 w-full md:w-auto">
-                <div class="bg-blue-50 p-2 rounded-full">
-                    <i data-lucide="user" class="w-5 h-5 text-blue-700"></i>
-                </div>
-                <div>
-                    <p class="text-[10px] text-gray-400 uppercase font-bold tracking-wide">User Aktif</p>
-                    <p id="userBadge" class="text-sm font-bold text-gray-800 leading-none">Guest</p>
-                </div>
+        <!-- Controls -->
+        <div class="max-w-[1400px] mx-auto mt-4 px-4 flex justify-between items-center no-print">
+            <div class="text-sm font-bold text-gray-600">
+                User: <span id="displayUser" class="text-blue-800">Guest</span>
             </div>
-
-            <div class="flex flex-wrap gap-2 items-center justify-end w-full md:w-auto">
-                <button onclick="exportData()" class="flex items-center gap-1.5 px-3 py-1.5 text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md hover:bg-emerald-100 text-xs font-semibold transition-colors">
-                    <i data-lucide="save" class="w-3.5 h-3.5"></i> Simpan
+            <div class="flex gap-2">
+                <button onclick="doReset()" id="btnReset" class="hidden px-4 py-2 bg-red-600 text-white text-xs font-bold rounded hover:bg-red-700">RESET DATA</button>
+                
+                <!-- TOMBOL CETAK LANGSUNG (FIXED) -->
+                <button type="button" onclick="window.print();" class="px-6 py-2 bg-blue-600 text-white text-xs font-bold rounded hover:bg-blue-700 flex items-center gap-2 cursor-pointer shadow-lg active:bg-blue-800">
+                    <i data-lucide="printer" class="w-4 h-4"></i> CETAK / PDF
                 </button>
                 
-                <label for="importFile" id="btnImport" class="flex items-center gap-1.5 px-3 py-1.5 text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-md hover:bg-indigo-100 text-xs font-semibold transition-colors cursor-pointer hidden">
-                    <i data-lucide="upload" class="w-3.5 h-3.5"></i> Upload
-                    <input type="file" id="importFile" class="hidden" accept=".json" onchange="importData(this)">
-                </label>
-
-                <div class="h-6 w-px bg-gray-300 mx-1 hidden md:block"></div>
-
-                <button id="btnReset" type="button" class="hidden flex items-center gap-1.5 px-3 py-1.5 text-red-600 bg-white border border-gray-200 rounded-md hover:bg-red-50 text-xs font-semibold transition-colors">
-                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Reset
-                </button>
-                
-                <button onclick="window.print()" type="button" class="flex items-center gap-1.5 px-4 py-1.5 text-white bg-brand-blue rounded-md hover:bg-brand-hover shadow-sm text-xs font-bold transition-all">
-                    <i data-lucide="printer" class="w-3.5 h-3.5"></i> Cetak / PDF
-                </button>
-                
-                <button onclick="logout()" class="ml-2 text-gray-400 hover:text-red-500 transition-colors" title="Keluar">
-                    <i data-lucide="log-out" class="w-4 h-4"></i>
-                </button>
+                <button onclick="doLogout()" class="px-4 py-2 text-red-500 text-xs font-bold underline">Keluar</button>
             </div>
         </div>
 
-        <!-- FORM SHEET -->
-        <div id="contentToPrint">
-            <div class="sheet-page">
-                
-                <!-- Header -->
-                <div class="bg-blue-900 text-white p-5 header-content">
-                    <div class="flex justify-between items-center">
-                        <div class="flex items-center gap-3">
-                            <div class="bg-blue-600 p-1.5 rounded text-white print:hidden">
-                                <i data-lucide="check-square" class="w-5 h-5"></i>
-                            </div>
-                            <i data-lucide="check-square" class="w-6 h-6 hidden print:block text-black"></i>
-                            
-                            <h1 class="text-xl font-extrabold uppercase tracking-tight">Sistem Pencatatan 5R</h1>
+        <!-- Paper Container -->
+        <div class="main-container">
+            
+            <!-- 1. Header -->
+            <div class="header-section">
+                <div class="flex items-center gap-4">
+                    <i data-lucide="check-square" class="w-8 h-8 print:text-black"></i> 
+                    <h1 class="text-2xl font-bold uppercase tracking-wider">Sistem Pencatatan 5R</h1>
+                </div>
+            </div>
+
+            <!-- 2. Metadata Input -->
+            <div class="meta-section">
+                <div class="grid grid-cols-4 gap-4 text-xs">
+                    <div>
+                        <label class="font-bold uppercase text-gray-500 block mb-1">Periode</label>
+                        <div class="flex gap-1">
+                            <select id="selMonth" class="border p-1 rounded w-full font-bold bg-white"></select>
+                            <select id="selYear" class="border p-1 rounded w-20 font-bold bg-white"></select>
                         </div>
                     </div>
-                </div>
-
-                <!-- Input Metadata -->
-                <div class="p-5 bg-gray-50/50 border-b border-gray-200 metadata-container">
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 print:grid-cols-4 print:gap-4">
-                        <div class="space-y-1">
-                            <label class="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Periode</label>
-                            <div class="flex no-print hide-on-print bg-white rounded-md border border-gray-300 overflow-hidden w-full max-w-[200px]">
-                                <select id="monthSelect" class="flex-1 px-3 py-1.5 text-sm font-semibold text-gray-700 bg-transparent focus:outline-none cursor-pointer hover:bg-gray-50 border-r"></select>
-                                <select id="yearSelect" class="w-20 px-2 py-1.5 text-sm font-semibold text-gray-700 bg-transparent focus:outline-none cursor-pointer hover:bg-gray-50 text-center"></select>
-                            </div>
-                            <!-- Tampilan Text saat Print -->
-                            <div class="hidden print:block show-on-print font-bold text-sm dateDisplay text-black uppercase"></div>
-                        </div>
-
-                        <div class="md:col-span-2 space-y-1">
-                            <label class="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Lokasi / Area</label>
-                            <input type="text" id="areaInput" placeholder="Masukkan Lokasi..." class="w-full border-b border-gray-300 py-1 text-sm font-bold text-gray-800 bg-transparent focus:border-brand-blue focus:outline-none placeholder-gray-300">
-                        </div>
-
-                        <div class="space-y-1">
-                            <label class="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Penanggung Jawab</label>
-                            <input type="text" id="inspectorInput" placeholder="Nama..." class="w-full border-b border-gray-300 py-1 text-sm font-bold text-gray-800 bg-transparent focus:border-brand-blue focus:outline-none placeholder-gray-300">
-                        </div>
+                    <div class="col-span-2">
+                        <label class="font-bold uppercase text-gray-500 block mb-1">Lokasi / Area</label>
+                        <input type="text" id="inpArea" class="w-full border-b border-gray-300 py-1 font-bold bg-transparent focus:outline-none" placeholder="Isi Lokasi...">
                     </div>
-                </div>
-
-                <!-- The Table Container -->
-                <div class="p-5 print:p-0 table-wrapper">
-                    <table class="w-full text-xs border border-gray-300 shadow-sm print:shadow-none print:border-black">
-                        <thead>
-                            <tr class="bg-gray-100 print:bg-gray-100 sticky-top-row">
-                                <th rowspan="2" class="p-2 border border-gray-300 col-no">NO</th>
-                                <th rowspan="2" class="p-2 border border-gray-300 text-left col-item">
-                                    ITEM PEMERIKSAAN 
-                                    <span class="block text-[10px] font-normal text-gray-500 mt-0.5 italic">(* = Cek Mingguan)</span>
-                                </th>
-                                <th class="p-1 border border-gray-300 text-center font-bold bg-gray-100 daysHeader" colspan="31">TANGGAL</th>
-                            </tr>
-                            <tr class="bg-white print:bg-white dateRow text-[10px] text-gray-600 sticky-date-row">
-                                <!-- Dates Generated by JS -->
-                            </tr>
-                        </thead>
-                        <tbody id="mainTbody" class="text-gray-700">
-                            <!-- Rows Generated by JS -->
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Footer & Signature -->
-                <div class="p-5 pt-2 grid grid-cols-1 md:grid-cols-2 gap-8 text-xs text-gray-500 print:grid-cols-2 footer-container bg-white rounded-b-xl">
-                    <div class="p-2">
-                        <p class="font-bold text-gray-700 mb-1 text-[10px]">KETERANGAN:</p>
-                        <ul class="list-none space-y-0.5 pl-0">
-                            <li><span class="inline-block w-3 text-center">✓</span> Kondisi OK / Sesuai Standar.</li>
-                            <li><span class="inline-block w-3 text-center"></span> (Kosong) Kondisi Tidak Sesuai.</li>
-                            <li><span class="inline-block w-3 h-3 bg-red-50 border border-red-100 rounded-sm align-middle mr-1"></span> Hari Minggu / Libur.</li>
-                            <li><span class="text-red-500 font-bold">*</span> Diisi minimal 1x seminggu.</li>
-                        </ul>
-                    </div>
-                    <div class="flex justify-end items-end gap-16 print:gap-20 mt-4">
-                        <div class="text-center">
-                            <p class="mb-10 font-bold text-[10px] uppercase tracking-wider text-gray-400">Dibuat Oleh,</p>
-                            <p class="border-t border-black min-w-[120px] pt-1 font-bold text-black text-sm" id="signerName">Leader Area</p>
-                        </div>
-                        <div class="text-center">
-                            <p class="mb-10 font-bold text-[10px] uppercase tracking-wider text-gray-400">Diketahui Oleh,</p>
-                            <p class="border-t border-black min-w-[120px] pt-1 font-bold text-black text-sm">Supervisor</p>
-                        </div>
+                    <div>
+                        <label class="font-bold uppercase text-gray-500 block mb-1">Penanggung Jawab</label>
+                        <input type="text" id="inpPic" class="w-full border-b border-gray-300 py-1 font-bold bg-transparent focus:outline-none" placeholder="Nama...">
                     </div>
                 </div>
             </div>
+
+            <!-- 3. Tabel Data -->
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr class="th-row-1">
+                            <th rowspan="2" class="col-no">NO</th>
+                            <th rowspan="2" class="col-item pl-2 text-left">
+                                ITEM PEMERIKSAAN <br>
+                                <span class="font-normal italic text-[10px] text-gray-500">(* = Cek Mingguan)</span>
+                            </th>
+                            <th colspan="31" class="text-center bg-gray-100" id="headerDatesTitle">TANGGAL</th>
+                        </tr>
+                        <tr class="th-row-2" id="headerDatesRow">
+                            <!-- Generated -->
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <!-- Generated -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 4. Footer -->
+            <div class="p-4 bg-white border-t border-e2e8f0 grid grid-cols-2 gap-8 text-xs">
+                <div>
+                    <p class="font-bold mb-2">KETERANGAN:</p>
+                    <ul class="list-disc pl-4 space-y-1 text-gray-600 print:text-black">
+                        <li>Centang (✓) jika kondisi OK.</li>
+                        <li>Biarkan kosong jika Tidak Sesuai.</li>
+                        <li>Kolom Merah = Hari Libur.</li>
+                        <li>(*) = Cek Mingguan.</li>
+                    </ul>
+                </div>
+                <div class="flex justify-end gap-16 mt-4">
+                    <div class="text-center">
+                        <p class="mb-12 font-bold text-gray-400 uppercase">Dibuat Oleh,</p>
+                        <p class="border-t border-black min-w-[120px] pt-1 font-bold" id="txtSigner">Leader</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="mb-12 font-bold text-gray-400 uppercase">Diketahui Oleh,</p>
+                        <p class="border-t border-black min-w-[120px] pt-1 font-bold">Supervisor</p>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 
-    <!-- JAVASCRIPT LOGIC -->
+    <!-- LOGIC -->
     <script>
-        // --- DATA MASTER ---
-        const allSections = [
-            {
-                title: "A. AREA PROSES",
-                items: [
-                    { id: 1, category: 'RESIK', question: 'Pembuangan Sampah All Proses (Sudah dibuang/Kosong)' },
-                    { id: 2, category: 'RESIK', question: 'Permukaan Lantai All Area Steril dan bersih' },
-                    { id: 3, category: 'RINGKAS', question: 'Marka Pedestrian terbebas dari Barang-barang maupun Tools' },
-                    { id: 4, category: 'RESIK', question: 'Area HV, Dokumen dan Non Halal dalam kondisi Steril dan Bersih' },
-                    { id: 5, category: 'RAPI', question: 'Area Leader dalam keadaan rapi' },
-                    { id: 6, category: 'RAPI', question: 'Barang Holding tersimpan pada Area Holding dengan benar' },
-                ]
-            },
-            {
-                title: "B. TOOLS & PERALATAN",
-                items: [
-                    { id: 7, category: 'RAPI', question: 'Tool diletakkan pada Checkpoint yang ditentukan' },
-                    { id: 8, category: 'RINGKAS', question: 'Melakukan Sortiran MB Bekas serta merapikan di area Limbah' },
-                    { id: 9, category: 'RAWAT', question: 'Perawatan Sorting Basket (Kondisi baik/bersih)' },
-                    { id: 10, category: 'RAWAT', question: 'Perawatan Pigeon Hole (Kondisi baik/bersih)' },
-                    { id: 11, category: 'RAWAT', question: 'Perawatan Trolly Cage (Roda lancar, tidak rusak)' },
-                    { id: 12, category: 'RAWAT', question: 'Perawatan Pallet Mesh (Tidak penyok/rusak)' },
-                ]
-            },
-            {
-                title: "C. RAK PENYIMPANAN",
-                items: [
-                    { id: 13, category: 'RAWAT', question: 'Perawatan Rak Dokumen dan Tools', isWeekly: true },
-                    { id: 14, category: 'RAPI', question: 'Rak dokumen dan Tools dalam keadaan tertata Rapih' },
-                ]
-            },
-            {
-                title: "D. PRASARANA & FASILITAS",
-                items: [
-                    { id: 15, category: 'RAPI', question: 'Area Istirahat/Musholla rapih & terbebas dari barang pribadi' },
-                    { id: 16, category: 'SAFETY', question: 'Memastikan persediaan P3K sesuai dengan standar K3', isWeekly: true },
-                    { id: 17, category: 'RAJIN', question: 'Informasi board di update (KPI/Pengumuman)', isWeekly: true },
-                ]
-            }
+        // DATA
+        const ITEMS = [
+            { cat: 'RESIK', txt: 'Pembuangan Sampah All Proses' },
+            { cat: 'RESIK', txt: 'Permukaan Lantai All Area Steril' },
+            { cat: 'RINGKAS', txt: 'Marka Pedestrian terbebas dari barang' },
+            { cat: 'RESIK', txt: 'Area HV & Dokumen Steril' },
+            { cat: 'RAPI', txt: 'Area Leader Rapi' },
+            { cat: 'RAPI', txt: 'Barang Holding tersimpan benar' },
+            { cat: 'RAPI', txt: 'Tool diletakkan pada Checkpoint' },
+            { cat: 'RINGKAS', txt: 'Sortiran MB Bekas & Limbah' },
+            { cat: 'RAWAT', txt: 'Perawatan Sorting Basket' },
+            { cat: 'RAWAT', txt: 'Perawatan Pigeon Hole' },
+            { cat: 'RAWAT', txt: 'Perawatan Trolly Cage' },
+            { cat: 'RAWAT', txt: 'Perawatan Pallet Mesh' },
+            { cat: 'RAWAT', txt: 'Perawatan Rak Dokumen & Tools', week: true },
+            { cat: 'RAPI', txt: 'Rak dokumen tertata Rapih' },
+            { cat: 'RAPI', txt: 'Area Istirahat/Musholla Rapi' },
+            { cat: 'SAFETY', txt: 'P3K sesuai standar K3', week: true },
+            { cat: 'RAJIN', txt: 'Update Info Board (KPI)', week: true }
         ];
 
-        const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-        
-        // --- CONFIG ---
-        const USERS = {
-            'Spv': { password: 'TAB123', role: 'admin', name: '', area: '' },
-            'MKS': { password: 'MKS01', role: 'user', name: 'Muhammad fahri', area: 'HUB Makassar' }
+        const MONTHS = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+        const ACCOUNTS = { 
+            'Spv': { p: 'TAB123', role: 'admin' }, 
+            'MKS': { p: 'MKS01', role: 'user', name: 'Muhammad fahri', area: 'HUB Makassar' } 
         };
 
-        let currentYear = new Date().getFullYear();
-        let currentMonth = new Date().getMonth();
-        let checks = {}; 
-        let currentUser = null; 
-        const STORAGE_PREFIX = "5R_CORP_DATA_"; 
+        let state = { user: null, year: new Date().getFullYear(), month: new Date().getMonth(), checks: {} };
 
-        // --- INIT ---
+        // INIT
         document.addEventListener('DOMContentLoaded', () => {
-            init();
+            lucide.createIcons();
             
-            // Fix: Check if element exists before adding listener to avoid null errors
-            const btnReset = document.getElementById('btnReset');
-            if (btnReset) {
-                btnReset.addEventListener('click', (e) => { e.preventDefault(); resetData(); });
+            const sess = sessionStorage.getItem('5R_LOGIN');
+            if(sess) {
+                state.user = JSON.parse(sess);
+                showApp();
             }
+
+            const ySel = document.getElementById('selYear');
+            for(let i=state.year-1; i<=state.year+2; i++) ySel.add(new Option(i, i));
+            ySel.value = state.year;
             
-            const area = document.getElementById('areaInput');
-            const insp = document.getElementById('inspectorInput');
-            
-            if (area) {
-                area.addEventListener('input', () => saveMetadata());
-            }
-            if (insp) {
-                insp.addEventListener('input', (e) => {
-                    const signer = document.getElementById('signerName');
-                    if (signer) signer.innerText = e.target.value || 'Leader Area';
-                    saveMetadata();
-                });
-            }
+            const mSel = document.getElementById('selMonth');
+            MONTHS.forEach((m, i) => mSel.add(new Option(m, i)));
+            mSel.value = state.month;
+
+            ySel.onchange = (e) => { state.year = parseInt(e.target.value); loadData(); render(); };
+            mSel.onchange = (e) => { state.month = parseInt(e.target.value); loadData(); render(); };
+
+            document.getElementById('inpArea').oninput = saveData;
+            document.getElementById('inpPic').oninput = (e) => {
+                document.getElementById('txtSigner').innerText = e.target.value || 'Leader';
+                saveData();
+            };
         });
 
-        // --- AUTH LOGIC ---
+        // AUTH
         function handleLogin(e) {
             e.preventDefault();
-            const username = document.getElementById('usernameInput').value;
-            const password = document.getElementById('passwordInput').value;
-            const errorMsg = document.getElementById('loginError');
+            const u = document.getElementById('loginUser').value;
+            const p = document.getElementById('loginPass').value;
+            const errBox = document.getElementById('loginErrorMsg');
 
-            if (USERS[username] && USERS[username].password === password) {
-                currentUser = { username: username, ...USERS[username] };
-                sessionStorage.setItem('5R_CORP_USER', JSON.stringify(currentUser));
-                applyUserPermissions();
-                
-                document.getElementById('loginOverlay').style.display = 'none';
-                document.getElementById('mainApp').classList.remove('hidden');
-                
-                loadDataForCurrentMonth();
-                renderTable();
+            if(ACCOUNTS[u] && ACCOUNTS[u].p === p) {
+                state.user = { id: u, ...ACCOUNTS[u] };
+                sessionStorage.setItem('5R_LOGIN', JSON.stringify(state.user));
+                errBox.style.display = 'none'; // Sembunyikan error jika berhasil
+                showApp();
             } else {
-                errorMsg.classList.remove('hidden');
+                errBox.style.display = 'block'; // Tampilkan error di dalam kotak
             }
         }
 
-        function logout() {
-            sessionStorage.removeItem('5R_CORP_USER');
-            currentUser = null;
-            document.getElementById('mainApp').classList.add('hidden');
-            document.getElementById('loginOverlay').style.display = 'flex';
-            document.getElementById('usernameInput').value = "";
-            document.getElementById('passwordInput').value = "";
-            document.getElementById('loginError').classList.add('hidden');
-        }
+        function showApp() {
+            document.getElementById('loginModal').style.display = 'none';
+            document.getElementById('appContainer').classList.remove('hidden');
+            document.getElementById('displayUser').innerText = state.user.id;
 
-        function applyUserPermissions() {
-            if (!currentUser) return;
-            const areaInput = document.getElementById('areaInput');
-            const inspectorInput = document.getElementById('inspectorInput');
+            const area = document.getElementById('inpArea');
+            const pic = document.getElementById('inpPic');
             const btnReset = document.getElementById('btnReset');
-            const btnImport = document.getElementById('btnImport');
-            const userBadge = document.getElementById('userBadge');
 
-            userBadge.innerText = currentUser.username; 
-
-            if (currentUser.role === 'user') {
-                areaInput.value = currentUser.area;
-                areaInput.setAttribute('readonly', true);
-                inspectorInput.value = currentUser.name;
-                inspectorInput.setAttribute('readonly', true);
-                const signer = document.getElementById('signerName');
-                if (signer) signer.innerText = currentUser.name;
-                
-                if (btnReset) btnReset.classList.add('hidden');
-                if (btnImport) btnImport.classList.add('hidden');
-                saveMetadata(); 
+            if(state.user.role === 'user') {
+                area.value = state.user.area; area.readOnly = true;
+                pic.value = state.user.name; pic.readOnly = true;
+                document.getElementById('txtSigner').innerText = state.user.name;
+                btnReset.classList.add('hidden');
             } else {
-                areaInput.removeAttribute('readonly');
-                inspectorInput.removeAttribute('readonly');
-                if (btnReset) btnReset.classList.remove('hidden');
-                if (btnImport) btnImport.classList.remove('hidden');
-            }
-        }
-
-        // --- DATA LOGIC ---
-        function init() {
-            const sessionUser = sessionStorage.getItem('5R_CORP_USER');
-            if (sessionUser) {
-                currentUser = JSON.parse(sessionUser);
-                applyUserPermissions();
-                document.getElementById('loginOverlay').style.display = 'none';
-                document.getElementById('mainApp').classList.remove('hidden');
+                area.readOnly = false; pic.readOnly = false;
+                btnReset.classList.remove('hidden');
             }
 
-            const yearSelect = document.getElementById('yearSelect');
-            for(let y = new Date().getFullYear() - 2; y <= new Date().getFullYear() + 2; y++) {
-                const opt = document.createElement('option');
-                opt.value = y;
-                opt.text = y;
-                if(y === currentYear) opt.selected = true;
-                yearSelect.appendChild(opt);
-            }
-            const monthSelect = document.getElementById('monthSelect');
-            monthNames.forEach((m, i) => {
-                const opt = document.createElement('option');
-                opt.value = i;
-                opt.text = m;
-                if(i === currentMonth) opt.selected = true;
-                monthSelect.appendChild(opt);
-            });
-
-            yearSelect.addEventListener('change', (e) => { 
-                currentYear = parseInt(e.target.value); 
-                loadDataForCurrentMonth(); 
-                renderTable(); 
-            });
-            monthSelect.addEventListener('change', (e) => { 
-                currentMonth = parseInt(e.target.value); 
-                loadDataForCurrentMonth(); 
-                renderTable(); 
-            });
-
-            loadDataForCurrentMonth();
-            renderTable();
-            if (window.lucide) lucide.createIcons();
+            loadData();
+            render();
         }
 
-        function getStorageKey() {
-            return `${STORAGE_PREFIX}${currentYear}_${currentMonth}`;
+        function doLogout() {
+            sessionStorage.removeItem('5R_LOGIN');
+            location.reload();
         }
 
-        function loadDataForCurrentMonth() {
-            const key = getStorageKey();
-            const rawData = localStorage.getItem(key);
-            const area = document.getElementById('areaInput');
-            const insp = document.getElementById('inspectorInput');
-            const signer = document.getElementById('signerName');
+        function getKey() { return `5R_${state.year}_${state.month}`; }
 
-            if (rawData) {
-                const data = JSON.parse(rawData);
-                checks = data.checks || {};
-                
-                if (currentUser && currentUser.role === 'admin') {
-                    if(data.area && area) area.value = data.area;
-                    if(data.inspector && insp) {
-                        insp.value = data.inspector;
-                        if (signer) signer.innerText = data.inspector;
+        function loadData() {
+            const raw = localStorage.getItem(getKey());
+            if(raw) {
+                const data = JSON.parse(raw);
+                state.checks = data.checks || {};
+                if(state.user.role === 'admin') {
+                    if(data.area) document.getElementById('inpArea').value = data.area;
+                    if(data.pic) {
+                        document.getElementById('inpPic').value = data.pic;
+                        document.getElementById('txtSigner').innerText = data.pic;
                     }
                 }
             } else {
-                checks = {};
+                state.checks = {};
             }
         }
 
-        function saveMetadata() {
-            const key = getStorageKey();
-            const area = document.getElementById('areaInput');
-            const insp = document.getElementById('inspectorInput');
-            
-            const dataToSave = {
-                checks: checks,
-                area: area ? area.value : '',
-                inspector: insp ? insp.value : ''
+        function saveData() {
+            const data = {
+                checks: state.checks,
+                area: document.getElementById('inpArea').value,
+                pic: document.getElementById('inpPic').value
             };
-            localStorage.setItem(key, JSON.stringify(dataToSave));
+            localStorage.setItem(getKey(), JSON.stringify(data));
         }
 
-        // --- EXPORT / IMPORT ---
-        function exportData() {
-            const area = document.getElementById('areaInput');
-            const insp = document.getElementById('inspectorInput');
+        function render() {
+            const daysInMonth = new Date(state.year, state.month + 1, 0).getDate();
+            const dateRow = document.getElementById('headerDatesRow');
+            const tbody = document.getElementById('tableBody');
             
-            const dataToExport = {
-                year: currentYear,
-                month: currentMonth,
-                data: {
-                    checks: checks,
-                    area: area ? area.value : '',
-                    inspector: insp ? insp.value : ''
-                }
-            };
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dataToExport));
-            const downloadAnchorNode = document.createElement('a');
-            downloadAnchorNode.setAttribute("href", dataStr);
-            downloadAnchorNode.setAttribute("download", `Backup_5R_${monthNames[currentMonth]}_${currentYear}.json`);
-            document.body.appendChild(downloadAnchorNode);
-            downloadAnchorNode.click();
-            downloadAnchorNode.remove();
-        }
-
-        function importData(input) {
-            const file = input.files[0];
-            if(!file) return;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const imported = JSON.parse(e.target.result);
-                    if(imported.year !== undefined && imported.month !== undefined) {
-                        Swal.fire({
-                            title: 'Timpa Data?',
-                            text: `Anda akan menimpa data ${monthNames[imported.month]} ${imported.year} dengan file ini.`,
-                            icon: 'warning',
-                            showCancelButton: true,
-                            confirmButtonText: 'Ya, Upload'
-                        }).then((result) => {
-                            if(result.isConfirmed) {
-                                currentYear = imported.year;
-                                currentMonth = imported.month;
-                                document.getElementById('yearSelect').value = currentYear;
-                                document.getElementById('monthSelect').value = currentMonth;
-                                const key = getStorageKey();
-                                localStorage.setItem(key, JSON.stringify(imported.data));
-                                loadDataForCurrentMonth();
-                                renderTable();
-                                Swal.fire('Sukses', 'Data berhasil diupload!', 'success');
-                            }
-                        });
-                    } else { alert("File tidak valid!"); }
-                } catch(err) { alert("Gagal membaca file!"); }
-            };
-            reader.readAsText(file);
-            input.value = '';
-        }
-
-        // --- RENDER ---
-        function renderTable() {
-            const dateStr = `${monthNames[currentMonth]} ${currentYear}`;
-            document.querySelectorAll('.dateDisplay').forEach(el => el.innerText = dateStr);
-            
-            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-            const daysHeader = document.querySelector('.daysHeader');
-            const dateRow = document.querySelector('.dateRow');
-            const tbody = document.getElementById('mainTbody');
-
-            if (daysHeader) daysHeader.colSpan = daysInMonth;
-            
-            if (dateRow) {
-                dateRow.innerHTML = '';
-                for (let d = 1; d <= daysInMonth; d++) {
-                    const th = document.createElement('th');
-                    th.className = "border border-gray-300 text-center p-1 col-date";
-                    th.innerText = d;
-                    dateRow.appendChild(th);
-                }
+            document.getElementById('headerDatesTitle').colSpan = daysInMonth;
+            let hHtml = '';
+            for(let d=1; d<=daysInMonth; d++) {
+                hHtml += `<th class="text-center border-l border-gray-300 col-date bg-white">${d}</th>`;
             }
+            dateRow.innerHTML = hHtml;
 
-            if (tbody) {
-                tbody.innerHTML = '';
+            let bHtml = '';
+            ITEMS.forEach((item, idx) => {
+                const no = idx + 1;
+                let badgeClass = 'bg-gray-100 text-gray-600 border-gray-300';
+                if(item.cat === 'RESIK') badgeClass = 'bg-green-50 text-green-700 border-green-200';
+                if(item.cat === 'RAPI') badgeClass = 'bg-blue-50 text-blue-700 border-blue-200';
+                if(item.cat === 'RINGKAS') badgeClass = 'bg-red-50 text-red-700 border-red-200';
+                if(item.cat === 'RAWAT') badgeClass = 'bg-purple-50 text-purple-700 border-purple-200';
+                if(item.cat === 'RAJIN') badgeClass = 'bg-orange-50 text-orange-700 border-orange-200';
                 
-                allSections.forEach(section => {
-                    const sectionRow = document.createElement('tr');
-                    sectionRow.className = "bg-gray-100 print:bg-white text-gray-800 print:text-black";
-                    sectionRow.innerHTML = `
-                        <td colspan="${daysInMonth + 2}" class="p-2 font-bold text-sm border border-gray-300 print:border-black uppercase">
-                            ${section.title}
-                        </td>
-                    `;
-                    tbody.appendChild(sectionRow);
+                const weekBadge = item.week ? '<span class="text-red-500 ml-1 font-bold">*</span>' : '';
 
-                    section.items.forEach(item => {
-                        const row = document.createElement('tr');
-                        const rowClass = item.isWeekly ? "hover:bg-amber-50" : "hover:bg-blue-50";
-                        row.className = `${rowClass} transition-colors border-b border-gray-100`;
-
-                        // Badge Style
-                        let badgeClass = 'text-gray-600 bg-gray-100 border-gray-300';
-                        if(item.category === 'RINGKAS') badgeClass = 'text-red-700 bg-red-50 border-red-200';
-                        if(item.category === 'RAPI') badgeClass = 'text-blue-700 bg-blue-50 border-blue-200';
-                        if(item.category === 'RESIK') badgeClass = 'text-emerald-700 bg-emerald-50 border-emerald-200';
-                        if(item.category === 'RAWAT') badgeClass = 'text-purple-700 bg-purple-50 border-purple-200';
-                        if(item.category === 'RAJIN') badgeClass = 'text-orange-700 bg-orange-50 border-orange-200';
-                        if(item.category === 'SAFETY') badgeClass = 'text-rose-700 bg-rose-50 border-rose-200';
-
-                        const weeklyBadge = item.isWeekly ? `⚠️` : '';
-                        const weeklyAsterisk = item.isWeekly ? `<span class="text-red-500 font-bold ml-1">*</span>` : '';
-
-                        let html = `
-                            <td class="border border-gray-200 text-center p-2 font-mono text-gray-500 col-no">${item.id}</td>
-                            <td class="border border-gray-200 p-2 col-item">
-                                <div class="flex flex-col justify-center">
-                                    <div class="mb-1 category-label">
-                                        <span class="badge-span px-1.5 py-0.5 rounded text-[10px] font-bold border ${badgeClass} print:border-none print:bg-transparent print:text-black print:px-0 print:font-bold">
-                                            [${item.category}]
-                                        </span>
-                                        <span class="text-[10px]">${weeklyBadge}</span>
-                                    </div>
-                                    <div class="text-[11px] font-medium text-gray-700 print:text-black item-text leading-snug">
-                                        ${item.question} ${weeklyAsterisk}
-                                    </div>
-                                </div>
-                            </td>
-                        `;
-
-                        for (let d = 1; d <= daysInMonth; d++) {
-                            const dateObj = new Date(currentYear, currentMonth, d);
-                            const isSunday = dateObj.getDay() === 0;
-                            const key = `${item.id}-${d}`;
-                            const isChecked = checks[key] === true;
-                            
-                            const cellClass = `border border-gray-200 text-center p-0 check-cell ${isSunday ? 'sunday' : ''} ${isChecked ? 'active' : ''} col-date`;
-                            
-                            html += `
-                                <td class="${cellClass}" onclick="toggleCheck(${item.id}, ${d}, this)">
-                                    <div class="w-full h-full flex items-center justify-center text-[12px] transition-all">
-                                        ${isChecked ? '✓' : ''}
-                                    </div>
-                                </td>
-                            `;
-                        }
-                        row.innerHTML = html;
-                        tbody.appendChild(row);
-                    });
-                });
-
-                // Paraf Row
-                const parafRow = document.createElement('tr');
-                parafRow.className = "print:h-12 bg-white";
-                let parafHtml = `
-                    <td colspan="2" class="border border-gray-300 p-2 text-right font-bold italic text-gray-500">Paraf Leader</td>
+                bHtml += `
+                <tr>
+                    <td class="text-center font-mono text-gray-500 bg-gray-50">${no}</td>
+                    <td class="p-2">
+                        <span class="badge ${badgeClass}">${item.cat}</span>
+                        <div class="text-[11px] leading-tight font-medium mt-1">${item.txt} ${weekBadge}</div>
+                    </td>
                 `;
-                for (let d = 1; d <= daysInMonth; d++) {
-                    parafHtml += `<td class="border border-gray-300"></td>`;
+
+                for(let d=1; d<=daysInMonth; d++) {
+                    const key = `${no}-${d}`;
+                    const isChecked = state.checks[key];
+                    const isSun = new Date(state.year, state.month, d).getDay() === 0;
+                    
+                    const bgClass = isSun ? 'cell-sunday' : '';
+                    const activeClass = isChecked ? 'checked' : '';
+                    const val = isChecked ? '✓' : '';
+
+                    bHtml += `
+                    <td class="${bgClass}">
+                        <div class="check-box ${activeClass}" onclick="toggleCheck(${no}, ${d})">${val}</div>
+                    </td>`;
                 }
-                parafRow.innerHTML = parafHtml;
-                tbody.appendChild(parafRow);
-            }
+                bHtml += `</tr>`;
+            });
+            tbody.innerHTML = bHtml;
         }
 
-        window.toggleCheck = function(itemId, day, cellElement) {
-            const key = `${itemId}-${day}`;
-            if (checks[key]) {
-                delete checks[key];
-                cellElement.classList.remove('active');
-                cellElement.querySelector('div').innerText = '';
-            } else {
-                checks[key] = true;
-                cellElement.classList.add('active');
-                cellElement.querySelector('div').innerText = '✓';
-            }
-            saveMetadata();
+        window.toggleCheck = function(id, day) {
+            const key = `${id}-${day}`;
+            if(state.checks[key]) delete state.checks[key];
+            else state.checks[key] = true;
+            saveData();
+            render();
         }
 
-        window.resetData = function() {
+        window.doReset = function() {
             Swal.fire({
-                title: 'Hapus Data?',
-                text: "Data bulan ini akan dihapus permanen.",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#d33',
-                confirmButtonText: 'Ya, Hapus!'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    checks = {};
-                    saveMetadata();
-                    renderTable();
-                    Swal.fire('Terhapus!', '', 'success');
+                title: 'Hapus Data?', text: 'Data bulan ini akan hilang selamanya.', icon: 'warning',
+                showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Ya, Hapus'
+            }).then(r => {
+                if(r.isConfirmed) {
+                    state.checks = {};
+                    saveData(); render();
+                    Swal.fire('Terhapus', '', 'success');
                 }
-            })
+            });
+        }
+
+        window.doLogout = function() {
+            sessionStorage.removeItem('5R_LOGIN');
+            location.reload();
         }
     </script>
 </body>
