@@ -253,8 +253,8 @@
             </form>
             
             <div class="mt-8 pt-4 border-t border-gray-100 text-center flex justify-center gap-2 items-center">
-                <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                <p class="text-[10px] text-gray-400 uppercase tracking-widest font-semibold">Server Connected</p>
+                <div id="statusDot" class="w-2 h-2 rounded-full bg-yellow-500 animate-pulse"></div>
+                <p id="statusText" class="text-[10px] text-gray-400 uppercase tracking-widest font-semibold">Connecting to Server...</p>
             </div>
         </div>
     </div>
@@ -392,14 +392,66 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getFirestore, doc, setDoc, onSnapshot, collection, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
-        // --- FIREBASE CONFIGURATION ---
-        const firebaseConfig = JSON.parse(__firebase_config);
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        // =========================================================================================
+        // PETUNJUK PENGGUNAAN DI GITHUB / HOSTING SENDIRI:
+        // =========================================================================================
+        // 1. Buka console.firebase.google.com -> Buat Project Baru.
+        // 2. Klik icon "Web" (</>) untuk menambahkan aplikasi web.
+        // 3. Salin "firebaseConfig" yang muncul dan GANTI variabel 'manualConfig' di bawah ini.
+        // 4. Di Console Firebase:
+        //    - Masuk ke menu "Build" -> "Firestore Database" -> "Create Database".
+        //    - Pilih "Start in test mode" (agar bisa langsung write/read tanpa login user khusus).
+        //    - Masuk ke menu "Build" -> "Authentication" -> "Get Started" -> Tab "Sign-in method".
+        //    - Aktifkan "Anonymous" (Login Anonim).
+        // =========================================================================================
+
+        const manualConfig = {
+            apiKey: "AIzaSyAqbDeVLDBRDEIfi4RliLMC-3Qrwh8p96k",
+            authDomain: "logsheet-5r.firebaseapp.com",
+            projectId: "logsheet-5r",
+            storageBucket: "logsheet-5r.firebasestorage.app",
+            messagingSenderId: "358725557740",
+            appId: "1:358725557740:web:664cca8d2ae984221ff4c9"
+        };
+
+        // --- FIREBASE CONFIGURATION LOGIC ---
+        let app, auth, db, appId;
+
+        try {
+            // Cek apakah berjalan di lingkungan Canvas (otomatis)
+            if (typeof __firebase_config !== 'undefined') {
+                const firebaseConfig = JSON.parse(__firebase_config);
+                app = initializeApp(firebaseConfig);
+                appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+            } else {
+                // Jika di GitHub/Lokal, gunakan konfigurasi manual
+                if (manualConfig.apiKey === "ISI_API_KEY_DISINI") {
+                    throw new Error("Konfigurasi Firebase Belum Diisi! Silakan edit file index.html baris ~530");
+                }
+                app = initializeApp(manualConfig);
+                appId = '5r-logsheet-app'; // ID default untuk path database
+            }
+            
+            auth = getAuth(app);
+            db = getFirestore(app);
+            
+            // Auto Init Auth
+            initAuth();
+
+        } catch (error) {
+            console.error("Firebase Init Error:", error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Konfigurasi Error',
+                text: 'Gagal terhubung ke Firebase. Pastikan Anda sudah mengisi manualConfig di dalam file HTML jika menjalankannya di GitHub.',
+                footer: '<a href="#">Lihat Baris 530 di index.html</a>'
+            });
+            document.getElementById('statusText').innerText = "Config Error (Cek Script)";
+            document.getElementById('statusDot').classList.remove('bg-yellow-500');
+            document.getElementById('statusDot').classList.add('bg-red-500');
+        }
 
         // --- DATA CONSTANTS (NEW GROUPING) ---
         const GROUPS = [
@@ -458,23 +510,28 @@
         // --- INIT ---
         async function initAuth() {
             try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
+                // Di GitHub, kita langsung pakai Anonymous Auth saja karena custom token tidak ada
+                await signInAnonymously(auth);
+                
                 const btn = document.getElementById('btnLogin');
                 btn.disabled = false;
                 btn.classList.remove('bg-gray-400', 'cursor-not-allowed');
                 btn.classList.add('bg-gradient-to-r', 'from-blue-700', 'to-indigo-800', 'hover:from-blue-800', 'hover:to-indigo-900', 'shadow-lg');
                 btn.innerHTML = `<span>MASUK APLIKASI</span><i data-lucide="arrow-right" class="w-4 h-4"></i>`;
+                
+                document.getElementById('statusText').innerText = "Server Connected";
+                document.getElementById('statusDot').classList.remove('bg-yellow-500');
+                document.getElementById('statusDot').classList.add('bg-green-500');
+
                 lucide.createIcons();
             } catch (error) {
                 console.error("Auth Error:", error);
-                Swal.fire('Error Koneksi', 'Gagal terhubung ke database server.', 'error');
+                document.getElementById('statusText').innerText = "Connection Failed";
+                document.getElementById('statusDot').classList.remove('bg-yellow-500');
+                document.getElementById('statusDot').classList.add('bg-red-500');
+                Swal.fire('Error Koneksi', 'Gagal login ke database. Pastikan "Anonymous Auth" aktif di Firebase Console.', 'error');
             }
         }
-        initAuth();
 
         // 2. Setup UI
         document.addEventListener('DOMContentLoaded', () => {
@@ -590,6 +647,7 @@
             if (unsubscribeListener) unsubscribeListener();
             
             const docId = getDocId();
+            // Path menggunakan appId (bisa dari Canvas atau manual)
             const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'logsheet_5r', docId);
 
             unsubscribeListener = onSnapshot(docRef, (docSnap) => {
