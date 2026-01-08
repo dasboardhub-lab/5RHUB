@@ -74,9 +74,20 @@
         }
 
         /* Baris 1: Judul Kolom */
-        .th-row-1 th { top: 0; height: 40px; z-index: 20; border-top: 1px solid #e2e8f0; }
-        /* Baris 2: Tanggal */
-        .th-row-2 th { top: 40px; height: 30px; background-color: white; z-index: 15; }
+        .th-row-1 th { 
+            top: 0; 
+            height: 40px; 
+            z-index: 20; 
+            border-top: 1px solid #e2e8f0; 
+        }
+        /* Baris 2: Tanggal - Diupdate tingginya agar muat Hari + Tanggal */
+        .th-row-2 th { 
+            top: 40px; 
+            height: 40px; /* Sedikit dipertinggi */
+            background-color: white; 
+            z-index: 15;
+            vertical-align: middle;
+        }
 
         td {
             border-bottom: 1px solid #e2e8f0;
@@ -648,8 +659,25 @@
             
             document.getElementById('headerDatesTitle').colSpan = daysInMonth;
             let hHtml = '';
+            
+            // --- NAMA HARI SINGKAT ---
+            const dayNames = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+
             for(let d=1; d<=daysInMonth; d++) {
-                hHtml += `<th class="text-center border-l border-gray-300 col-date bg-white">${d}</th>`;
+                const dateObj = new Date(state.year, state.month, d);
+                const dayIdx = dateObj.getDay();
+                const dayName = dayNames[dayIdx];
+                const isSun = dayIdx === 0;
+                
+                // Warna merah khusus hari minggu
+                const textClass = isSun ? 'text-red-600' : 'text-gray-600';
+                const bgClass = isSun ? 'bg-red-50' : 'bg-white';
+
+                hHtml += `
+                <th class="text-center border-l border-gray-300 col-date ${bgClass} py-1">
+                    <div class="text-[9px] uppercase ${textClass} font-normal leading-none mb-0.5">${dayName}</div>
+                    <div class="text-sm font-bold ${textClass} leading-none">${d}</div>
+                </th>`;
             }
             dateRow.innerHTML = hHtml;
 
