@@ -59,92 +59,57 @@
 
         /* ==========================================================================
            PENGATURAN CETAK (PRINT)
-           Bagian ini mengatur tampilan saat tombol Cetak ditekan.
            ========================================================================== */
         @media print {
-            /* Atur Kertas Landscape */
             @page { size: landscape; margin: 5mm; }
             
             body { margin: 0; padding: 0; background: white; width: 100%; }
             
             .sheet-page {
-                box-shadow: none; 
-                margin: 0; 
-                border: none; 
-                border-radius: 0; 
-                width: 100%; 
-                max-width: none;
+                box-shadow: none; margin: 0; border: none; border-radius: 0; width: 100%; max-width: none;
             }
 
-            /* Sembunyikan elemen yang tidak perlu saat cetak */
             .no-print { display: none !important; }
             .hide-on-print { display: none !important; }
             .show-on-print { display: block !important; }
             #loginOverlay { display: none !important; }
 
-            /* --- FORMAT TABEL SAAT CETAK --- */
+            /* Format Tabel Print */
             table {
-                font-size: 10px !important; /* Ukuran font tabel saat dicetak */
-                width: 100% !important;
-                border-collapse: collapse !important;
-                table-layout: fixed !important; 
-                font-family: 'Times New Roman', serif; /* Font formal */
+                font-size: 10px !important; width: 100% !important;
+                border-collapse: collapse !important; table-layout: fixed !important; 
+                font-family: 'Times New Roman', serif;
             }
 
             th, td {
-                padding: 4px 2px !important; 
-                border: 1px solid #333 !important; /* Garis hitam */
-                vertical-align: middle !important;
-                line-height: 1.2 !important;
-                word-wrap: break-word !important;
-                white-space: normal !important;
+                padding: 4px 2px !important; border: 1px solid #333 !important;
+                vertical-align: middle !important; line-height: 1.2 !important;
+                word-wrap: break-word !important; white-space: normal !important;
             }
 
-            /* --- PENGATURAN LEBAR KOLOM (Sesuaikan Angka Pixel di sini) --- */
-            /* Total Lebar ideal F4 Landscape ~1250px - 1300px */
-            
+            /* Lebar Kolom Print */
             .col-no { width: 35px !important; text-align: center; }
-            
-            /* Kolom Item: Perlebar jika teks terpotong */
             .col-item { width: 450px !important; text-align: left; padding-left: 5px !important; }
-            
-            /* Kolom Tanggal: Sisa ruang */
             .col-date { width: auto !important; text-align: center; padding: 0 !important; }
 
-            /* Styling Header Tabel */
             th { background-color: #f1f5f9 !important; color: black !important; font-weight: bold !important; text-transform: uppercase; }
 
-            /* Kategori [Resik] dll */
-            .category-label {
-                display: block !important;
-                font-weight: bold !important;
-                font-size: 9px !important;
-                text-decoration: underline;
-                margin-bottom: 2px;
-            }
-            
+            .category-label { display: block !important; font-weight: bold !important; font-size: 9px !important; text-decoration: underline; margin-bottom: 2px; }
             .item-text { display: block !important; font-size: 10px !important; }
-
-            /* Checkmark */
+            
             .check-cell div { 
                 font-size: 11px !important; font-weight: bold;
                 display: flex; align-items: center; justify-content: center;
                 height: 100%; min-height: 16px;
             }
 
-            /* Input Metadata jadi Text Biasa */
-            input, select {
-                border: none !important; padding: 0 !important; margin: 0 !important;
-                background: transparent !important; font-size: 11px !important;
-                height: auto !important; display: block !important;
-            }
+            input, select { border: none !important; padding: 0 !important; margin: 0 !important; background: transparent !important; font-size: 11px !important; height: auto !important; display: block !important; }
             .metadata-container { gap: 10px !important; padding: 5px !important; }
             
-            /* Header Biru jadi Putih/Hitam Hemat Tinta (Opsional, saat ini tetap berwarna) */
             .header-content { padding: 5px 0 !important; border-bottom: 2px solid black !important; }
             .header-content h1 { font-size: 18px !important; color: black !important; }
-            .header-content i, .header-content div { color: black !important; } /* Icon jadi hitam */
-            .bg-blue-900 { background-color: transparent !important; } /* Hapus background biru header */
+            .header-content i, .header-content div { color: black !important; }
+            .bg-blue-900 { background-color: transparent !important; }
         }
 
         /* --- Styles untuk Tampilan Web (Layar) --- */
@@ -235,7 +200,6 @@
                     <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Reset
                 </button>
                 
-                <!-- TOMBOL LANGSUNG CETAK -->
                 <button onclick="window.print()" type="button" class="flex items-center gap-1.5 px-4 py-1.5 text-white bg-brand-blue rounded-md hover:bg-brand-hover shadow-sm text-xs font-bold transition-all">
                     <i data-lucide="printer" class="w-3.5 h-3.5"></i> Cetak / PDF
                 </button>
@@ -257,7 +221,6 @@
                             <div class="bg-blue-600 p-1.5 rounded text-white print:hidden">
                                 <i data-lucide="check-square" class="w-5 h-5"></i>
                             </div>
-                            <!-- Logo/Icon untuk Print -->
                             <i data-lucide="check-square" class="w-6 h-6 hidden print:block text-black"></i>
                             
                             <h1 class="text-xl font-extrabold uppercase tracking-tight">Sistem Pencatatan 5R</h1>
@@ -268,7 +231,6 @@
                 <!-- Input Metadata -->
                 <div class="p-5 bg-gray-50/50 border-b border-gray-200 metadata-container">
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-6 print:grid-cols-4 print:gap-4">
-                        
                         <div class="space-y-1">
                             <label class="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Periode</label>
                             <div class="flex no-print hide-on-print bg-white rounded-md border border-gray-300 overflow-hidden w-full max-w-[200px]">
@@ -291,19 +253,19 @@
                     </div>
                 </div>
 
-                <!-- The Table -->
-                <div class="p-5 print:p-0 overflow-hidden">
+                <!-- The Table Container -->
+                <div class="p-5 print:p-0 table-wrapper">
                     <table class="w-full text-xs border border-gray-300 shadow-sm print:shadow-none print:border-black">
                         <thead>
-                            <tr class="bg-gray-100 print:bg-gray-100">
+                            <tr class="bg-gray-100 print:bg-gray-100 sticky-top-row">
                                 <th rowspan="2" class="p-2 border border-gray-300 col-no">NO</th>
                                 <th rowspan="2" class="p-2 border border-gray-300 text-left col-item">
                                     ITEM PEMERIKSAAN 
                                     <span class="block text-[10px] font-normal text-gray-500 mt-0.5 italic">(* = Cek Mingguan)</span>
                                 </th>
-                                <th class="p-1 border border-gray-300 text-center font-bold bg-gray-200 daysHeader" colspan="31">TANGGAL</th>
+                                <th class="p-1 border border-gray-300 text-center font-bold bg-gray-100 daysHeader" colspan="31">TANGGAL</th>
                             </tr>
-                            <tr class="bg-white print:bg-white dateRow text-[10px] text-gray-600">
+                            <tr class="bg-white print:bg-white dateRow text-[10px] text-gray-600 sticky-date-row">
                                 <!-- Dates Generated by JS -->
                             </tr>
                         </thead>
@@ -400,15 +362,25 @@
         document.addEventListener('DOMContentLoaded', () => {
             init();
             
-            document.getElementById('btnReset').addEventListener('click', (e) => { e.preventDefault(); resetData(); });
+            // Fix: Check if element exists before adding listener to avoid null errors
+            const btnReset = document.getElementById('btnReset');
+            if (btnReset) {
+                btnReset.addEventListener('click', (e) => { e.preventDefault(); resetData(); });
+            }
             
             const area = document.getElementById('areaInput');
             const insp = document.getElementById('inspectorInput');
-            area.addEventListener('input', () => saveMetadata());
-            insp.addEventListener('input', (e) => {
-                document.getElementById('signerName').innerText = e.target.value || 'Leader Area';
-                saveMetadata();
-            });
+            
+            if (area) {
+                area.addEventListener('input', () => saveMetadata());
+            }
+            if (insp) {
+                insp.addEventListener('input', (e) => {
+                    const signer = document.getElementById('signerName');
+                    if (signer) signer.innerText = e.target.value || 'Leader Area';
+                    saveMetadata();
+                });
+            }
         });
 
         // --- AUTH LOGIC ---
@@ -458,16 +430,17 @@
                 areaInput.setAttribute('readonly', true);
                 inspectorInput.value = currentUser.name;
                 inspectorInput.setAttribute('readonly', true);
-                document.getElementById('signerName').innerText = currentUser.name;
+                const signer = document.getElementById('signerName');
+                if (signer) signer.innerText = currentUser.name;
                 
-                btnReset.classList.add('hidden');
-                btnImport.classList.add('hidden');
+                if (btnReset) btnReset.classList.add('hidden');
+                if (btnImport) btnImport.classList.add('hidden');
                 saveMetadata(); 
             } else {
                 areaInput.removeAttribute('readonly');
                 inspectorInput.removeAttribute('readonly');
-                btnReset.classList.remove('hidden');
-                btnImport.classList.remove('hidden');
+                if (btnReset) btnReset.classList.remove('hidden');
+                if (btnImport) btnImport.classList.remove('hidden');
             }
         }
 
@@ -530,10 +503,10 @@
                 checks = data.checks || {};
                 
                 if (currentUser && currentUser.role === 'admin') {
-                    if(data.area) area.value = data.area;
-                    if(data.inspector) {
+                    if(data.area && area) area.value = data.area;
+                    if(data.inspector && insp) {
                         insp.value = data.inspector;
-                        signer.innerText = data.inspector;
+                        if (signer) signer.innerText = data.inspector;
                     }
                 }
             } else {
@@ -543,23 +516,29 @@
 
         function saveMetadata() {
             const key = getStorageKey();
+            const area = document.getElementById('areaInput');
+            const insp = document.getElementById('inspectorInput');
+            
             const dataToSave = {
                 checks: checks,
-                area: document.getElementById('areaInput').value,
-                inspector: document.getElementById('inspectorInput').value
+                area: area ? area.value : '',
+                inspector: insp ? insp.value : ''
             };
             localStorage.setItem(key, JSON.stringify(dataToSave));
         }
 
         // --- EXPORT / IMPORT ---
         function exportData() {
+            const area = document.getElementById('areaInput');
+            const insp = document.getElementById('inspectorInput');
+            
             const dataToExport = {
                 year: currentYear,
                 month: currentMonth,
                 data: {
                     checks: checks,
-                    area: document.getElementById('areaInput').value,
-                    inspector: document.getElementById('inspectorInput').value
+                    area: area ? area.value : '',
+                    inspector: insp ? insp.value : ''
                 }
             };
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dataToExport));
@@ -615,93 +594,98 @@
             const dateRow = document.querySelector('.dateRow');
             const tbody = document.getElementById('mainTbody');
 
-            daysHeader.colSpan = daysInMonth;
-            dateRow.innerHTML = '';
-            for (let d = 1; d <= daysInMonth; d++) {
-                const th = document.createElement('th');
-                th.className = "border border-gray-300 text-center p-1 col-date";
-                th.innerText = d;
-                dateRow.appendChild(th);
+            if (daysHeader) daysHeader.colSpan = daysInMonth;
+            
+            if (dateRow) {
+                dateRow.innerHTML = '';
+                for (let d = 1; d <= daysInMonth; d++) {
+                    const th = document.createElement('th');
+                    th.className = "border border-gray-300 text-center p-1 col-date";
+                    th.innerText = d;
+                    dateRow.appendChild(th);
+                }
             }
 
-            tbody.innerHTML = '';
-            
-            allSections.forEach(section => {
-                const sectionRow = document.createElement('tr');
-                sectionRow.className = "bg-gray-100 print:bg-white text-gray-800 print:text-black";
-                sectionRow.innerHTML = `
-                    <td colspan="${daysInMonth + 2}" class="p-2 font-bold text-sm border border-gray-300 print:border-black uppercase">
-                        ${section.title}
-                    </td>
-                `;
-                tbody.appendChild(sectionRow);
-
-                section.items.forEach(item => {
-                    const row = document.createElement('tr');
-                    const rowClass = item.isWeekly ? "hover:bg-amber-50" : "hover:bg-blue-50";
-                    row.className = `${rowClass} transition-colors border-b border-gray-100`;
-
-                    // Badge Style
-                    let badgeClass = 'text-gray-600 bg-gray-100 border-gray-300';
-                    if(item.category === 'RINGKAS') badgeClass = 'text-red-700 bg-red-50 border-red-200';
-                    if(item.category === 'RAPI') badgeClass = 'text-blue-700 bg-blue-50 border-blue-200';
-                    if(item.category === 'RESIK') badgeClass = 'text-emerald-700 bg-emerald-50 border-emerald-200';
-                    if(item.category === 'RAWAT') badgeClass = 'text-purple-700 bg-purple-50 border-purple-200';
-                    if(item.category === 'RAJIN') badgeClass = 'text-orange-700 bg-orange-50 border-orange-200';
-                    if(item.category === 'SAFETY') badgeClass = 'text-rose-700 bg-rose-50 border-rose-200';
-
-                    const weeklyBadge = item.isWeekly ? `⚠️` : '';
-                    const weeklyAsterisk = item.isWeekly ? `<span class="text-red-500 font-bold ml-1">*</span>` : '';
-
-                    let html = `
-                        <td class="border border-gray-200 text-center p-2 font-mono text-gray-500 col-no">${item.id}</td>
-                        <td class="border border-gray-200 p-2 col-item">
-                            <div class="flex flex-col justify-center">
-                                <div class="mb-1 category-label">
-                                    <span class="badge-span px-1.5 py-0.5 rounded text-[10px] font-bold border ${badgeClass} print:border-none print:bg-transparent print:text-black print:px-0 print:font-bold">
-                                        [${item.category}]
-                                    </span>
-                                    <span class="text-[10px]">${weeklyBadge}</span>
-                                </div>
-                                <div class="text-[11px] font-medium text-gray-700 print:text-black item-text leading-snug">
-                                    ${item.question} ${weeklyAsterisk}
-                                </div>
-                            </div>
+            if (tbody) {
+                tbody.innerHTML = '';
+                
+                allSections.forEach(section => {
+                    const sectionRow = document.createElement('tr');
+                    sectionRow.className = "bg-gray-100 print:bg-white text-gray-800 print:text-black";
+                    sectionRow.innerHTML = `
+                        <td colspan="${daysInMonth + 2}" class="p-2 font-bold text-sm border border-gray-300 print:border-black uppercase">
+                            ${section.title}
                         </td>
                     `;
+                    tbody.appendChild(sectionRow);
 
-                    for (let d = 1; d <= daysInMonth; d++) {
-                        const dateObj = new Date(currentYear, currentMonth, d);
-                        const isSunday = dateObj.getDay() === 0;
-                        const key = `${item.id}-${d}`;
-                        const isChecked = checks[key] === true;
-                        
-                        const cellClass = `border border-gray-200 text-center p-0 check-cell ${isSunday ? 'sunday' : ''} ${isChecked ? 'active' : ''} col-date`;
-                        
-                        html += `
-                            <td class="${cellClass}" onclick="toggleCheck(${item.id}, ${d}, this)">
-                                <div class="w-full h-full flex items-center justify-center text-[12px] transition-all">
-                                    ${isChecked ? '✓' : ''}
+                    section.items.forEach(item => {
+                        const row = document.createElement('tr');
+                        const rowClass = item.isWeekly ? "hover:bg-amber-50" : "hover:bg-blue-50";
+                        row.className = `${rowClass} transition-colors border-b border-gray-100`;
+
+                        // Badge Style
+                        let badgeClass = 'text-gray-600 bg-gray-100 border-gray-300';
+                        if(item.category === 'RINGKAS') badgeClass = 'text-red-700 bg-red-50 border-red-200';
+                        if(item.category === 'RAPI') badgeClass = 'text-blue-700 bg-blue-50 border-blue-200';
+                        if(item.category === 'RESIK') badgeClass = 'text-emerald-700 bg-emerald-50 border-emerald-200';
+                        if(item.category === 'RAWAT') badgeClass = 'text-purple-700 bg-purple-50 border-purple-200';
+                        if(item.category === 'RAJIN') badgeClass = 'text-orange-700 bg-orange-50 border-orange-200';
+                        if(item.category === 'SAFETY') badgeClass = 'text-rose-700 bg-rose-50 border-rose-200';
+
+                        const weeklyBadge = item.isWeekly ? `⚠️` : '';
+                        const weeklyAsterisk = item.isWeekly ? `<span class="text-red-500 font-bold ml-1">*</span>` : '';
+
+                        let html = `
+                            <td class="border border-gray-200 text-center p-2 font-mono text-gray-500 col-no">${item.id}</td>
+                            <td class="border border-gray-200 p-2 col-item">
+                                <div class="flex flex-col justify-center">
+                                    <div class="mb-1 category-label">
+                                        <span class="badge-span px-1.5 py-0.5 rounded text-[10px] font-bold border ${badgeClass} print:border-none print:bg-transparent print:text-black print:px-0 print:font-bold">
+                                            [${item.category}]
+                                        </span>
+                                        <span class="text-[10px]">${weeklyBadge}</span>
+                                    </div>
+                                    <div class="text-[11px] font-medium text-gray-700 print:text-black item-text leading-snug">
+                                        ${item.question} ${weeklyAsterisk}
+                                    </div>
                                 </div>
                             </td>
                         `;
-                    }
-                    row.innerHTML = html;
-                    tbody.appendChild(row);
-                });
-            });
 
-            // Paraf Row
-            const parafRow = document.createElement('tr');
-            parafRow.className = "print:h-12 bg-white";
-            let parafHtml = `
-                <td colspan="2" class="border border-gray-300 p-2 text-right font-bold italic text-gray-500">Paraf Leader</td>
-            `;
-            for (let d = 1; d <= daysInMonth; d++) {
-                parafHtml += `<td class="border border-gray-300"></td>`;
+                        for (let d = 1; d <= daysInMonth; d++) {
+                            const dateObj = new Date(currentYear, currentMonth, d);
+                            const isSunday = dateObj.getDay() === 0;
+                            const key = `${item.id}-${d}`;
+                            const isChecked = checks[key] === true;
+                            
+                            const cellClass = `border border-gray-200 text-center p-0 check-cell ${isSunday ? 'sunday' : ''} ${isChecked ? 'active' : ''} col-date`;
+                            
+                            html += `
+                                <td class="${cellClass}" onclick="toggleCheck(${item.id}, ${d}, this)">
+                                    <div class="w-full h-full flex items-center justify-center text-[12px] transition-all">
+                                        ${isChecked ? '✓' : ''}
+                                    </div>
+                                </td>
+                            `;
+                        }
+                        row.innerHTML = html;
+                        tbody.appendChild(row);
+                    });
+                });
+
+                // Paraf Row
+                const parafRow = document.createElement('tr');
+                parafRow.className = "print:h-12 bg-white";
+                let parafHtml = `
+                    <td colspan="2" class="border border-gray-300 p-2 text-right font-bold italic text-gray-500">Paraf Leader</td>
+                `;
+                for (let d = 1; d <= daysInMonth; d++) {
+                    parafHtml += `<td class="border border-gray-300"></td>`;
+                }
+                parafRow.innerHTML = parafHtml;
+                tbody.appendChild(parafRow);
             }
-            parafRow.innerHTML = parafHtml;
-            tbody.appendChild(parafRow);
         }
 
         window.toggleCheck = function(itemId, day, cellElement) {
