@@ -83,118 +83,140 @@
         /* ==========================================================================
            [PENGATURAN PDF] - Edit bagian ini untuk menyesuaikan hasil Download PDF
            ========================================================================== */
+          /* ==========================================================
+            PRINT NORMAL
+            ========================================================== */
+            @media print {
+                @page {
+                    size: landscape;
+                    margin: 1mm;
+                }
 
-        .pdf-mode {
-            /* [EDIT DISINI] LEBAR TOTAL HALAMAN (KANVAS) 
-               - F4 Landscape lebar sekitar 330mm. 
-               - Jika terpotong di kanan, kurangi angka ini.
-               - Jika ada sisa putih di kanan, tambah angka ini.
-            */
+                body {
+                    margin: 0;
+                    padding: 0;
+                    background: white;
+                }
+
+                .sheet-page {
+                    box-shadow: none;
+                    margin: 0;
+                    width: 100%;
+                    max-width: none;
+                    border: none;
+                }
+
+                .no-print,
+                .hide-on-print {
+                    display: none !important;
+                }
+
+                .show-on-print {
+                    display: block !important;
+                }
+
+                thead {
+                    display: table-header-group;
+                }
+
+                tr {
+                    page-break-inside: avoid;
+                }
+            }
+
+            /* ==========================================================
+            PDF MODE – FIX TABEL KE TENGAH & HILANGKAN KANAN KOSONG
+            ========================================================== */
             @page {
-            size: 330mm 210mm; /* F4 Landscape */
-            margin: 10mm;
+                size: 330mm 210mm;
+                margin: 1mm;
             }
 
-            /* ============================= */
-            /* PDF MODE CONTAINER */
-            /* ============================= */
             .pdf-mode {
-            width: 310mm !important;
-            min-width: 310mm !important;
-            margin: 0 !important;
-            background: #ffffff !important;
+                display: flex;
+                justify-content: center;
+                background: white;
             }
 
-        .pdf-mode .sheet-page {
-            width: 100% !important; max-width: none !important;
-            margin: 0 !important; box-shadow: none !important; border: none !important;
-        }
+            .pdf-mode body {
+                width: 328mm !important;
+                min-width: 328mm !important;
+                margin: 0 auto !important;
+                padding: 0 !important;
+            }
 
-        /* [EDIT DISINI] UKURAN FONT TABEL */
-        .pdf-mode table {
-            font-size: 11px !important; 
-            width: 100% !important;
-            border-collapse: collapse !important;
-            table-layout: fixed !important; 
-            font-family: 'Times New Roman', serif;
-        }
+            .pdf-mode .sheet-page {
+                width: 100% !important;
+                max-width: none !important;
+                margin: 0 auto !important;
+                box-shadow: none !important;
+                border: none !important;
+            }
 
-        .pdf-mode th, .pdf-mode td {
-            padding: 2px !important; 
-            border: 1px solid #333 !important; 
-            vertical-align: middle !important;
-            line-height: 1.1 !important;
-            word-wrap: break-word !important;
-            white-space: normal !important;
-        }
+            /* ================= TABLE ================= */
+            .pdf-mode table {
+                width: 100% !important;
+                table-layout: fixed !important;
+                border-collapse: collapse !important;
+                font-family: "Times New Roman", serif;
+                font-size: 11px !important;
+            }
 
-        /* --- PENGATURAN LEBAR KOLOM (DALAM ANGKA PIXEL) --- */
-        
-        /* 1. Lebar Kolom NO */
-        .pdf-mode .col-no { 
-            width: 25px !important; /* Contoh: 40px */
-            text-align: center; 
-        }
-        
-        /* 2. Lebar Kolom ITEM PEMERIKSAAN */
-        .pdf-mode .col-item { 
-            width: 280px !important; /* Contoh: 500px. Tambah jika teks terpotong. */
-            text-align: left; 
-            padding-left: 5px !important; 
-        }
-        
-        /* 3. Lebar Kolom TANGGAL (Per 1 Kotak) */
-        /* Total lebar tanggal = Angka ini dikali 31 */
-        .pdf-mode .col-date { 
-            width: 8px !important; /* Contoh: 22px. Kecilkan jika tabel terlalu lebar. */
-            padding: 6 !important; 
-            text-align: center; 
-            font-size: 9px !important;
-        }
+            .pdf-mode th,
+            .pdf-mode td {
+                border: 1px solid #333 !important;
+                padding: 4px 2px !important;
+                text-align: center;
+                vertical-align: middle;
+                line-height: 1.1;
+            }
 
-        /* Tampilan Kategori [Resik] dll di PDF */
-        .pdf-mode .category-label {
-            display: block !important;
-            font-weight: bold !important;
-            font-size: 11px !important; 
-            margin-bottom: 2px !important;
-            text-decoration: underline !important;
-            color: #000 !important;
-        }
-        
-        .pdf-mode .item-text { display: block !important; font-size: 10px !important; }
+            /* ================= COLUMN WIDTH ================= */
+            .pdf-mode .col-no {
+                width: 26px !important;
+            }
 
-        /* Header PDF */
-        .pdf-mode .header-content { padding: 5px 10px !important; }
-        .pdf-mode h1 { font-size: 18px !important; }
-        
-        /* Metadata PDF */
-        .pdf-mode .metadata-container { padding: 2px 5px !important; gap: 4px !important; }
-        .pdf-mode label { font-size: 9px !important; margin-bottom: 0 !important; }
-        .pdf-mode input, .pdf-mode select, .pdf-mode .dateDisplay {
-            font-size: 10px !important; padding: 1px !important; height: auto !important; margin: 0 !important;
-        }
+            .pdf-mode .col-item {
+                width: 300px !important;
+                text-align: left;
+                padding-left: 6px !important;
+            }
 
-        /* Checkbox PDF */
-        .pdf-mode .check-cell div { 
-            font-size: 11px !important; font-weight: bold;
-            display: flex; align-items: center; justify-content: center; 
-            height: 100%; min-height: 18px; 
-        }
+            .pdf-mode .col-date {
+                width: 23px !important;
+                font-size: 9px !important;
+            }
 
-        .pdf-mode .no-print { display: none !important; }
-        .pdf-mode .hide-on-print { display: none !important; }
-        .pdf-mode .show-on-print { display: block !important; }
+            /* ================= TEXT ================= */
+            .pdf-mode .category-label {
+                font-weight: bold;
+                text-decoration: underline;
+                font-size: 11px;
+            }
 
-        /* General Styles */
-        .check-cell { cursor: pointer; }
-        .check-cell:hover { background-color: #eff6ff; }
-        .check-cell.active { background-color: #dbeafe !important; color: #1e40af; font-weight: 900; }
-        .check-cell.sunday { background-color: #fef2f2; }
-        .check-cell.sunday.active { background-color: #dcfce7 !important; color: #166534; }
-        .hide-on-print { display: block; }
-        .show-on-print { display: none; }
-        input:read-only { background-color: #f8fafc !important; color: #64748b; cursor: not-allowed; }
+            .pdf-mode .item-text {
+                font-size: 10px;
+            }
+
+            /* ================= HEADER ================= */
+            .pdf-mode .header-content {
+                padding: 6px 10px;
+            }
+
+            .pdf-mode h1 {
+                font-size: 18px;
+            }
+
+            /* ================= HIDE UI ================= */
+            .pdf-mode .no-print,
+            .pdf-mode .hide-on-print {
+                display: none !important;
+            }
+
+            .pdf-mode .show-on-print {
+                display: block !important;
+            }
+
     </style>
 </head>
 <body class="p-4 md:p-6 font-sans">
