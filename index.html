@@ -414,10 +414,35 @@
         }
 
         const GROUPS = [
-            { title: "Area Proses", items: [{ cat: 'RESIK', txt: 'Pembuangan Sampah All Proses' }, { cat: 'RESIK', txt: 'Permukaan Lantai All Area Steril dan bersih' }, { cat: 'RINGKAS', txt: 'Marka Pedestrian terbebas dari Barang-barang/Tools' }, { cat: 'RESIK', txt: 'Area HV, Dokument dan Non Halal dalam kondisi Steril & Bersih' }, { cat: 'RAPI', txt: 'Area Leader dalam keadaan rapi' }, { cat: 'RAPI', txt: 'Barang Holding tersimpan pada Area Holding' }] },
-            { title: "Tools", items: [{ cat: 'RAPI', txt: 'Tool diletakkan pada Checkpoint' }, { cat: 'RINGKAS', txt: 'Melakukan Sortiran MB Bekas serta merapikan di area Limbah' }, { cat: 'RAWAT', txt: 'Perawatan Sorting Basket' }, { cat: 'RAWAT', txt: 'Perawatan Pigeon Hole' }, { cat: 'RAWAT', txt: 'Perawatan Trolly Cage' }, { cat: 'RAWAT', txt: 'Perawatan Pallet Mesh' }] },
-            { title: "Rak", items: [{ cat: 'RAWAT', txt: 'Perawatan Rak Dokument dan Tools', week: true }, { cat: 'RAPI', txt: 'Rak dokument dan Tools dalam keadaan tertata Rapih' }] },
-            { title: "Prasarana", items: [{ cat: 'RAPI', txt: 'Area Istirahat/Musholla dalam keadaan Rapih dan terbebas dari barang pribadi' }, { cat: 'SAFETY', txt: 'Memastikan persediaan P3K sesuai dengan standar K3', week: true }, { cat: 'RAJIN', txt: 'Informasi board di update', week: true }] }
+            {
+                title: "Area Operational",
+                items: [
+                    { cat: 'RESIK', txt: 'Membersihkan Lantai Pasca Proses sorting' },
+                    { cat: 'RAPI', txt: 'Area Leader dalam keadaan rapi' },
+                    { cat: 'RAPI', txt: 'Barang Holding tersimpan pada Area Holding' },
+                    { cat: 'RAWAT', txt: 'Memastikan ketersediaan Consomable', week: true },
+                    { cat: 'RINGKAS', txt: 'Menata dan mengumpulkan MB bekas pada Areanya' },
+                    { cat: 'RAJIN', txt: 'Mematikan Kipas Angin pada jam Non Operational Aktif' },
+                    { cat: 'RINGKAS', txt: 'Marka Pedestrian terbebas dari Barang-barang/Tools' },
+                    { cat: 'RESIK', txt: 'Penjualan Limbah Operational (Bagashild/MB/Plastik)' }
+                ]
+            },
+            {
+                title: "Area Tools",
+                items: [
+                    { cat: 'RAWAT', txt: 'Perawatan dan Pembersihan Tools' },
+                    { cat: 'RAPI', txt: 'Mengembalikan HandPallet pada Checkpoint' },
+                    { cat: 'RAPI', txt: 'Mengembalikan Sorting Basket, Palletmesh MB stand, Keranjang Kuning pada Checkpoint' }
+                ]
+            },
+            {
+                title: "Area Lain lain",
+                items: [
+                    { cat: 'RAPI', txt: 'Area Istirahat/Musholla dalam keadaan Rapih dan terbebas dari barang pribadi' },
+                    { cat: 'SAFETY', txt: 'Memastikan persediaan P3K sesuai dengan standar K3', week: true },
+                    { cat: 'RAJIN', txt: 'Informasi board di update', week: true }
+                ]
+            }
         ];
 
         const MONTHS = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
