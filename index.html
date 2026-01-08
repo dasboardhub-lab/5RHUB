@@ -90,15 +90,23 @@
                - Jika terpotong di kanan, kurangi angka ini.
                - Jika ada sisa putih di kanan, tambah angka ini.
             */
-            width: 1300px !important; 
-            min-width: 1300px !important;
-            
+            @page {
+            size: 330mm 210mm; /* F4 Landscape */
+            margin: 10mm;
+            }
+
+            /* ============================= */
+            /* PDF MODE CONTAINER */
+            /* ============================= */
+            .pdf-mode {
+            width: 330mm !important;
+            min-width: 330mm !important;
             margin: 0 auto !important;
-            background: white !important;
-        }
+            background: #ffffff !important;
+            }
 
         .pdf-mode .sheet-page {
-            width: 85% !important; max-width: none !important;
+            width: 100% !important; max-width: none !important;
             margin: 0 !important; box-shadow: none !important; border: none !important;
         }
 
@@ -107,12 +115,12 @@
             font-size: 11px !important; 
             width: 100% !important;
             border-collapse: collapse !important;
-            table-layout: fixed !important; 
+            table-layout: auto !important; 
             font-family: 'Times New Roman', serif;
         }
 
         .pdf-mode th, .pdf-mode td {
-            padding: 5px 3px !important; 
+            padding: 2px !important; 
             border: 1px solid #333 !important; 
             vertical-align: middle !important;
             line-height: 1.1 !important;
@@ -138,7 +146,7 @@
         /* 3. Lebar Kolom TANGGAL (Per 1 Kotak) */
         /* Total lebar tanggal = Angka ini dikali 31 */
         .pdf-mode .col-date { 
-            width: 22px !important; /* Contoh: 22px. Kecilkan jika tabel terlalu lebar. */
+            width: 8px !important; /* Contoh: 22px. Kecilkan jika tabel terlalu lebar. */
             padding: 6 !important; 
             text-align: center; 
             font-size: 9px !important;
