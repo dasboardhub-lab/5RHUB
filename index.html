@@ -3,23 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Logsheet Kontrol 5R & Fasilitas</title>
-    <!-- Tailwind CSS untuk styling -->
+    <title>Sistem Pencatatan 5R</title>
+    
+    <!-- Font Inter untuk tampilan modern -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Lucide Icons -->
+    
+    <!-- Icons & Libraries -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- HTML2PDF Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        brand: {
+                            blue: '#0052CC',
+                            hover: '#0047B3'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
     <style>
-        /* --- STYLE GLOBAL (Tampilan Web) --- */
-        body { background-color: #f3f4f6; font-family: sans-serif; }
+        /* --- STYLE GLOBAL --- */
+        body { background-color: #f8fafc; color: #334155; }
         
+        /* Modern Card Effect */
         .sheet-page {
             background: white;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            border: 1px solid #e2e8f0;
             border-radius: 0.5rem;
             margin: 20px auto;
             padding: 0;
@@ -28,29 +49,47 @@
             overflow-x: auto;
         }
 
-        /* --- STYLE PRINT BIASA (Ctrl+P) --- */
+        /* Input Styling */
+        select, input { transition: all 0.2s; border-color: #cbd5e1; }
+        select:focus, input:focus { border-color: #0052CC; outline: none; ring: 2px solid rgba(0, 82, 204, 0.1); }
+
+        /* Login Modal */
+        #loginOverlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(4px);
+            z-index: 9999;
+            display: flex; justify-content: center; align-items: center;
+        }
+        .login-box {
+            background: white; padding: 2.5rem; border-radius: 1rem;
+            width: 100%; max-width: 380px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            border-top: 4px solid #0052CC;
+        }
+
+        /* --- STYLE PRINT BIASA --- */
         @media print {
             @page { size: landscape; margin: 1mm; }
-            body { margin: 0; padding: 0; background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            .sheet-page { box-shadow: none; margin: 0; border-radius: 0; width: 100%; max-width: none; }
+            body { margin: 0; padding: 0; background: white; }
+            .sheet-page { box-shadow: none; margin: 0; width: 100%; max-width: none; border: none; }
             .no-print { display: none !important; }
             .hide-on-print { display: none !important; }
             .show-on-print { display: block !important; }
-            input { border: none !important; padding: 0 !important; background: transparent !important; }
-            select { appearance: none; border: none; background: transparent; }
             thead { display: table-header-group; }
             tr { page-break-inside: avoid; }
         }
 
         /* ==========================================================================
-           [EDIT PDF DI SINI] - PENGATURAN KHUSUS MODE DOWNLOAD PDF
-           Satuan lebar menggunakan PIXEL (px) agar angka pasti.
+           [PENGATURAN PDF] - Edit bagian ini untuk menyesuaikan hasil Download PDF
            ========================================================================== */
 
         .pdf-mode {
-            /* LEBAR TOTAL HALAMAN (KANVAS) */
-            /* Pastikan angka ini > (col-no + col-item + (col-date * 31)) */
-            /* 40 + 500 + (22 * 31) = 1222px. Jadi 1300px aman. */
+            /* [EDIT DISINI] LEBAR TOTAL HALAMAN (KANVAS) 
+               - F4 Landscape lebar sekitar 330mm. 
+               - Jika terpotong di kanan, kurangi angka ini.
+               - Jika ada sisa putih di kanan, tambah angka ini.
+            */
             width: 1300px !important; 
             min-width: 1300px !important;
             
@@ -59,288 +98,417 @@
         }
 
         .pdf-mode .sheet-page {
-            width: 85% !important;
-            max-width: none !important;
-            margin: 0 !important;
-            box-shadow: none !important;
-            border: none !important;
+            width: 80% !important; max-width: none !important;
+            margin: 0 !important; box-shadow: none !important; border: none !important;
         }
 
-        /* UKURAN FONT & TABEL */
+        /* [EDIT DISINI] UKURAN FONT TABEL */
         .pdf-mode table {
             font-size: 11px !important; 
             width: 100% !important;
             border-collapse: collapse !important;
             table-layout: fixed !important; 
+            font-family: 'Times New Roman', serif;
         }
 
         .pdf-mode th, .pdf-mode td {
-            padding: 4px 2px !important; 
-            border: 1px solid #374151 !important; 
+            padding: 5px 3px !important; 
+            border: 1px solid #333 !important; 
             vertical-align: middle !important;
             line-height: 1.1 !important;
             word-wrap: break-word !important;
             white-space: normal !important;
         }
 
-        /* --- [EDIT LEBAR KOLOM DI SINI] --- */
+        /* --- PENGATURAN LEBAR KOLOM (DALAM ANGKA PIXEL) --- */
         
         /* 1. Lebar Kolom NO */
         .pdf-mode .col-no { 
-            width: 25px !important; /* Ganti angka ini jika perlu */
+            width: 25px !important; /* Contoh: 40px */
             text-align: center; 
         }
         
         /* 2. Lebar Kolom ITEM PEMERIKSAAN */
         .pdf-mode .col-item { 
-            width: 250px !important; /* Ganti angka ini untuk memperlebar/persempit item */
+            width: 280px !important; /* Contoh: 500px. Tambah jika teks terpotong. */
             text-align: left; 
             padding-left: 5px !important; 
         }
         
-        /* 3. Lebar Kolom TANGGAL (Per Kotak) */
+        /* 3. Lebar Kolom TANGGAL (Per 1 Kotak) */
         /* Total lebar tanggal = Angka ini dikali 31 */
         .pdf-mode .col-date { 
-            width: 18px !important; /* Ganti angka ini (misal 20px atau 25px) */
-            padding: 2 !important; 
+            width: 22px !important; /* Contoh: 22px. Kecilkan jika tabel terlalu lebar. */
+            padding: 6 !important; 
             text-align: center; 
-            font-size: 11px !important;
+            font-size: 9px !important;
         }
 
-        /* PENGATURAN TAMPILAN RESIK/KATEGORI */
+        /* Tampilan Kategori [Resik] dll di PDF */
         .pdf-mode .category-label {
             display: block !important;
             font-weight: bold !important;
-            font-size: 9px !important; 
+            font-size: 11px !important; 
             margin-bottom: 2px !important;
+            text-decoration: underline !important;
             color: #000 !important;
         }
         
-        .pdf-mode .item-text {
-            display: block !important;
-            font-size: 10px !important; 
-        }
+        .pdf-mode .item-text { display: block !important; font-size: 10px !important; }
 
-        /* HEADER & METADATA */
+        /* Header PDF */
         .pdf-mode .header-content { padding: 5px 10px !important; }
         .pdf-mode h1 { font-size: 18px !important; }
         
-        .pdf-mode .metadata-container { 
-            padding: 3px 5px !important; 
-            gap: 4px !important; 
-        }
-        
+        /* Metadata PDF */
+        .pdf-mode .metadata-container { padding: 2px 5px !important; gap: 4px !important; }
         .pdf-mode label { font-size: 9px !important; margin-bottom: 0 !important; }
         .pdf-mode input, .pdf-mode select, .pdf-mode .dateDisplay {
-            font-size: 10px !important; 
-            padding: 1px !important;
-            height: auto !important;
-            margin: 0 !important;
+            font-size: 10px !important; padding: 1px !important; height: auto !important; margin: 0 !important;
         }
 
-        /* Tinggi Baris Checkbox */
+        /* Checkbox PDF */
         .pdf-mode .check-cell div { 
-            font-size: 10px !important; /* Font checkmark */
-            font-weight: bold;
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            height: 100%; 
-            min-height: 18px; 
+            font-size: 11px !important; font-weight: bold;
+            display: flex; align-items: center; justify-content: center; 
+            height: 100%; min-height: 18px; 
         }
 
-        /* --- Utility Classes --- */
         .pdf-mode .no-print { display: none !important; }
         .pdf-mode .hide-on-print { display: none !important; }
         .pdf-mode .show-on-print { display: block !important; }
 
-        /* General Styles Web */
+        /* General Styles */
         .check-cell { cursor: pointer; }
         .check-cell:hover { background-color: #eff6ff; }
-        .check-cell.active { background-color: #dcfce7 !important; color: #166534; font-weight: bold; }
+        .check-cell.active { background-color: #dbeafe !important; color: #1e40af; font-weight: 900; }
         .check-cell.sunday { background-color: #fef2f2; }
-        .check-cell.sunday.active { background-color: #dcfce7 !important; }
+        .check-cell.sunday.active { background-color: #dcfce7 !important; color: #166534; }
         .hide-on-print { display: block; }
         .show-on-print { display: none; }
+        input:read-only { background-color: #f8fafc !important; color: #64748b; cursor: not-allowed; }
     </style>
 </head>
-<body class="p-4">
+<body class="p-4 md:p-6 font-sans">
 
-    <!-- Controls (Top) -->
-    <div class="max-w-[1400px] mx-auto mb-4 flex flex-wrap justify-between items-center no-print">
-        <div>
-            <h2 class="text-xl font-bold text-gray-800">Formulir 5R Digital (Pixel Fixed)</h2>
-            <p class="text-sm text-gray-500">Edit CSS .col-no, .col-item, .col-date untuk atur lebar.</p>
-        </div>
-        <div class="flex gap-2">
-            <button id="btnReset" type="button" class="flex items-center gap-2 px-4 py-2 text-red-600 bg-white border border-red-200 rounded hover:bg-red-50 text-sm font-medium transition-colors shadow-sm">
-                <i data-lucide="trash-2" class="w-4 h-4"></i> Reset Data
-            </button>
-            <button id="btnDownloadPDF" type="button" class="flex items-center gap-2 px-5 py-2 text-white bg-blue-600 rounded hover:bg-blue-700 shadow-md text-sm font-bold transition-colors">
-                <i data-lucide="file-down" class="w-4 h-4"></i> Download PDF
-            </button>
+    <!-- LOGIN SCREEN -->
+    <div id="loginOverlay">
+        <div class="login-box animate-fade-in-down">
+            <div class="text-center mb-6">
+                <div class="w-12 h-12 bg-brand-blue rounded-xl mx-auto flex items-center justify-center shadow-md mb-3">
+                    <i data-lucide="clipboard-check" class="w-6 h-6 text-white"></i>
+                </div>
+                <h2 class="text-xl font-bold text-gray-800 tracking-tight">Sistem Pencatatan 5R</h2>
+                <p class="text-xs text-gray-500 mt-1">Silakan login untuk memulai</p>
+            </div>
+            
+            <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1.5">KODE USER</label>
+                    <div class="relative">
+                        <i data-lucide="user" class="absolute left-3 top-2.5 w-4 h-4 text-gray-400"></i>
+                        <select id="usernameInput" class="w-full border pl-9 pr-4 py-2 rounded-lg text-sm bg-gray-50 focus:bg-white cursor-pointer appearance-none">
+                            <option value="" disabled selected>Pilih User...</option>
+                            <option value="MKS">MKS</option>
+                            <option value="Spv">Spv</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1.5">PASSWORD</label>
+                    <div class="relative">
+                        <i data-lucide="lock" class="absolute left-3 top-2.5 w-4 h-4 text-gray-400"></i>
+                        <input type="password" id="passwordInput" placeholder="••••••" class="w-full border pl-9 pr-4 py-2 rounded-lg text-sm bg-gray-50 focus:bg-white">
+                    </div>
+                </div>
+
+                <button type="submit" class="w-full bg-brand-blue hover:bg-brand-hover text-white font-semibold py-2.5 rounded-lg shadow-md transition-all mt-2 text-sm">
+                    MASUK
+                </button>
+                
+                <div id="loginError" class="hidden p-2 bg-red-50 text-red-600 text-xs rounded text-center border border-red-100">
+                    Kredensial Salah!
+                </div>
+            </form>
         </div>
     </div>
 
-    <!-- Container Utama untuk PDF -->
-    <div id="contentToPrint">
+    <!-- MAIN DASHBOARD -->
+    <div id="mainApp" class="hidden">
         
-        <div class="sheet-page">
-            <!-- Header -->
-            <div class="bg-blue-900 text-white p-5 print:bg-white print:text-black print:border-b-2 print:border-black header-content">
-                <div class="flex justify-between items-center">
-                    <div class="flex items-center gap-4">
-                        <i data-lucide="clipboard-list" class="w-8 h-8 text-white print:text-black"></i>
-                        <div>
-                            <h1 class="text-2xl font-bold uppercase tracking-wide">Logsheet Kontrol 5R & Fasilitas</h1>
-                            <p class="opacity-90 text-xs mt-1">Checklist Kebersihan & Kerapihan Area Kerja</p>
+        <!-- Navbar -->
+        <div class="max-w-[1400px] mx-auto mb-6 bg-white rounded-xl shadow-sm border border-gray-200 p-3 flex flex-col md:flex-row justify-between items-center gap-4 no-print">
+            <div class="flex items-center gap-3 w-full md:w-auto">
+                <div class="bg-blue-50 p-2 rounded-full">
+                    <i data-lucide="user" class="w-5 h-5 text-blue-700"></i>
+                </div>
+                <div>
+                    <p class="text-[10px] text-gray-400 uppercase font-bold tracking-wide">Login Sebagai</p>
+                    <p id="userBadge" class="text-sm font-bold text-gray-800 leading-none">Guest</p>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap gap-2 items-center justify-end w-full md:w-auto">
+                <button onclick="exportData()" class="flex items-center gap-1.5 px-3 py-1.5 text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md hover:bg-emerald-100 text-xs font-semibold transition-colors">
+                    <i data-lucide="save" class="w-3.5 h-3.5"></i> Simpan
+                </button>
+                
+                <label for="importFile" id="btnImport" class="flex items-center gap-1.5 px-3 py-1.5 text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-md hover:bg-indigo-100 text-xs font-semibold transition-colors cursor-pointer hidden">
+                    <i data-lucide="upload" class="w-3.5 h-3.5"></i> Upload
+                    <input type="file" id="importFile" class="hidden" accept=".json" onchange="importData(this)">
+                </label>
+
+                <div class="h-6 w-px bg-gray-300 mx-1 hidden md:block"></div>
+
+                <button id="btnReset" type="button" class="hidden flex items-center gap-1.5 px-3 py-1.5 text-red-600 bg-white border border-gray-200 rounded-md hover:bg-red-50 text-xs font-semibold transition-colors">
+                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Reset
+                </button>
+                
+                <button id="btnDownloadPDF" type="button" class="flex items-center gap-1.5 px-4 py-1.5 text-white bg-brand-blue rounded-md hover:bg-brand-hover shadow-sm text-xs font-bold transition-all">
+                    <i data-lucide="printer" class="w-3.5 h-3.5"></i> Download PDF
+                </button>
+                
+                <button onclick="logout()" class="ml-2 text-gray-400 hover:text-red-500 transition-colors" title="Keluar">
+                    <i data-lucide="log-out" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- FORM SHEET -->
+        <div id="contentToPrint">
+            <div class="sheet-page">
+                
+                <!-- Clean Header -->
+                <div class="bg-white p-5 border-b border-gray-200 print:border-black header-content">
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center gap-3">
+                            <div class="bg-blue-600 p-1.5 rounded text-white print:hidden">
+                                <i data-lucide="check-square" class="w-5 h-5"></i>
+                            </div>
+                            <h1 class="text-xl font-extrabold text-gray-800 uppercase tracking-tight print:text-black">Logsheet Kontrol 5R & Fasilitas</h1>
+                        </div>
+                        <div class="text-right">
+                            <!-- Detail Doc No dihapus sesuai request -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Input Metadata (Modern Look) -->
+                <div class="p-5 bg-gray-50/50 border-b border-gray-200 print:bg-white print:p-2 metadata-container">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 print:grid-cols-4 print:gap-4">
+                        
+                        <div class="space-y-1">
+                            <label class="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Periode Laporan</label>
+                            <div class="flex no-print hide-on-print bg-white rounded-md border border-gray-300 overflow-hidden w-full max-w-[200px]">
+                                <select id="monthSelect" class="flex-1 px-3 py-1.5 text-sm font-semibold text-gray-700 bg-transparent focus:outline-none cursor-pointer hover:bg-gray-50 border-r"></select>
+                                <select id="yearSelect" class="w-20 px-2 py-1.5 text-sm font-semibold text-gray-700 bg-transparent focus:outline-none cursor-pointer hover:bg-gray-50 text-center"></select>
+                            </div>
+                            <div class="hidden print:block show-on-print font-bold text-sm dateDisplay text-black uppercase"></div>
+                        </div>
+
+                        <div class="md:col-span-2 space-y-1">
+                            <label class="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Lokasi / Area Kerja</label>
+                            <input type="text" id="areaInput" placeholder="Masukkan Lokasi..." class="w-full border-b border-gray-300 py-1 text-sm font-bold text-gray-800 bg-transparent focus:border-brand-blue focus:outline-none placeholder-gray-300">
+                        </div>
+
+                        <div class="space-y-1">
+                            <label class="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Penanggung Jawab</label>
+                            <input type="text" id="inspectorInput" placeholder="Nama..." class="w-full border-b border-gray-300 py-1 text-sm font-bold text-gray-800 bg-transparent focus:border-brand-blue focus:outline-none placeholder-gray-300">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- The Table -->
+                <div class="p-5 print:p-0 overflow-hidden">
+                    <table class="w-full text-xs border border-gray-300 shadow-sm print:shadow-none print:border-black">
+                        <thead>
+                            <tr class="bg-gray-100 print:bg-gray-100">
+                                <th rowspan="2" class="p-2 border border-gray-300 w-10 text-gray-700 col-no">NO</th>
+                                <th rowspan="2" class="p-2 border border-gray-300 text-left text-gray-700 col-item">
+                                    ITEM PEMERIKSAAN 
+                                    <span class="block text-[10px] font-normal text-gray-500 mt-0.5 italic">(* = Cek Mingguan)</span>
+                                </th>
+                                <th class="p-1 border border-gray-300 text-center font-bold text-gray-700 bg-gray-200 daysHeader" colspan="31">TANGGAL</th>
+                            </tr>
+                            <tr class="bg-white print:bg-white dateRow text-[10px] text-gray-600">
+                                <!-- Dates Generated by JS -->
+                            </tr>
+                        </thead>
+                        <tbody id="mainTbody" class="text-gray-700">
+                            <!-- Rows Generated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Footer & Signature -->
+                <div class="p-5 pt-2 grid grid-cols-1 md:grid-cols-2 gap-8 text-xs text-gray-500 print:grid-cols-2 footer-container bg-white rounded-b-xl">
+                    <div class="p-2">
+                        <p class="font-bold text-gray-700 mb-1 text-[10px]">KETERANGAN:</p>
+                        <ul class="list-none space-y-0.5 pl-0">
+                            <li><span class="inline-block w-3 text-center">✓</span> Kondisi OK / Sesuai Standar.</li>
+                            <li><span class="inline-block w-3 text-center"></span> (Kosong) Kondisi Tidak Sesuai.</li>
+                            <li><span class="inline-block w-3 h-3 bg-red-50 border border-red-100 rounded-sm align-middle mr-1"></span> Hari Minggu / Libur.</li>
+                            <li><span class="text-red-500 font-bold">*</span> Diisi minimal 1x seminggu.</li>
+                        </ul>
+                    </div>
+                    <div class="flex justify-end items-end gap-16 print:gap-20 mt-4">
+                        <div class="text-center">
+                            <p class="mb-10 font-bold text-[10px] uppercase tracking-wider text-gray-400">Dibuat Oleh,</p>
+                            <p class="border-t border-black min-w-[120px] pt-1 font-bold text-black text-sm" id="signerName">Leader Area</p>
+                        </div>
+                        <div class="text-center">
+                            <p class="mb-10 font-bold text-[10px] uppercase tracking-wider text-gray-400">Diketahui Oleh,</p>
+                            <p class="border-t border-black min-w-[120px] pt-1 font-bold text-black text-sm">Supervisor</p>
                         </div>
                     </div>
                 </div>
             </div>
-
-            <!-- Metadata (Input Utama) -->
-            <div class="p-3 grid grid-cols-1 md:grid-cols-4 gap-4 bg-gray-50 border-b print:grid-cols-4 print:text-xs print:p-2 print:bg-transparent metadata-container">
-                <div class="flex flex-col">
-                    <label class="text-xs font-bold text-gray-500 uppercase mb-1">Bulan & Tahun</label>
-                    <div class="flex gap-2 no-print hide-on-print">
-                        <select id="monthSelect" class="border p-1.5 rounded text-sm w-full border-gray-300 bg-white"></select>
-                        <select id="yearSelect" class="border p-1.5 rounded text-sm w-24 border-gray-300 bg-white"></select>
-                    </div>
-                    <div class="hidden print:block show-on-print font-bold text-lg dateDisplay"></div>
-                </div>
-                <div class="flex flex-col md:col-span-2">
-                    <label class="text-xs font-bold text-gray-500 uppercase mb-1">Area / Lokasi</label>
-                    <input type="text" id="areaInput" placeholder="Isi Lokasi..." class="border p-1.5 rounded text-sm w-full border-gray-300 bg-white print:border-none print:p-0 print:font-bold">
-                </div>
-                <div class="flex flex-col">
-                    <label class="text-xs font-bold text-gray-500 uppercase mb-1">Penanggung Jawab</label>
-                    <input type="text" id="inspectorInput" placeholder="Nama Leader" class="border p-1.5 rounded text-sm w-full border-gray-300 bg-white print:border-none print:p-0 print:font-bold">
-                </div>
-            </div>
-
-            <!-- Table Body -->
-            <div class="p-4 print:p-0">
-                <table class="w-full text-xs border border-gray-300 shadow-sm">
-                    <thead>
-                        <tr class="bg-gray-100 print:bg-gray-200">
-                            <th rowspan="2" class="p-2 border-gray-400 col-no">No</th>
-                            <th rowspan="2" class="p-2 text-left border-gray-400 col-item">Item Pemeriksaan <span class="font-normal italic text-gray-500">(* Mingguan)</span></th>
-                            <th class="p-1 text-center font-bold border-gray-400 daysHeader" colspan="31">Tanggal</th>
-                        </tr>
-                        <tr class="bg-gray-50 print:bg-white dateRow">
-                            <!-- Generated by JS -->
-                        </tr>
-                    </thead>
-                    <tbody id="mainTbody">
-                        <!-- Generated by JS -->
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Footer -->
-            <div class="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-gray-600 print:grid-cols-2 footer-container">
-                <div>
-                    <p class="font-bold mb-1">Keterangan:</p>
-                    <ul class="list-disc pl-4 space-y-1">
-                        <li>Centang (✓) jika <strong>OK</strong>. Kosongkan jika <strong>Tidak Sesuai</strong>.</li>
-                        <li>Kolom merah = Hari Minggu/Libur.</li>
-                    </ul>
-                </div>
-                <div class="flex justify-end items-end gap-8 print:gap-16 mt-4">
-                    <div class="text-center">
-                        <p class="mb-8 font-bold">Dibuat Oleh,</p>
-                        <p class="border-t border-black min-w-[150px] pt-1 font-bold text-black" id="signerName">Leader Area</p>
-                    </div>
-                    <div class="text-center">
-                        <p class="mb-8 font-bold">Diketahui Oleh,</p>
-                        <p class="border-t border-black min-w-[150px] pt-1">Supervisor / Manager</p>
-                    </div>
-                </div>
-            </div>
         </div>
-
     </div>
 
     <!-- JAVASCRIPT LOGIC -->
     <script>
-        // --- DATA DEFINITION ---
+        // --- DATA MASTER ---
         const allSections = [
             {
                 title: "A. AREA PROSES",
                 items: [
-                    { id: 1, category: 'Resik', question: 'Pembuangan Sampah All Proses (Sudah dibuang/Kosong)' },
-                    { id: 2, category: 'Resik', question: 'Permukaan Lantai All Area Steril dan bersih' },
-                    { id: 3, category: 'Ringkas', question: 'Marka Pedestrian terbebas dari Barang-barang maupun Tools' },
-                    { id: 4, category: 'Resik', question: 'Area HV, Dokumen dan Non Halal dalam kondisi Steril dan Bersih' },
-                    { id: 5, category: 'Rapi', question: 'Area Leader dalam keadaan rapi' },
-                    { id: 6, category: 'Rapi', question: 'Barang Holding tersimpan pada Area Holding dengan benar' },
+                    { id: 1, category: 'RESIK', question: 'Pembuangan Sampah All Proses (Sudah dibuang/Kosong)' },
+                    { id: 2, category: 'RESIK', question: 'Permukaan Lantai All Area Steril dan bersih' },
+                    { id: 3, category: 'RINGKAS', question: 'Marka Pedestrian terbebas dari Barang-barang maupun Tools' },
+                    { id: 4, category: 'RESIK', question: 'Area HV, Dokumen dan Non Halal dalam kondisi Steril dan Bersih' },
+                    { id: 5, category: 'RAPI', question: 'Area Leader dalam keadaan rapi' },
+                    { id: 6, category: 'RAPI', question: 'Barang Holding tersimpan pada Area Holding dengan benar' },
                 ]
             },
             {
                 title: "B. TOOLS & PERALATAN",
                 items: [
-                    { id: 7, category: 'Rapi', question: 'Tool diletakkan pada Checkpoint yang ditentukan' },
-                    { id: 8, category: 'Ringkas', question: 'Melakukan Sortiran MB Bekas serta merapikan di area Limbah' },
-                    { id: 9, category: 'Rawat', question: 'Perawatan Sorting Basket (Kondisi baik/bersih)' },
-                    { id: 10, category: 'Rawat', question: 'Perawatan Pigeon Hole (Kondisi baik/bersih)' },
-                    { id: 11, category: 'Rawat', question: 'Perawatan Trolly Cage (Roda lancar, tidak rusak)' },
-                    { id: 12, category: 'Rawat', question: 'Perawatan Pallet Mesh (Tidak penyok/rusak)' },
+                    { id: 7, category: 'RAPI', question: 'Tool diletakkan pada Checkpoint yang ditentukan' },
+                    { id: 8, category: 'RINGKAS', question: 'Melakukan Sortiran MB Bekas serta merapikan di area Limbah' },
+                    { id: 9, category: 'RAWAT', question: 'Perawatan Sorting Basket (Kondisi baik/bersih)' },
+                    { id: 10, category: 'RAWAT', question: 'Perawatan Pigeon Hole (Kondisi baik/bersih)' },
+                    { id: 11, category: 'RAWAT', question: 'Perawatan Trolly Cage (Roda lancar, tidak rusak)' },
+                    { id: 12, category: 'RAWAT', question: 'Perawatan Pallet Mesh (Tidak penyok/rusak)' },
                 ]
             },
             {
                 title: "C. RAK PENYIMPANAN",
                 items: [
-                    { id: 13, category: 'Rawat', question: 'Perawatan Rak Dokumen dan Tools', isWeekly: true },
-                    { id: 14, category: 'Rapi', question: 'Rak dokumen dan Tools dalam keadaan tertata Rapih' },
+                    { id: 13, category: 'RAWAT', question: 'Perawatan Rak Dokumen dan Tools', isWeekly: true },
+                    { id: 14, category: 'RAPI', question: 'Rak dokumen dan Tools dalam keadaan tertata Rapih' },
                 ]
             },
             {
                 title: "D. PRASARANA & FASILITAS",
                 items: [
-                    { id: 15, category: 'Rapi', question: 'Area Istirahat/Musholla rapih & terbebas dari barang pribadi' },
-                    { id: 16, category: 'Safety', question: 'Memastikan persediaan P3K sesuai dengan standar K3', isWeekly: true },
-                    { id: 17, category: 'Rajin', question: 'Informasi board di update (KPI/Pengumuman)', isWeekly: true },
+                    { id: 15, category: 'RAPI', question: 'Area Istirahat/Musholla rapih & terbebas dari barang pribadi' },
+                    { id: 16, category: 'SAFETY', question: 'Memastikan persediaan P3K sesuai dengan standar K3', isWeekly: true },
+                    { id: 17, category: 'RAJIN', question: 'Informasi board di update (KPI/Pengumuman)', isWeekly: true },
                 ]
             }
         ];
 
-        const monthNames = [
-            "Januari", "Februari", "Maret", "April", "Mei", "Juni",
-            "Juli", "Agustus", "September", "Oktober", "November", "Desember"
-        ];
+        const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+        
+        // --- CONFIG ---
+        const USERS = {
+            'Spv': { password: 'TAB123', role: 'admin', name: '', area: '' },
+            'MKS': { password: 'MKS01', role: 'user', name: 'Muhammad fahri', area: 'HUB Makassar' }
+        };
 
         let currentYear = new Date().getFullYear();
         let currentMonth = new Date().getMonth();
         let checks = {}; 
-        const STORAGE_PREFIX = "5R_LOGSHEET_V12_PX_"; 
+        let currentUser = null; 
+        const STORAGE_PREFIX = "5R_CORP_DATA_"; 
 
+        // --- INIT ---
         document.addEventListener('DOMContentLoaded', () => {
             init();
             
-            const btnReset = document.getElementById('btnReset');
-            const btnDownload = document.getElementById('btnDownloadPDF');
-
-            if(btnReset) btnReset.addEventListener('click', (e) => { e.preventDefault(); resetData(); });
-            if(btnDownload) btnDownload.addEventListener('click', (e) => { e.preventDefault(); downloadPDF(); });
-
+            document.getElementById('btnReset').addEventListener('click', (e) => { e.preventDefault(); resetData(); });
+            document.getElementById('btnDownloadPDF').addEventListener('click', (e) => { e.preventDefault(); downloadPDF(); });
+            
             const area = document.getElementById('areaInput');
             const insp = document.getElementById('inspectorInput');
-            
-            area.addEventListener('input', (e) => { saveMetadata(); });
+            area.addEventListener('input', () => saveMetadata());
             insp.addEventListener('input', (e) => {
                 document.getElementById('signerName').innerText = e.target.value || 'Leader Area';
                 saveMetadata();
             });
         });
 
+        // --- AUTH LOGIC ---
+        function handleLogin(e) {
+            e.preventDefault();
+            const username = document.getElementById('usernameInput').value;
+            const password = document.getElementById('passwordInput').value;
+            const errorMsg = document.getElementById('loginError');
+
+            if (USERS[username] && USERS[username].password === password) {
+                currentUser = { username: username, ...USERS[username] };
+                sessionStorage.setItem('5R_CORP_USER', JSON.stringify(currentUser));
+                applyUserPermissions();
+                
+                document.getElementById('loginOverlay').style.display = 'none';
+                document.getElementById('mainApp').classList.remove('hidden');
+                
+                loadDataForCurrentMonth();
+                renderTable();
+            } else {
+                errorMsg.classList.remove('hidden');
+            }
+        }
+
+        function logout() {
+            sessionStorage.removeItem('5R_CORP_USER');
+            currentUser = null;
+            document.getElementById('mainApp').classList.add('hidden');
+            document.getElementById('loginOverlay').style.display = 'flex';
+            document.getElementById('usernameInput').value = "";
+            document.getElementById('passwordInput').value = "";
+            document.getElementById('loginError').classList.add('hidden');
+        }
+
+        function applyUserPermissions() {
+            if (!currentUser) return;
+            const areaInput = document.getElementById('areaInput');
+            const inspectorInput = document.getElementById('inspectorInput');
+            const btnReset = document.getElementById('btnReset');
+            const btnImport = document.getElementById('btnImport');
+            const userBadge = document.getElementById('userBadge');
+
+            userBadge.innerText = currentUser.username; 
+
+            if (currentUser.role === 'user') {
+                areaInput.value = currentUser.area;
+                areaInput.setAttribute('readonly', true);
+                inspectorInput.value = currentUser.name;
+                inspectorInput.setAttribute('readonly', true);
+                document.getElementById('signerName').innerText = currentUser.name;
+                
+                btnReset.classList.add('hidden');
+                btnImport.classList.add('hidden');
+                saveMetadata(); 
+            } else {
+                areaInput.removeAttribute('readonly');
+                inspectorInput.removeAttribute('readonly');
+                btnReset.classList.remove('hidden');
+                btnImport.classList.remove('hidden');
+            }
+        }
+
+        // --- DATA LOGIC ---
         function init() {
-            // Restore filters
-            const storedMonth = localStorage.getItem(STORAGE_PREFIX + 'lastMonth');
-            const storedYear = localStorage.getItem(STORAGE_PREFIX + 'lastYear');
-            
-            if(storedMonth !== null) currentMonth = parseInt(storedMonth);
-            if(storedYear !== null) currentYear = parseInt(storedYear);
+            const sessionUser = sessionStorage.getItem('5R_CORP_USER');
+            if (sessionUser) {
+                currentUser = JSON.parse(sessionUser);
+                applyUserPermissions();
+                document.getElementById('loginOverlay').style.display = 'none';
+                document.getElementById('mainApp').classList.remove('hidden');
+            }
 
             const yearSelect = document.getElementById('yearSelect');
             for(let y = new Date().getFullYear() - 2; y <= new Date().getFullYear() + 2; y++) {
@@ -350,7 +518,6 @@
                 if(y === currentYear) opt.selected = true;
                 yearSelect.appendChild(opt);
             }
-
             const monthSelect = document.getElementById('monthSelect');
             monthNames.forEach((m, i) => {
                 const opt = document.createElement('option');
@@ -362,14 +529,11 @@
 
             yearSelect.addEventListener('change', (e) => { 
                 currentYear = parseInt(e.target.value); 
-                localStorage.setItem(STORAGE_PREFIX + 'lastYear', currentYear);
                 loadDataForCurrentMonth(); 
                 renderTable(); 
             });
-            
             monthSelect.addEventListener('change', (e) => { 
                 currentMonth = parseInt(e.target.value); 
-                localStorage.setItem(STORAGE_PREFIX + 'lastMonth', currentMonth);
                 loadDataForCurrentMonth(); 
                 renderTable(); 
             });
@@ -386,7 +550,6 @@
         function loadDataForCurrentMonth() {
             const key = getStorageKey();
             const rawData = localStorage.getItem(key);
-            
             const area = document.getElementById('areaInput');
             const insp = document.getElementById('inspectorInput');
             const signer = document.getElementById('signerName');
@@ -395,10 +558,12 @@
                 const data = JSON.parse(rawData);
                 checks = data.checks || {};
                 
-                if(data.area) area.value = data.area;
-                if(data.inspector) {
-                    insp.value = data.inspector;
-                    signer.innerText = data.inspector;
+                if (currentUser && currentUser.role === 'admin') {
+                    if(data.area) area.value = data.area;
+                    if(data.inspector) {
+                        insp.value = data.inspector;
+                        signer.innerText = data.inspector;
+                    }
                 }
             } else {
                 checks = {};
@@ -415,6 +580,61 @@
             localStorage.setItem(key, JSON.stringify(dataToSave));
         }
 
+        // --- EXPORT / IMPORT ---
+        function exportData() {
+            const dataToExport = {
+                year: currentYear,
+                month: currentMonth,
+                data: {
+                    checks: checks,
+                    area: document.getElementById('areaInput').value,
+                    inspector: document.getElementById('inspectorInput').value
+                }
+            };
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dataToExport));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", `Backup_5R_${monthNames[currentMonth]}_${currentYear}.json`);
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        }
+
+        function importData(input) {
+            const file = input.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if(imported.year !== undefined && imported.month !== undefined) {
+                        Swal.fire({
+                            title: 'Timpa Data?',
+                            text: `Anda akan menimpa data ${monthNames[imported.month]} ${imported.year} dengan file ini.`,
+                            icon: 'warning',
+                            showCancelButton: true,
+                            confirmButtonText: 'Ya, Upload'
+                        }).then((result) => {
+                            if(result.isConfirmed) {
+                                currentYear = imported.year;
+                                currentMonth = imported.month;
+                                document.getElementById('yearSelect').value = currentYear;
+                                document.getElementById('monthSelect').value = currentMonth;
+                                const key = getStorageKey();
+                                localStorage.setItem(key, JSON.stringify(imported.data));
+                                loadDataForCurrentMonth();
+                                renderTable();
+                                Swal.fire('Sukses', 'Data berhasil diupload!', 'success');
+                            }
+                        });
+                    } else { alert("File tidak valid!"); }
+                } catch(err) { alert("Gagal membaca file!"); }
+            };
+            reader.readAsText(file);
+            input.value = '';
+        }
+
+        // --- RENDER ---
         function renderTable() {
             const dateStr = `${monthNames[currentMonth]} ${currentYear}`;
             document.querySelectorAll('.dateDisplay').forEach(el => el.innerText = dateStr);
@@ -428,7 +648,7 @@
             dateRow.innerHTML = '';
             for (let d = 1; d <= daysInMonth; d++) {
                 const th = document.createElement('th');
-                th.className = "border border-gray-300 text-center text-[10px] p-1 col-date";
+                th.className = "border border-gray-300 text-center p-1 col-date";
                 th.innerText = d;
                 dateRow.appendChild(th);
             }
@@ -437,9 +657,9 @@
             
             allSections.forEach(section => {
                 const sectionRow = document.createElement('tr');
-                sectionRow.className = "bg-blue-100 print:bg-gray-300";
+                sectionRow.className = "bg-gray-100 print:bg-white text-gray-800 print:text-black";
                 sectionRow.innerHTML = `
-                    <td colspan="${daysInMonth + 2}" class="p-2 font-bold text-sm border border-gray-400 text-blue-900 print:text-black">
+                    <td colspan="${daysInMonth + 2}" class="p-2 font-bold text-sm border border-gray-300 print:border-black uppercase">
                         ${section.title}
                     </td>
                 `;
@@ -447,31 +667,32 @@
 
                 section.items.forEach(item => {
                     const row = document.createElement('tr');
-                    const rowClass = item.isWeekly ? "hover:bg-blue-50 transition-colors bg-yellow-50/50" : "hover:bg-blue-50 transition-colors";
-                    row.className = rowClass;
+                    const rowClass = item.isWeekly ? "hover:bg-amber-50" : "hover:bg-blue-50";
+                    row.className = `${rowClass} transition-colors border-b border-gray-100`;
 
-                    let badgeClass = 'text-gray-700 bg-gray-50 border-gray-200';
-                    if(item.category === 'Ringkas') badgeClass = 'text-red-700 bg-red-50 border-red-200';
-                    if(item.category === 'Rapi') badgeClass = 'text-blue-700 bg-blue-50 border-blue-200';
-                    if(item.category === 'Resik') badgeClass = 'text-green-700 bg-green-50 border-green-200';
-                    if(item.category === 'Rawat') badgeClass = 'text-purple-700 bg-purple-50 border-purple-200';
-                    if(item.category === 'Safety') badgeClass = 'text-orange-700 bg-orange-50 border-orange-200';
+                    // Badge Style
+                    let badgeClass = 'text-gray-600 bg-gray-100 border-gray-300';
+                    if(item.category === 'RINGKAS') badgeClass = 'text-red-700 bg-red-50 border-red-200';
+                    if(item.category === 'RAPI') badgeClass = 'text-blue-700 bg-blue-50 border-blue-200';
+                    if(item.category === 'RESIK') badgeClass = 'text-emerald-700 bg-emerald-50 border-emerald-200';
+                    if(item.category === 'RAWAT') badgeClass = 'text-purple-700 bg-purple-50 border-purple-200';
+                    if(item.category === 'RAJIN') badgeClass = 'text-orange-700 bg-orange-50 border-orange-200';
+                    if(item.category === 'SAFETY') badgeClass = 'text-rose-700 bg-rose-50 border-rose-200';
 
                     const weeklyBadge = item.isWeekly ? `⚠️` : '';
                     const weeklyAsterisk = item.isWeekly ? `<span class="text-red-500 font-bold ml-1">*</span>` : '';
 
-                    // HTML STRUKTUR TUMPUK (Kategori atas, Soal bawah)
                     let html = `
-                        <td class="border border-gray-300 text-center p-1 font-mono text-[10px] text-gray-500 col-no">${item.id}</td>
-                        <td class="border border-gray-300 p-1 px-2 col-item">
+                        <td class="border border-gray-200 text-center p-2 font-mono text-gray-500 col-no">${item.id}</td>
+                        <td class="border border-gray-200 p-2 col-item">
                             <div class="flex flex-col justify-center">
-                                <div class="mb-0.5 category-label">
-                                    <span class="badge-span px-1 rounded text-[9px] border ${badgeClass} print:border-none print:bg-transparent print:text-black print:px-0 print:font-bold">
+                                <div class="mb-1 category-label">
+                                    <span class="badge-span px-1.5 py-0.5 rounded text-[10px] font-bold border ${badgeClass} print:border-none print:bg-transparent print:text-black print:px-0 print:font-bold">
                                         [${item.category}]
                                     </span>
-                                    <span class="text-[9px]">${weeklyBadge}</span>
+                                    <span class="text-[10px]">${weeklyBadge}</span>
                                 </div>
-                                <div class="leading-tight text-[11px] text-gray-600 print:text-black item-text">
+                                <div class="text-[11px] font-medium text-gray-700 print:text-black item-text leading-snug">
                                     ${item.question} ${weeklyAsterisk}
                                 </div>
                             </div>
@@ -484,11 +705,11 @@
                         const key = `${item.id}-${d}`;
                         const isChecked = checks[key] === true;
                         
-                        const cellClass = `border border-gray-300 text-center p-0 check-cell ${isSunday ? 'sunday' : ''} ${isChecked ? 'active' : ''} col-date`;
+                        const cellClass = `border border-gray-200 text-center p-0 check-cell ${isSunday ? 'sunday' : ''} ${isChecked ? 'active' : ''} col-date`;
                         
                         html += `
                             <td class="${cellClass}" onclick="toggleCheck(${item.id}, ${d}, this)">
-                                <div class="w-full h-full min-h-[24px] flex items-center justify-center text-[14px]">
+                                <div class="w-full h-full flex items-center justify-center text-[12px] transition-all">
                                     ${isChecked ? '✓' : ''}
                                 </div>
                             </td>
@@ -501,11 +722,9 @@
 
             // Paraf Row
             const parafRow = document.createElement('tr');
-            parafRow.className = "print:h-12";
+            parafRow.className = "print:h-12 bg-white";
             let parafHtml = `
-                <td colspan="2" class="border border-gray-300 p-2 text-right font-bold italic text-gray-500">
-                    Paraf Leader
-                </td>
+                <td colspan="2" class="border border-gray-300 p-2 text-right font-bold italic text-gray-500">Paraf Leader</td>
             `;
             for (let d = 1; d <= daysInMonth; d++) {
                 parafHtml += `<td class="border border-gray-300"></td>`;
@@ -531,11 +750,11 @@
         window.resetData = function() {
             Swal.fire({
                 title: 'Hapus Data?',
-                text: "Data " + monthNames[currentMonth] + " akan dihapus.",
+                text: "Data bulan ini akan dihapus permanen.",
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#d33',
-                confirmButtonText: 'Hapus!'
+                confirmButtonText: 'Ya, Hapus!'
             }).then((result) => {
                 if (result.isConfirmed) {
                     checks = {};
@@ -547,29 +766,20 @@
         }
 
         window.downloadPDF = function() {
-            // Scroll to top to ensure capture isn't blank
             window.scrollTo(0,0);
-            
             const element = document.getElementById('contentToPrint');
             element.classList.add('pdf-mode');
-            
             const inputs = element.querySelectorAll('input');
             inputs.forEach(input => { input.setAttribute('value', input.value); });
 
             const opt = {
-                margin:       [5, 5, 5, 5], 
-                filename:     `Logsheet_5R_${monthNames[currentMonth]}_${currentYear}_F4_Safe.pdf`,
-                image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { 
-                    scale: 2, 
-                    useCORS: true, 
-                    scrollY: 0,
-                    // PENTING: Lebar virtual 1300px agar sinkron dengan CSS
-                    windowWidth: 1300 
-                },
-                // Ukuran F4 [215mm, 330mm] Landscape
-                jsPDF:        { unit: 'mm', format: [215, 330], orientation: 'landscape' },
-                pagebreak:    { mode: ['css', 'legacy'] } 
+                // [EDIT DISINI] Margin kertas PDF: [Atas, Kanan, Bawah, Kiri]
+                margin: [3, 3, 3, 3], 
+                filename: `Logsheet_5R_${monthNames[currentMonth]}_${currentYear}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true, scrollY: 0, windowWidth: 1400 },
+                jsPDF: { unit: 'mm', format: [215, 330], orientation: 'landscape' },
+                pagebreak: { mode: ['css', 'legacy'] } 
             };
 
             html2pdf().set(opt).from(element).save().then(() => {
