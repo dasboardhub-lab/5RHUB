@@ -581,21 +581,21 @@
                     <div class="p-2 bg-indigo-50 text-indigo-600 rounded-xl"><i class="ph ph-calendar-check text-xl"></i></div>
                     <h3 class="text-lg font-black text-slate-800" x-text="'Progress ' + currentUser?.hub"></h3>
                 </div>
-                <div class="overflow-x-auto custom-scrollbar border border-slate-200 rounded-2xl">
+                <div class="overflow-x-auto custom-scrollbar border border-slate-200 rounded-2xl relative">
                     <table class="w-full text-left border-collapse min-w-[800px] md:min-w-[1000px]">
                         <thead>
                             <tr class="bg-slate-50 border-b border-slate-200">
-                                <th rowspan="2" class="p-3 text-[10px] md:text-xs font-bold text-slate-600 uppercase w-10 text-center border-r border-slate-200 align-middle">No</th>
-                                <th rowspan="2" class="p-3 text-[10px] md:text-xs font-bold text-slate-600 uppercase min-w-[200px] border-r border-slate-200 align-middle">ITEM TUGAS 5R</th>
+                                <th rowspan="2" class="sticky left-0 z-30 bg-slate-50 p-3 text-[10px] md:text-xs font-bold text-slate-600 uppercase w-10 min-w-[40px] text-center border-r border-slate-200 align-middle">No</th>
+                                <th rowspan="2" class="sticky left-10 z-30 bg-slate-50 p-3 text-[10px] md:text-xs font-bold text-slate-600 uppercase min-w-[180px] max-w-[220px] border-r border-slate-200 align-middle shadow-[4px_0_6px_-2px_rgba(0,0,0,0.05)]">ITEM TUGAS 5R</th>
                                 <template x-for="day in daysInMonthArray">
-                                    <th :class="day.isSunday ? 'bg-rose-50 text-rose-500' : 'text-slate-500'" class="py-1.5 text-[9px] font-bold text-center border-l border-slate-200 w-8 border-b">
+                                    <th :class="day.isSunday ? 'bg-rose-50 text-rose-500' : 'text-slate-500'" class="py-2 text-[9px] font-bold text-center border-l border-slate-200 min-w-[40px] w-10 md:min-w-[48px] md:w-12 border-b">
                                         <span x-text="day.dayName"></span>
                                     </th>
                                 </template>
                             </tr>
                             <tr class="bg-slate-50 border-b border-slate-200">
                                 <template x-for="day in daysInMonthArray">
-                                    <th :class="day.isSunday ? 'bg-rose-50 text-rose-600' : 'text-slate-700'" class="py-1.5 text-[10px] font-black text-center border-l border-slate-200 w-8">
+                                    <th :class="day.isSunday ? 'bg-rose-50 text-rose-600' : 'text-slate-700'" class="py-2 text-[10px] font-black text-center border-l border-slate-200 min-w-[40px] w-10 md:min-w-[48px] md:w-12">
                                         <span x-text="day.dayNum"></span>
                                     </th>
                                 </template>
@@ -603,17 +603,19 @@
                         </thead>
                         <template x-for="areaName in Object.keys(allowedChecklistGroups)" :key="areaName">
                             <tbody>
-                                <tr class="bg-indigo-50/50 border-b border-slate-200">
-                                    <td colspan="40" class="p-3 text-[10px] md:text-xs font-black text-indigo-900 uppercase tracking-wider" x-text="areaName"></td>
+                                <tr class="bg-indigo-50/80 border-b border-slate-200">
+                                    <td colspan="40" class="p-3 text-[10px] md:text-xs font-black text-indigo-900 uppercase tracking-wider">
+                                        <span class="sticky left-4" x-text="areaName"></span>
+                                    </td>
                                 </tr>
                                 <template x-for="item in allowedChecklistGroups[areaName]" :key="item.id">
-                                    <tr class="border-b border-slate-100 hover:bg-slate-50 transition">
-                                        <td class="p-3 text-[10px] md:text-xs text-slate-400 text-center font-bold border-r border-slate-200" x-text="item.globalIndex"></td>
-                                        <td class="p-3 border-r border-slate-200">
+                                    <tr class="border-b border-slate-100 transition group hover:bg-slate-50">
+                                        <td class="sticky left-0 z-20 bg-white group-hover:bg-slate-50 p-3 text-[10px] md:text-xs text-slate-400 text-center font-bold border-r border-slate-200" x-text="item.globalIndex"></td>
+                                        <td class="sticky left-10 z-20 bg-white group-hover:bg-slate-50 p-3 border-r border-slate-200 shadow-[4px_0_6px_-2px_rgba(0,0,0,0.05)]">
                                             <p class="text-[11px] md:text-xs font-semibold text-slate-700 leading-snug" x-text="item.deskripsi"></p>
                                         </td>
                                         <template x-for="day in daysInMonthArray">
-                                            <td :class="day.isSunday ? 'bg-rose-50/30' : ''" class="p-0 border-l border-slate-200 text-center align-middle h-8">
+                                            <td :class="day.isSunday ? 'bg-rose-50/50 group-hover:bg-rose-100/50' : ''" class="p-0 border-l border-slate-200 text-center align-middle h-8">
                                                 <span x-html="getCombinedAuditStatus(item.id, day.dateString)"></span>
                                             </td>
                                         </template>
@@ -657,57 +659,21 @@
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 p-5 bg-slate-50 rounded-2xl mb-8 border border-slate-100">
-                        <div>
-                            <label class="block text-[10px] md:text-xs font-bold text-slate-400 uppercase mb-2">Bulan</label>
-                            <select x-model="selectedMonth" class="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none">
-                                <option value="0">Januari</option> <option value="1">Februari</option> <option value="2">Maret</option>
-                                <option value="3">April</option> <option value="4">Mei</option> <option value="5">Juni</option>
-                                <option value="6">Juli</option> <option value="7">Agustus</option> <option value="8">September</option>
-                                <option value="9">Oktober</option> <option value="10">November</option> <option value="11">Desember</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-[10px] md:text-xs font-bold text-slate-400 uppercase mb-2">Tahun</label>
-                            <select x-model="selectedYear" class="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none">
-                                <option value="2025">2025</option> <option value="2026">2026</option> <option value="2027">2027</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-[10px] md:text-xs font-bold text-slate-400 uppercase mb-2">Filter Lokasi HUB</label>
-                            <select x-model="selectedHub" class="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none">
-                                <option value="all">Semua HUB Gabungan</option>
-                                <template x-for="hub in getUniqueHubs()" :key="hub">
-                                    <option :value="hub" x-text="hub"></option>
-                                </template>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-[10px] md:text-xs font-bold text-slate-400 uppercase mb-2">Filter Personil (Opsional)</label>
-                            <select x-model="selectedPicId" class="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none">
-                                <option value="all">Semua Personil</option>
-                                <template x-for="usr in users.filter(u => u.level === 'pic' && (selectedHub === 'all' || u.hub === selectedHub))" :key="usr.userId">
-                                    <option :value="usr.userId" x-text="usr.nama"></option>
-                                </template>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="overflow-x-auto custom-scrollbar border border-slate-200 rounded-2xl">
+                    <div class="overflow-x-auto custom-scrollbar border border-slate-200 rounded-2xl relative">
                         <table class="w-full text-left border-collapse min-w-[800px] md:min-w-[1000px]">
                             <thead>
                                 <tr class="bg-slate-50 border-b border-slate-200">
-                                    <th rowspan="2" class="p-3 text-[10px] md:text-xs font-bold text-slate-600 uppercase w-10 text-center border-r border-slate-200 align-middle">No</th>
-                                    <th rowspan="2" class="p-3 text-[10px] md:text-xs font-bold text-slate-600 uppercase min-w-[200px] border-r border-slate-200 align-middle">ITEM TUGAS 5R</th>
+                                    <th rowspan="2" class="sticky left-0 z-30 bg-slate-50 p-3 text-[10px] md:text-xs font-bold text-slate-600 uppercase w-10 min-w-[40px] text-center border-r border-slate-200 align-middle">No</th>
+                                    <th rowspan="2" class="sticky left-10 z-30 bg-slate-50 p-3 text-[10px] md:text-xs font-bold text-slate-600 uppercase min-w-[180px] max-w-[220px] border-r border-slate-200 align-middle shadow-[4px_0_6px_-2px_rgba(0,0,0,0.05)]">ITEM TUGAS 5R</th>
                                     <template x-for="day in daysInMonthArray">
-                                        <th :class="day.isSunday ? 'bg-rose-50 text-rose-500' : 'text-slate-500'" class="py-1.5 text-[9px] font-bold text-center border-l border-slate-200 w-8 border-b">
+                                        <th :class="day.isSunday ? 'bg-rose-50 text-rose-500' : 'text-slate-500'" class="py-2 text-[9px] font-bold text-center border-l border-slate-200 min-w-[40px] w-10 md:min-w-[48px] md:w-12 border-b">
                                             <span x-text="day.dayName"></span>
                                         </th>
                                     </template>
                                 </tr>
                                 <tr class="bg-slate-50 border-b border-slate-200">
                                     <template x-for="day in daysInMonthArray">
-                                        <th :class="day.isSunday ? 'bg-rose-50 text-rose-600' : 'text-slate-700'" class="py-1.5 text-[10px] font-black text-center border-l border-slate-200 w-8">
+                                        <th :class="day.isSunday ? 'bg-rose-50 text-rose-600' : 'text-slate-700'" class="py-2 text-[10px] font-black text-center border-l border-slate-200 min-w-[40px] w-10 md:min-w-[48px] md:w-12">
                                             <span x-text="day.dayNum"></span>
                                         </th>
                                     </template>
@@ -715,17 +681,19 @@
                             </thead>
                             <template x-for="areaName in Object.keys(groupedChecklist)" :key="areaName">
                                 <tbody>
-                                    <tr class="bg-indigo-50/50 border-b border-slate-200">
-                                        <td colspan="40" class="p-3 text-[10px] md:text-xs font-black text-indigo-900 uppercase tracking-wider" x-text="areaName"></td>
+                                    <tr class="bg-indigo-50/80 border-b border-slate-200">
+                                        <td colspan="40" class="p-3 text-[10px] md:text-xs font-black text-indigo-900 uppercase tracking-wider">
+                                            <span class="sticky left-4" x-text="areaName"></span>
+                                        </td>
                                     </tr>
                                     <template x-for="item in groupedChecklist[areaName]" :key="item.id">
-                                        <tr class="border-b border-slate-100 hover:bg-slate-50 transition">
-                                            <td class="p-3 text-[10px] md:text-xs text-slate-400 text-center font-bold border-r border-slate-200" x-text="item.globalIndex"></td>
-                                            <td class="p-3 border-r border-slate-200">
+                                        <tr class="border-b border-slate-100 transition group hover:bg-slate-50">
+                                            <td class="sticky left-0 z-20 bg-white group-hover:bg-slate-50 p-3 text-[10px] md:text-xs text-slate-400 text-center font-bold border-r border-slate-200" x-text="item.globalIndex"></td>
+                                            <td class="sticky left-10 z-20 bg-white group-hover:bg-slate-50 p-3 border-r border-slate-200 shadow-[4px_0_6px_-2px_rgba(0,0,0,0.05)]">
                                                 <p class="text-[11px] md:text-xs font-semibold text-slate-700 leading-snug" x-text="item.deskripsi"></p>
                                             </td>
                                             <template x-for="day in daysInMonthArray">
-                                                <td :class="day.isSunday ? 'bg-rose-50/30' : ''" class="p-0 border-l border-slate-200 text-center align-middle h-8">
+                                                <td :class="day.isSunday ? 'bg-rose-50/50 group-hover:bg-rose-100/50' : ''" class="p-0 border-l border-slate-200 text-center align-middle h-8">
                                                     <span x-html="getCombinedAuditStatus(item.id, day.dateString)"></span>
                                                 </td>
                                             </template>
@@ -1012,48 +980,48 @@
     <div x-show="auditModal.show" class="fixed inset-0 z-50 overflow-y-auto no-print flex items-end sm:items-center justify-center p-0 md:p-4" x-transition x-cloak>
         <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" @click="auditModal.show = false"></div>
 
-        <div class="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden w-full max-w-2xl z-10 mt-20 sm:mt-0 transform transition-all border border-white/20 relative flex flex-col max-h-[90vh]">
-            <div class="bg-slate-900 text-white p-5 md:p-6 flex justify-between items-center shrink-0">
+        <div class="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden w-full max-w-xl z-10 mt-16 sm:mt-0 transform transition-all border border-white/20 relative flex flex-col max-h-[85vh]">
+            <div class="bg-slate-900 text-white p-4 md:p-5 flex justify-between items-center shrink-0">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center">
-                        <i class="ph ph-clipboard-text text-xl"></i>
+                    <div class="w-9 h-9 bg-white/10 rounded-full flex items-center justify-center">
+                        <i class="ph ph-clipboard-text text-lg"></i>
                     </div>
                     <div>
-                        <h3 class="text-base md:text-lg font-black tracking-wide">Pengecekan Harian</h3>
-                        <p class="text-[10px] md:text-xs text-emerald-400 font-bold mt-0.5 uppercase" x-text="currentUser?.assignedAreas?.includes('ALL') ? 'Semua Area' : currentUser?.assignedAreas?.join(', ')"></p>
+                        <h3 class="text-sm md:text-base font-black tracking-wide">Pengecekan Harian</h3>
+                        <p class="text-[9px] md:text-[10px] text-emerald-400 font-bold mt-0.5 uppercase tracking-wider" x-text="currentUser?.assignedAreas?.includes('ALL') ? 'Semua Area' : currentUser?.assignedAreas?.join(', ')"></p>
                     </div>
                 </div>
-                <button @click="auditModal.show = false" class="text-slate-400 hover:text-white bg-white/10 hover:bg-white/20 rounded-full p-2.5 transition">
-                    <i class="ph ph-x text-lg"></i>
+                <button @click="auditModal.show = false" class="text-slate-400 hover:text-white bg-white/10 hover:bg-white/20 rounded-full p-2 transition">
+                    <i class="ph ph-x text-base"></i>
                 </button>
             </div>
 
             <form @submit.prevent="triggerConfirm('Kirim Laporan', 'Pastikan data ceklis valid. Laporan akan disimpan.', 'submitAudit')" class="flex flex-col flex-1 overflow-hidden">
-                <div class="p-4 md:p-6 space-y-5 flex-1 overflow-y-auto custom-scrollbar bg-slate-50">
+                <div class="p-4 space-y-4 flex-1 overflow-y-auto custom-scrollbar bg-slate-50">
                     
-                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4">
-                        <div class="p-3 bg-blue-50 text-blue-600 rounded-xl hidden sm:block"><i class="ph ph-calendar text-2xl"></i></div>
+                    <div class="bg-white p-3 md:p-4 rounded-xl shadow-sm border border-slate-200 flex items-center gap-3">
+                        <div class="p-2.5 bg-blue-50 text-blue-600 rounded-lg hidden sm:block"><i class="ph ph-calendar text-xl"></i></div>
                         <div class="w-full">
-                            <label class="block text-[10px] md:text-xs font-bold text-slate-400 uppercase mb-1">Tanggal Kontrol Harian</label>
-                            <input type="date" x-model="auditModal.date" class="w-full border-none bg-transparent text-slate-800 cursor-not-allowed outline-none font-black text-sm p-0 m-0 pointer-events-none" readonly>
+                            <label class="block text-[9px] md:text-[10px] font-bold text-slate-400 uppercase mb-0.5">Tanggal Kontrol Harian</label>
+                            <input type="date" x-model="auditModal.date" class="w-full border-none bg-transparent text-slate-800 cursor-not-allowed outline-none font-black text-xs md:text-sm p-0 m-0 pointer-events-none" readonly>
                         </div>
                     </div>
 
-                    <div class="space-y-5">
+                    <div class="space-y-4">
                         <template x-for="areaName in Object.keys(allowedChecklistGroups)" :key="areaName">
-                            <div class="bg-white p-4 md:p-6 rounded-3xl shadow-sm border border-slate-100">
-                                <h4 class="font-black text-indigo-900 text-sm md:text-base uppercase mb-4 flex items-center gap-2">
-                                    <i class="ph ph-map-pin text-indigo-500"></i> <span x-text="areaName"></span>
+                            <div class="bg-white p-3 md:p-4 rounded-xl shadow-sm border border-slate-200">
+                                <h4 class="font-black text-indigo-900 text-xs md:text-sm uppercase mb-3 flex items-center gap-2 border-b border-slate-100 pb-2">
+                                    <i class="ph ph-map-pin text-indigo-500 text-base"></i> <span x-text="areaName"></span>
                                 </h4>
                                 
-                                <div class="space-y-3">
+                                <div class="space-y-2">
                                     <template x-for="item in allowedChecklistGroups[areaName]" :key="item.id">
                                         <template x-if="auditModal.responses[item.id] !== undefined">
-                                            <label class="flex items-center justify-between p-4 rounded-2xl border-2 cursor-pointer transition group" :class="auditModal.responses[item.id] ? 'bg-emerald-50/50 border-emerald-400 shadow-sm' : 'bg-slate-50 border-slate-100 hover:border-slate-300'">
-                                                <span class="text-xs md:text-sm font-bold w-[85%] leading-relaxed transition" :class="auditModal.responses[item.id] ? 'text-emerald-900' : 'text-slate-600'" x-text="item.deskripsi"></span>
+                                            <label class="flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all group" :class="auditModal.responses[item.id] ? 'bg-emerald-50/70 border-emerald-300 shadow-sm' : 'bg-slate-50 border-slate-200 hover:border-slate-300 hover:bg-slate-100'">
+                                                <span class="text-xs font-semibold w-[85%] leading-snug transition-colors" :class="auditModal.responses[item.id] ? 'text-emerald-900' : 'text-slate-600'" x-text="item.deskripsi"></span>
                                                 <div class="relative flex items-center justify-center">
-                                                    <input type="checkbox" x-model="auditModal.responses[item.id]" class="w-7 h-7 text-emerald-600 bg-white border-2 border-slate-300 rounded-xl focus:ring-emerald-500 cursor-pointer peer transition appearance-none checked:bg-emerald-500 checked:border-emerald-500">
-                                                    <i x-show="auditModal.responses[item.id]" class="ph ph-check absolute text-white pointer-events-none font-black text-lg"></i>
+                                                    <input type="checkbox" x-model="auditModal.responses[item.id]" class="w-5 h-5 md:w-6 md:h-6 text-emerald-600 bg-white border-2 border-slate-300 rounded focus:ring-emerald-500 cursor-pointer peer transition-all appearance-none checked:bg-emerald-500 checked:border-emerald-500">
+                                                    <i x-show="auditModal.responses[item.id]" class="ph ph-check absolute text-white pointer-events-none font-black text-sm md:text-base"></i>
                                                 </div>
                                             </label>
                                         </template>
@@ -1064,14 +1032,14 @@
                     </div>
                 </div>
 
-                <div class="bg-white p-4 md:p-6 flex flex-col sm:flex-row justify-between items-center border-t border-slate-200 gap-4 sm:gap-0 shrink-0">
-                    <p class="text-[10px] text-slate-400 font-bold text-center sm:text-left w-full sm:w-auto flex items-center justify-center sm:justify-start gap-1">
-                        <i class="ph ph-info"></i> Centang tugas yang telah diselesaikan.
+                <div class="bg-white p-3 md:p-4 flex flex-col sm:flex-row justify-between items-center border-t border-slate-200 gap-3 shrink-0">
+                    <p class="text-[9px] md:text-[10px] text-slate-500 font-bold text-center sm:text-left w-full sm:w-auto flex items-center justify-center sm:justify-start gap-1">
+                        <i class="ph ph-info text-sm"></i> Centang tugas yang diselesaikan.
                     </p>
-                    <div class="flex space-x-3 w-full sm:w-auto justify-end">
-                        <button type="button" @click="auditModal.show = false" class="flex-1 sm:flex-none px-6 py-3.5 text-xs md:text-sm font-bold text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-2xl transition">Batal</button>
-                        <button type="submit" class="flex-1 sm:flex-none bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-8 py-3.5 rounded-2xl text-xs md:text-sm transition shadow-lg shadow-indigo-200 flex items-center justify-center gap-2">
-                            <i class="ph ph-paper-plane-tilt"></i> Kirim
+                    <div class="flex space-x-2 w-full sm:w-auto justify-end">
+                        <button type="button" @click="auditModal.show = false" class="flex-1 sm:flex-none px-4 py-2.5 text-xs font-bold text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-lg transition">Batal</button>
+                        <button type="submit" class="flex-1 sm:flex-none bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-2.5 rounded-lg text-xs transition shadow-md shadow-indigo-200 flex items-center justify-center gap-2">
+                            <i class="ph ph-paper-plane-tilt text-sm"></i> Kirim
                         </button>
                     </div>
                 </div>
