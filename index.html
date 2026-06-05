@@ -4,9 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistem Monitoring & Audit 5R</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Supabase SDK -->
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <!-- Phosphor Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
     <script>
         document.addEventListener('alpine:init', () => {
             const supabaseUrl = 'https://qtsjehqdakvmmmnyuzda.supabase.co';
@@ -27,7 +31,6 @@
                 selectedPicId: 'all',
                 
                 toast: { show: false, message: '', type: 'success' },
-                
                 confirmModal: { show: false, title: '', message: '', actionType: '', targetId: null },
 
                 userForm: { userId: '', nama: '', level: 'pic', password: '', hub: '', assignedAreas: [] },
@@ -35,6 +38,7 @@
                 itemForm: { id: '', area: '', deskripsi: '' },
                 isEditingItem: false,
                 
+                // Tanggal default selalu hari ini (Local timezone browser)
                 auditModal: { show: false, date: new Date().toISOString().split('T')[0], responses: {} },
                 
                 users: [],
@@ -82,10 +86,10 @@
                 async loadDatabase() {
                     const defaultUsers = [
                         { userId: "admin", nama: "Super Admin", level: "admin", password: "admin", hub: "ALL", assignedAreas: ["ALL"] },
-                        { userId: "1001", nama: "Sudirman (PIC All Area)", level: "pic", password: "1001", hub: "HUB MKS", assignedAreas: ["ALL"] },
-                        { userId: "1002", nama: "Budi Santoso (OB Office)", level: "pic", password: "1002", hub: "HUB MKS", assignedAreas: ["Area Office"] },
-                        { userId: "1003", nama: "Andi (PIC BPP Full Area)", level: "pic", password: "1003", hub: "HUB BPP", assignedAreas: ["ALL"] },
-                        { userId: "9999", nama: "Manager Visitor", level: "visitor", password: "9999", hub: "ALL", assignedAreas: ["ALL"] }
+                        { userId: "1001", nama: "Sudirman (PIC All Area)", level: "pic", password: "password123", hub: "HUB MKS", assignedAreas: ["ALL"] },
+                        { userId: "1002", nama: "Budi Santoso (OB Office)", level: "pic", password: "password123", hub: "HUB MKS", assignedAreas: ["Area Office"] },
+                        { userId: "1003", nama: "Andi (PIC BPP Full Area)", level: "pic", password: "password123", hub: "HUB BPP", assignedAreas: ["ALL"] },
+                        { userId: "1004", nama: "Manager Visitor", level: "visitor", password: "password123", hub: "ALL", assignedAreas: ["ALL"] }
                     ];
 
                     const defaultItems = [
@@ -171,6 +175,7 @@
                 handleLogin() {
                     const uId = this.loginId.trim().toLowerCase();
                     const uPass = this.loginPassword.trim();
+                    
                     const matchedUser = this.users.find(u => u.userId.toLowerCase() === uId && u.password === uPass);
                     if (matchedUser) {
                         this.userRole = matchedUser.level;
@@ -179,7 +184,7 @@
                         this.loginId = '';
                         this.loginPassword = '';
                     } else {
-                        this.showToast('ID atau Kata Sandi Salah', 'error');
+                        this.showToast('ID Pengguna atau Kata Sandi Salah', 'error');
                     }
                 },
 
@@ -190,16 +195,15 @@
                 },
 
                 async saveUser() {
-                    if (this.userForm.assignedAreas.includes('ALL')) {
-                        this.userForm.assignedAreas = ['ALL'];
+                    // Validasi: Cegah penggunaan huruf pada ID jika bukan admin
+                    const uId = this.userForm.userId.trim().toLowerCase();
+                    if (uId !== 'admin' && !/^\d+$/.test(uId)) {
+                        this.showToast('ID Pengguna harus berupa Angka!', 'error');
+                        return;
                     }
 
-                    const uId = this.userForm.userId.trim().toLowerCase();
-                    
-                    // Validasi: ID Pengguna hanya boleh angka, kecuali khusus untuk 'admin'
-                    if (uId !== 'admin' && !/^\d+$/.test(uId)) {
-                        this.showToast('ID Pengguna harus berupa Angka (Kecuali admin)', 'error');
-                        return;
+                    if (this.userForm.assignedAreas.includes('ALL')) {
+                        this.userForm.assignedAreas = ['ALL'];
                     }
 
                     const payload = { ...this.userForm, userId: uId };
@@ -247,13 +251,13 @@
                         if (this.isSupabaseReady) await supabase.from('items').update(payload).eq('id', payload.id);
                         const index = this.activeChecklistItems.findIndex(i => i.id === payload.id);
                         if (index !== -1) this.activeChecklistItems[index] = payload;
-                        this.showToast('Parameter diubah');
+                        this.showToast('Parameter checklist berhasil diubah');
                     } else {
                         payload.id = 'item-' + Date.now();
                         if (this.isSupabaseReady) await supabase.from('items').insert([payload]);
                         this.activeChecklistItems.push(payload);
                         this.initResponses();
-                        this.showToast('Parameter ditambahkan');
+                        this.showToast('Parameter checklist berhasil ditambahkan');
                     }
                     this.saveToStorage();
                     this.cancelEditItem();
@@ -278,7 +282,8 @@
                 },
 
                 openAuditModal() {
-                    this.auditModal.date = new Date().toISOString().split('T')[0];
+                    // Paksa tanggal selalu menyesuaikan hari ini (sesuai browser/perangkat)
+                    this.auditModal.date = new Date().toLocaleDateString('en-CA').split('T')[0]; // YYYY-MM-DD
                     const existingLog = this.auditLogs.find(log => log.date === this.auditModal.date && log.picId === this.currentUser.userId);
                     
                     this.auditModal.responses = {};
@@ -320,6 +325,51 @@
 
                     this.saveToStorage();
                     this.auditModal.show = false;
+                },
+
+                // Fitur Inline Edit Khusus Admin (Klik Pada Sel Tabel)
+                async toggleAdminCheck(itemId, dateString) {
+                    if (this.userRole !== 'admin') return;
+
+                    let logsOnDate = this.auditLogs.filter(l => l.date === dateString);
+                    
+                    if (this.selectedHub !== 'all') {
+                        logsOnDate = logsOnDate.filter(l => l.hub === this.selectedHub);
+                    }
+                    if (this.selectedPicId !== 'all') {
+                        logsOnDate = logsOnDate.filter(l => l.picId === this.selectedPicId);
+                    }
+
+                    let targetLog = null;
+
+                    if (logsOnDate.length > 0) {
+                        // Jika log sudah ada, ambil log pertama dan balik valuenya
+                        targetLog = logsOnDate[0];
+                        const currentStatus = targetLog.answers[itemId] === true;
+                        targetLog.answers[itemId] = !currentStatus; // Toggle
+                        
+                        if (this.isSupabaseReady) {
+                            await supabase.from('logs').update({ answers: targetLog.answers }).eq('id', targetLog.id);
+                        }
+                    } else {
+                        // Jika log belum ada pada tanggal itu, buat log Override khusus Admin
+                        const newLogId = 'log-' + Date.now();
+                        targetLog = {
+                            id: newLogId,
+                            date: dateString,
+                            picId: this.currentUser.userId, // ID Admin
+                            picName: this.currentUser.nama + " (Admin Override)",
+                            hub: this.selectedHub !== 'all' ? this.selectedHub : 'ALL',
+                            answers: { [itemId]: true } // Otomatis True karena diklik
+                        };
+                        this.auditLogs.push(targetLog);
+                        
+                        if (this.isSupabaseReady) {
+                            await supabase.from('logs').insert([targetLog]);
+                        }
+                    }
+                    
+                    this.saveToStorage();
                 },
 
                 daysInMonthArray: [],
@@ -451,7 +501,7 @@
             }));
         });
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <style>
         [x-cloak] { display: none !important; }
         
@@ -474,7 +524,6 @@
 </head>
 <body class="bg-slate-50 font-sans text-slate-800 min-h-screen flex flex-col" x-data="auditApp" x-cloak>
 
-    <!-- Notifikasi Dynamic Island -->
     <div class="fixed top-6 left-1/2 transform -translate-x-1/2 z-[100] no-print" 
          x-show="toast.show" 
          x-transition:enter="transition ease-out duration-300"
@@ -490,26 +539,25 @@
         </div>
     </div>
 
-    <!-- Header -->
     <header class="bg-white border-b border-slate-200 shadow-sm no-print sticky top-0 z-40">
-        <div class="max-w-7xl mx-auto px-5 py-4 flex flex-row justify-between items-center gap-2">
-            <div class="flex items-center space-x-2 md:space-x-3 w-auto justify-start">
-                <div class="bg-indigo-600 text-white p-2.5 rounded-xl font-black text-lg md:text-xl tracking-wider shadow-md shadow-indigo-200">5R</div>
+        <div class="max-w-7xl mx-auto px-5 py-4 flex flex-col sm:flex-row justify-between items-center gap-4 sm:gap-0">
+            <div class="flex items-center space-x-3 w-full sm:w-auto justify-center sm:justify-start">
+                <div class="bg-indigo-600 text-white p-2.5 rounded-xl font-black text-xl tracking-wider shadow-md shadow-indigo-200">5R</div>
                 <div>
-                    <h1 class="text-sm md:text-lg font-bold tracking-tight text-slate-900 flex items-center gap-2">
+                    <h1 class="text-base md:text-lg font-bold tracking-tight text-slate-900 flex items-center gap-2">
                         Audit Daily
                         <span x-show="isSupabaseReady" class="bg-emerald-100 text-emerald-700 border border-emerald-200 text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Online</span>
                         <span x-show="!isSupabaseReady" class="bg-amber-100 text-amber-700 border border-amber-200 text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Lokal</span>
                     </h1>
-                    <p class="text-[10px] md:text-xs text-slate-500 font-medium">Daily ceklis 5R HUB Under Kalsulamp</p>
+                    <p class="text-xs text-slate-500 font-medium">Daily ceklis 5R HUB Under Kalsulamp</p>
                 </div>
             </div>
-            <div class="flex items-center space-x-2 md:space-x-4 w-auto justify-end">
+            <div class="flex items-center space-x-4 w-full sm:w-auto justify-center sm:justify-end">
                 <template x-if="userRole === 'guest'">
-                    <span class="text-xs bg-slate-100 px-4 py-2 rounded-full text-slate-500 font-semibold border border-slate-200 hidden sm:block">Silakan Masuk</span>
+                    <span class="text-xs bg-slate-100 px-4 py-2 rounded-full text-slate-500 font-semibold border border-slate-200">Silakan Masuk</span>
                 </template>
                 <template x-if="userRole !== 'guest'">
-                    <div class="flex items-center space-x-3 md:space-x-4 bg-slate-50 pl-3 md:pl-5 pr-1.5 py-1.5 rounded-full border border-slate-200 shadow-sm">
+                    <div class="flex items-center space-x-4 bg-slate-50 pl-5 pr-1.5 py-1.5 rounded-full border border-slate-200 shadow-sm">
                         <div class="text-right hidden sm:block">
                             <p class="text-xs font-bold text-slate-800" x-text="currentUser?.nama"></p>
                         </div>
@@ -524,7 +572,6 @@
 
     <main class="flex-grow max-w-7xl w-full mx-auto p-4 md:p-6 print-container">
         
-        <!-- Login -->
         <div x-show="userRole === 'guest'" class="max-w-md mx-auto mt-12 md:mt-20 bg-white rounded-3xl shadow-xl shadow-slate-200/50 p-8 md:p-10 border border-slate-100 no-print" x-transition>
             <div class="text-center mb-8">
                 <div class="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
@@ -537,10 +584,10 @@
             <form @submit.prevent="handleLogin()">
                 <div class="space-y-5">
                     <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase mb-2">ID Pengguna</label>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-2">ID Pengguna (Angka)</label>
                         <div class="relative">
                             <i class="ph ph-user absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 text-lg"></i>
-                            <input type="text" x-model="loginId" class="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition text-sm font-medium" placeholder="ID Angka / admin" required>
+                            <input type="text" x-model="loginId" class="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition text-sm font-medium" placeholder="Contoh: 1002 / admin" required>
                         </div>
                     </div>
                     <div>
@@ -558,7 +605,6 @@
             </form>
         </div>
 
-        <!-- Dashboard PIC -->
         <div x-show="userRole === 'pic'" class="space-y-6 md:space-y-8 no-print" x-transition x-cloak>
             <div class="bg-gradient-to-r from-indigo-600 to-blue-600 p-6 md:p-8 rounded-3xl shadow-xl text-white flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <div>
@@ -581,21 +627,21 @@
                     <div class="p-2 bg-indigo-50 text-indigo-600 rounded-xl"><i class="ph ph-calendar-check text-xl"></i></div>
                     <h3 class="text-lg font-black text-slate-800" x-text="'Progress ' + currentUser?.hub"></h3>
                 </div>
-                <div class="overflow-x-auto custom-scrollbar border border-slate-200 rounded-2xl relative">
+                <div class="overflow-x-auto custom-scrollbar border border-slate-200 rounded-2xl">
                     <table class="w-full text-left border-collapse min-w-[800px] md:min-w-[1000px]">
                         <thead>
                             <tr class="bg-slate-50 border-b border-slate-200">
-                                <th rowspan="2" class="sticky left-0 z-30 bg-slate-50 p-3 text-[10px] md:text-xs font-bold text-slate-600 uppercase w-10 min-w-[40px] text-center border-r border-slate-200 align-middle">No</th>
-                                <th rowspan="2" class="sticky left-10 z-30 bg-slate-50 p-3 text-[10px] md:text-xs font-bold text-slate-600 uppercase min-w-[180px] max-w-[220px] border-r border-slate-200 align-middle shadow-[4px_0_6px_-2px_rgba(0,0,0,0.05)]">ITEM TUGAS 5R</th>
+                                <th rowspan="2" class="p-3 text-[10px] md:text-xs font-bold text-slate-600 uppercase w-10 min-w-[40px] text-center border-r border-slate-200 align-middle sticky left-0 z-20 bg-slate-50 shadow-[1px_0_0_#e2e8f0]">No</th>
+                                <th rowspan="2" class="p-3 text-[10px] md:text-xs font-bold text-slate-600 uppercase min-w-[200px] border-r border-slate-200 align-middle sticky left-[40px] md:left-[48px] z-20 bg-slate-50 shadow-[1px_0_0_#e2e8f0]">ITEM TUGAS 5R</th>
                                 <template x-for="day in daysInMonthArray">
-                                    <th :class="day.isSunday ? 'bg-rose-50 text-rose-500' : 'text-slate-500'" class="py-2 text-[9px] font-bold text-center border-l border-slate-200 min-w-[40px] w-10 md:min-w-[48px] md:w-12 border-b">
+                                    <th :class="day.isSunday ? 'bg-rose-50 text-rose-500' : 'text-slate-500'" class="py-1.5 text-[9px] font-bold text-center border-l border-slate-200 w-10 md:w-8 border-b">
                                         <span x-text="day.dayName"></span>
                                     </th>
                                 </template>
                             </tr>
                             <tr class="bg-slate-50 border-b border-slate-200">
                                 <template x-for="day in daysInMonthArray">
-                                    <th :class="day.isSunday ? 'bg-rose-50 text-rose-600' : 'text-slate-700'" class="py-2 text-[10px] font-black text-center border-l border-slate-200 min-w-[40px] w-10 md:min-w-[48px] md:w-12">
+                                    <th :class="day.isSunday ? 'bg-rose-50 text-rose-600' : 'text-slate-700'" class="py-1.5 text-[10px] font-black text-center border-l border-slate-200 w-10 md:w-8">
                                         <span x-text="day.dayNum"></span>
                                     </th>
                                 </template>
@@ -603,19 +649,17 @@
                         </thead>
                         <template x-for="areaName in Object.keys(allowedChecklistGroups)" :key="areaName">
                             <tbody>
-                                <tr class="bg-indigo-50/80 border-b border-slate-200">
-                                    <td colspan="40" class="p-3 text-[10px] md:text-xs font-black text-indigo-900 uppercase tracking-wider">
-                                        <span class="sticky left-4" x-text="areaName"></span>
-                                    </td>
+                                <tr class="bg-indigo-50/50 border-b border-slate-200">
+                                    <td colspan="40" class="p-3 text-[10px] md:text-xs font-black text-indigo-900 uppercase tracking-wider sticky left-0 z-10 bg-indigo-50/50" x-text="areaName"></td>
                                 </tr>
                                 <template x-for="item in allowedChecklistGroups[areaName]" :key="item.id">
-                                    <tr class="border-b border-slate-100 transition group hover:bg-slate-50">
-                                        <td class="sticky left-0 z-20 bg-white group-hover:bg-slate-50 p-3 text-[10px] md:text-xs text-slate-400 text-center font-bold border-r border-slate-200" x-text="item.globalIndex"></td>
-                                        <td class="sticky left-10 z-20 bg-white group-hover:bg-slate-50 p-3 border-r border-slate-200 shadow-[4px_0_6px_-2px_rgba(0,0,0,0.05)]">
+                                    <tr class="border-b border-slate-100 hover:bg-slate-50 transition">
+                                        <td class="p-3 text-[10px] md:text-xs text-slate-400 text-center font-bold border-r border-slate-200 sticky left-0 z-10 bg-white shadow-[1px_0_0_#e2e8f0]" x-text="item.globalIndex"></td>
+                                        <td class="p-3 border-r border-slate-200 sticky left-[40px] md:left-[48px] z-10 bg-white shadow-[1px_0_0_#e2e8f0]">
                                             <p class="text-[11px] md:text-xs font-semibold text-slate-700 leading-snug" x-text="item.deskripsi"></p>
                                         </td>
                                         <template x-for="day in daysInMonthArray">
-                                            <td :class="day.isSunday ? 'bg-rose-50/50 group-hover:bg-rose-100/50' : ''" class="p-0 border-l border-slate-200 text-center align-middle h-8">
+                                            <td :class="day.isSunday ? 'bg-rose-50/30' : ''" class="p-0 border-l border-slate-200 text-center align-middle h-8">
                                                 <span x-html="getCombinedAuditStatus(item.id, day.dateString)"></span>
                                             </td>
                                         </template>
@@ -628,10 +672,9 @@
             </div>
         </div>
 
-        <!-- Dashboard Admin/Visitor -->
         <div x-show="userRole === 'visitor' || userRole === 'admin'" class="space-y-6 md:space-y-8 no-print" x-transition x-cloak>
             
-            <div x-show="userRole === 'admin'" class="bg-white p-2 rounded-2xl md:rounded-full shadow-lg shadow-slate-200/50 border border-slate-100 flex flex-row gap-2 overflow-x-auto custom-scrollbar w-full md:w-fit mx-auto">
+            <div x-show="userRole === 'admin'" class="bg-white p-2 rounded-2xl md:rounded-full shadow-lg shadow-slate-200/50 border border-slate-100 flex flex-col sm:flex-row gap-2 overflow-x-auto custom-scrollbar w-fit mx-auto">
                 <button @click="adminTab = 'matrix'" :class="adminTab === 'matrix' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'" class="px-6 py-3 rounded-full text-xs md:text-sm font-bold transition flex items-center justify-center gap-2 whitespace-nowrap"><i class="ph ph-table"></i> Matriks Rekap</button>
                 <button @click="adminTab = 'users'" :class="adminTab === 'users' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'" class="px-6 py-3 rounded-full text-xs md:text-sm font-bold transition flex items-center justify-center gap-2 whitespace-nowrap"><i class="ph ph-users"></i> Kelola Tim</button>
                 <button @click="adminTab = 'items'" :class="adminTab === 'items' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'" class="px-6 py-3 rounded-full text-xs md:text-sm font-bold transition flex items-center justify-center gap-2 whitespace-nowrap"><i class="ph ph-list-checks"></i> Kelola Tugas</button>
@@ -647,7 +690,7 @@
                                 <i class="ph ph-chart-bar text-indigo-600 bg-indigo-50 p-2 rounded-xl"></i>
                                 Laporan Matriks 5R
                             </h3>
-                            <p class="text-xs md:text-sm text-slate-500 mt-2 font-medium">Gabungan seluruh laporan harian tim. Tanda (✓) berarti area tuntas dibersihkan.</p>
+                            <p class="text-xs md:text-sm text-slate-500 mt-2 font-medium">Gabungan seluruh laporan harian tim. <span x-show="userRole === 'admin'" class="text-indigo-600 font-bold">Admin dapat mengklik tabel untuk langsung mengedit nilai ceklis.</span></p>
                         </div>
                         <div class="flex flex-wrap gap-3 w-full md:w-auto">
                             <button @click="printReport()" class="flex-1 md:flex-none bg-white border-2 border-slate-200 hover:border-slate-800 hover:bg-slate-50 text-slate-800 px-5 py-3 rounded-2xl text-xs md:text-sm font-bold shadow-sm flex items-center justify-center gap-2 transition">
@@ -659,21 +702,58 @@
                         </div>
                     </div>
 
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 p-5 bg-slate-50 rounded-2xl mb-8 border border-slate-100">
+                        <div>
+                            <label class="block text-[10px] md:text-xs font-bold text-slate-400 uppercase mb-2">Bulan</label>
+                            <select x-model="selectedMonth" class="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none">
+                                <option value="0">Januari</option> <option value="1">Februari</option> <option value="2">Maret</option>
+                                <option value="3">April</option> <option value="4">Mei</option> <option value="5">Juni</option>
+                                <option value="6">Juli</option> <option value="7">Agustus</option> <option value="8">September</option>
+                                <option value="9">Oktober</option> <option value="10">November</option> <option value="11">Desember</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] md:text-xs font-bold text-slate-400 uppercase mb-2">Tahun</label>
+                            <select x-model="selectedYear" class="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <option value="2026">2026</option> <option value="2027">2027</option> <option value="2028">2028</option>
+                                <option value="2029">2029</option> <option value="2030">2030</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] md:text-xs font-bold text-slate-400 uppercase mb-2">Filter Lokasi HUB</label>
+                            <select x-model="selectedHub" class="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <option value="all">Semua HUB Gabungan</option>
+                                <template x-for="hub in getUniqueHubs()" :key="hub">
+                                    <option :value="hub" x-text="hub"></option>
+                                </template>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] md:text-xs font-bold text-slate-400 uppercase mb-2">Filter Personil (Opsional)</label>
+                            <select x-model="selectedPicId" class="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <option value="all">Semua Personil</option>
+                                <template x-for="usr in users.filter(u => u.level === 'pic' && (selectedHub === 'all' || u.hub === selectedHub))" :key="usr.userId">
+                                    <option :value="usr.userId" x-text="usr.nama"></option>
+                                </template>
+                            </select>
+                        </div>
+                    </div>
+
                     <div class="overflow-x-auto custom-scrollbar border border-slate-200 rounded-2xl relative">
                         <table class="w-full text-left border-collapse min-w-[800px] md:min-w-[1000px]">
                             <thead>
                                 <tr class="bg-slate-50 border-b border-slate-200">
-                                    <th rowspan="2" class="sticky left-0 z-30 bg-slate-50 p-3 text-[10px] md:text-xs font-bold text-slate-600 uppercase w-10 min-w-[40px] text-center border-r border-slate-200 align-middle">No</th>
-                                    <th rowspan="2" class="sticky left-10 z-30 bg-slate-50 p-3 text-[10px] md:text-xs font-bold text-slate-600 uppercase min-w-[180px] max-w-[220px] border-r border-slate-200 align-middle shadow-[4px_0_6px_-2px_rgba(0,0,0,0.05)]">ITEM TUGAS 5R</th>
+                                    <th rowspan="2" class="p-3 text-[10px] md:text-xs font-bold text-slate-600 uppercase w-10 min-w-[40px] text-center border-r border-slate-200 align-middle sticky left-0 z-20 bg-slate-50 shadow-[1px_0_0_#e2e8f0]">No</th>
+                                    <th rowspan="2" class="p-3 text-[10px] md:text-xs font-bold text-slate-600 uppercase min-w-[200px] border-r border-slate-200 align-middle sticky left-[40px] md:left-[48px] z-20 bg-slate-50 shadow-[1px_0_0_#e2e8f0]">ITEM TUGAS 5R</th>
                                     <template x-for="day in daysInMonthArray">
-                                        <th :class="day.isSunday ? 'bg-rose-50 text-rose-500' : 'text-slate-500'" class="py-2 text-[9px] font-bold text-center border-l border-slate-200 min-w-[40px] w-10 md:min-w-[48px] md:w-12 border-b">
+                                        <th :class="day.isSunday ? 'bg-rose-50 text-rose-500' : 'text-slate-500'" class="py-1.5 text-[9px] font-bold text-center border-l border-slate-200 w-10 md:w-8 border-b">
                                             <span x-text="day.dayName"></span>
                                         </th>
                                     </template>
                                 </tr>
                                 <tr class="bg-slate-50 border-b border-slate-200">
                                     <template x-for="day in daysInMonthArray">
-                                        <th :class="day.isSunday ? 'bg-rose-50 text-rose-600' : 'text-slate-700'" class="py-2 text-[10px] font-black text-center border-l border-slate-200 min-w-[40px] w-10 md:min-w-[48px] md:w-12">
+                                        <th :class="day.isSunday ? 'bg-rose-50 text-rose-600' : 'text-slate-700'" class="py-1.5 text-[10px] font-black text-center border-l border-slate-200 w-10 md:w-8">
                                             <span x-text="day.dayNum"></span>
                                         </th>
                                     </template>
@@ -681,20 +761,29 @@
                             </thead>
                             <template x-for="areaName in Object.keys(groupedChecklist)" :key="areaName">
                                 <tbody>
-                                    <tr class="bg-indigo-50/80 border-b border-slate-200">
-                                        <td colspan="40" class="p-3 text-[10px] md:text-xs font-black text-indigo-900 uppercase tracking-wider">
-                                            <span class="sticky left-4" x-text="areaName"></span>
-                                        </td>
+                                    <tr class="bg-indigo-50/50 border-b border-slate-200">
+                                        <td colspan="40" class="p-3 text-[10px] md:text-xs font-black text-indigo-900 uppercase tracking-wider sticky left-0 z-10 bg-indigo-50/50" x-text="areaName"></td>
                                     </tr>
                                     <template x-for="item in groupedChecklist[areaName]" :key="item.id">
-                                        <tr class="border-b border-slate-100 transition group hover:bg-slate-50">
-                                            <td class="sticky left-0 z-20 bg-white group-hover:bg-slate-50 p-3 text-[10px] md:text-xs text-slate-400 text-center font-bold border-r border-slate-200" x-text="item.globalIndex"></td>
-                                            <td class="sticky left-10 z-20 bg-white group-hover:bg-slate-50 p-3 border-r border-slate-200 shadow-[4px_0_6px_-2px_rgba(0,0,0,0.05)]">
+                                        <tr class="border-b border-slate-100 hover:bg-slate-50 transition">
+                                            <td class="p-3 text-[10px] md:text-xs text-slate-400 text-center font-bold border-r border-slate-200 sticky left-0 z-10 bg-white shadow-[1px_0_0_#e2e8f0]" x-text="item.globalIndex"></td>
+                                            <td class="p-3 border-r border-slate-200 sticky left-[40px] md:left-[48px] z-10 bg-white shadow-[1px_0_0_#e2e8f0]">
                                                 <p class="text-[11px] md:text-xs font-semibold text-slate-700 leading-snug" x-text="item.deskripsi"></p>
                                             </td>
                                             <template x-for="day in daysInMonthArray">
-                                                <td :class="day.isSunday ? 'bg-rose-50/50 group-hover:bg-rose-100/50' : ''" class="p-0 border-l border-slate-200 text-center align-middle h-8">
+                                                <td :class="[day.isSunday ? 'bg-rose-50/30' : '', userRole === 'admin' ? 'cursor-pointer hover:bg-emerald-100/60 transition-colors' : '']" 
+                                                    class="p-0 border-l border-slate-200 text-center align-middle h-8 group relative"
+                                                    @click="userRole === 'admin' ? toggleAdminCheck(item.id, day.dateString) : null"
+                                                    :title="userRole === 'admin' ? 'Klik untuk merubah (Admin Only)' : ''">
+                                                    
                                                     <span x-html="getCombinedAuditStatus(item.id, day.dateString)"></span>
+                                                    
+                                                    <!-- Icon Hover Admin (Helper visual inline edit) -->
+                                                    <template x-if="userRole === 'admin'">
+                                                        <span class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                                                            <i class="ph ph-arrows-down-up text-emerald-600/50 text-xl"></i>
+                                                        </span>
+                                                    </template>
                                                 </td>
                                             </template>
                                         </tr>
@@ -706,14 +795,13 @@
                 </div>
             </div>
 
-            <!-- Tab Manajemen Tim -->
             <div x-show="adminTab === 'users' && userRole === 'admin'" class="grid grid-cols-1 lg:grid-cols-3 gap-6" x-transition>
                 <div class="bg-white p-6 md:p-8 rounded-3xl shadow-xl shadow-slate-200/40 border border-slate-100 h-fit lg:sticky lg:top-24">
                     <h3 class="text-lg md:text-xl font-black text-slate-800 mb-6 flex items-center gap-3" x-text="isEditingUser ? 'Edit Data Profil' : 'Tambah Anggota Baru'"></h3>
                     <form @submit.prevent="saveUser()">
                         <div class="space-y-5">
                             <div>
-                                <label class="block text-[10px] md:text-xs font-bold text-slate-500 uppercase mb-2">ID Login (Hanya Angka)</label>
+                                <label class="block text-[10px] md:text-xs font-bold text-slate-500 uppercase mb-2">ID Login (Angka)</label>
                                 <input type="text" x-model="userForm.userId" :disabled="isEditingUser" class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white disabled:bg-slate-100 disabled:text-slate-400 transition" placeholder="Contoh: 1002" required>
                             </div>
                             <div>
@@ -722,7 +810,7 @@
                             </div>
                             <div>
                                 <label class="block text-[10px] md:text-xs font-bold text-slate-500 uppercase mb-2">Kata Sandi</label>
-                                <input type="password" x-model="userForm.password" class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition" placeholder="Masukkan sandi" required>
+                                <input type="text" x-model="userForm.password" class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition" placeholder="Masukkan sandi" required>
                             </div>
                             <div>
                                 <label class="block text-[10px] md:text-xs font-bold text-slate-500 uppercase mb-2">Tingkat Akses</label>
@@ -772,11 +860,10 @@
                 <div class="bg-white p-6 md:p-8 rounded-3xl shadow-xl shadow-slate-200/40 border border-slate-100 lg:col-span-2">
                     <h3 class="text-lg md:text-xl font-black text-slate-800 mb-6 flex items-center gap-3"><i class="ph ph-users text-indigo-600 bg-indigo-50 p-2 rounded-xl"></i> Daftar Tim Aktif</h3>
                     <div class="overflow-x-auto custom-scrollbar rounded-xl border border-slate-100">
-                        <table class="w-full text-left border-collapse min-w-[600px]">
+                        <table class="w-full text-left border-collapse min-w-[700px]">
                             <thead>
                                 <tr class="bg-slate-50 border-b border-slate-200">
                                     <th class="p-4 text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-wider">Profil User</th>
-                                    <th class="p-4 text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-wider">Kata Sandi</th>
                                     <th class="p-4 text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-wider">HUB</th>
                                     <th class="p-4 text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-wider">Area Tugas</th>
                                     <th class="p-4 text-[10px] md:text-xs font-bold text-slate-400 uppercase text-center tracking-wider w-24">Aksi</th>
@@ -788,18 +875,16 @@
                                         <td class="p-4">
                                             <p class="text-sm font-bold text-slate-800" x-text="usr.nama"></p>
                                             <div class="flex items-center gap-2 mt-1">
-                                                <span class="text-xs font-mono text-slate-500" x-text="usr.userId"></span>
+                                                <span class="text-xs font-mono text-slate-500" x-text="'ID: ' + usr.userId"></span>
                                                 <span :class="getRoleBadgeClass(usr.level)" class="border text-[9px] font-bold px-2 py-0.5 rounded-md uppercase" x-text="usr.level"></span>
                                             </div>
-                                        </td>
-                                        <td class="p-4">
-                                            <div class="flex items-center gap-1.5">
-                                                <i class="ph ph-key text-slate-400 text-base"></i>
-                                                <span class="text-xs md:text-sm font-mono font-medium text-slate-700 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md tracking-wider" x-text="usr.password"></span>
+                                            <!-- Menampilkan Kata Sandi -->
+                                            <div class="mt-2 flex items-center gap-1.5 text-[10px] bg-slate-100 w-fit px-2 py-1 rounded text-slate-500 border border-slate-200">
+                                                <i class="ph ph-key"></i> Pass: <span class="font-mono font-medium" x-text="usr.password"></span>
                                             </div>
                                         </td>
-                                        <td class="p-4 text-xs md:text-sm text-slate-800 font-bold" x-text="usr.hub || '-'"></td>
-                                        <td class="p-4 text-[10px] md:text-xs text-slate-600">
+                                        <td class="p-4 text-xs md:text-sm text-slate-800 font-bold align-top pt-5" x-text="usr.hub || '-'"></td>
+                                        <td class="p-4 text-[10px] md:text-xs text-slate-600 align-top pt-5">
                                             <template x-if="usr.assignedAreas && usr.assignedAreas.includes('ALL')">
                                                 <span class="font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-md border border-indigo-100"><i class="ph ph-star"></i> Full Area</span>
                                             </template>
@@ -811,7 +896,7 @@
                                                 </div>
                                             </template>
                                         </td>
-                                        <td class="p-4 text-center">
+                                        <td class="p-4 text-center align-top pt-4">
                                             <div class="flex justify-center items-center gap-2">
                                                 <button @click="startEditUser(usr)" class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white flex items-center justify-center transition" title="Edit Profil">
                                                     <i class="ph ph-pencil-simple text-base"></i>
@@ -829,7 +914,6 @@
                 </div>
             </div>
 
-            <!-- Tab Manajemen Parameter -->
             <div x-show="adminTab === 'items' && userRole === 'admin'" class="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6" x-transition>
                 <div class="bg-white p-6 md:p-8 rounded-3xl shadow-xl shadow-slate-200/40 border border-slate-100 h-fit lg:sticky lg:top-24">
                     <h3 class="text-lg md:text-xl font-black text-slate-800 mb-6 flex items-center gap-3" x-text="isEditingItem ? 'Perbarui Data Tugas' : 'Tambah Parameter Tugas'"></h3>
@@ -919,11 +1003,12 @@
             </div>
 
             <div class="border rounded border-slate-900 overflow-hidden w-full">
+                <!-- Memaksa table-layout agar tabel memenuhi 100% dan kolom lebih proporsional -->
                 <table class="w-full text-left border-collapse border border-slate-900 table-fixed">
                     <thead>
                         <tr class="bg-slate-100 border-b border-slate-500">
                             <th rowspan="2" class="p-1 text-center font-bold border-r border-slate-500 w-[3%] align-middle">NO</th>
-                            <th rowspan="2" class="p-1 font-bold border-r border-slate-500 w-[35%] align-middle">ITEM CEK PEKERJAAN</th>
+                            <th rowspan="2" class="p-1 font-bold border-r border-slate-500 align-middle w-[35%]">ITEM CEK PEKERJAAN</th>
                             <template x-for="day in daysInMonthArray">
                                 <th :class="day.isSunday ? 'bg-rose-100 text-rose-600' : ''" class="p-0.5 text-[7px] text-center border-l border-b border-slate-500 w-[2%]">
                                     <span x-text="day.dayName"></span>
@@ -932,7 +1017,7 @@
                         </tr>
                         <tr class="bg-slate-100 border-b border-slate-500">
                             <template x-for="day in daysInMonthArray">
-                                <th :class="day.isSunday ? 'bg-rose-100 text-rose-600' : ''" class="p-0.5 text-[8px] font-black text-center border-l border-slate-500 w-[2%]">
+                                <th :class="day.isSunday ? 'bg-rose-100 text-rose-600' : ''" class="p-0.5 text-[8px] font-black text-center border-l border-slate-500">
                                     <span x-text="day.dayNum"></span>
                                 </th>
                             </template>
@@ -946,7 +1031,7 @@
                             <template x-for="item in groupedChecklist[areaName]" :key="item.id">
                                 <tr class="border-b border-slate-400">
                                     <td class="p-1 text-center border-r border-slate-500 text-[8px] font-bold" x-text="item.globalIndex"></td>
-                                    <td class="p-1 border-r border-slate-500 text-[8px] leading-tight font-medium text-slate-900" x-text="item.deskripsi"></td>
+                                    <td class="p-1 border-r border-slate-500 text-[8px] leading-tight font-medium text-slate-900 break-words" x-text="item.deskripsi"></td>
                                     <template x-for="day in daysInMonthArray">
                                         <td :class="day.isSunday ? 'bg-rose-50' : ''" class="p-0 border-l border-slate-500 text-center align-middle h-4">
                                             <span x-html="getCombinedAuditStatus(item.id, day.dateString)"></span>
@@ -976,52 +1061,53 @@
         </div>
     </main>
 
-    <!-- Modal Form Ceklis -->
     <div x-show="auditModal.show" class="fixed inset-0 z-50 overflow-y-auto no-print flex items-end sm:items-center justify-center p-0 md:p-4" x-transition x-cloak>
         <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" @click="auditModal.show = false"></div>
 
-        <div class="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden w-full max-w-xl z-10 mt-16 sm:mt-0 transform transition-all border border-white/20 relative flex flex-col max-h-[85vh]">
-            <div class="bg-slate-900 text-white p-4 md:p-5 flex justify-between items-center shrink-0">
+        <div class="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden w-full max-w-2xl z-10 mt-20 sm:mt-0 transform transition-all border border-white/20 relative flex flex-col max-h-[90vh]">
+            <div class="bg-slate-900 text-white p-5 md:p-6 flex justify-between items-center shrink-0">
                 <div class="flex items-center gap-3">
-                    <div class="w-9 h-9 bg-white/10 rounded-full flex items-center justify-center">
-                        <i class="ph ph-clipboard-text text-lg"></i>
+                    <div class="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center">
+                        <i class="ph ph-clipboard-text text-xl"></i>
                     </div>
                     <div>
-                        <h3 class="text-sm md:text-base font-black tracking-wide">Pengecekan Harian</h3>
-                        <p class="text-[9px] md:text-[10px] text-emerald-400 font-bold mt-0.5 uppercase tracking-wider" x-text="currentUser?.assignedAreas?.includes('ALL') ? 'Semua Area' : currentUser?.assignedAreas?.join(', ')"></p>
+                        <h3 class="text-base md:text-lg font-black tracking-wide">Pengecekan Harian</h3>
+                        <p class="text-[10px] md:text-xs text-emerald-400 font-bold mt-0.5 uppercase" x-text="currentUser?.assignedAreas?.includes('ALL') ? 'Semua Area' : currentUser?.assignedAreas?.join(', ')"></p>
                     </div>
                 </div>
-                <button @click="auditModal.show = false" class="text-slate-400 hover:text-white bg-white/10 hover:bg-white/20 rounded-full p-2 transition">
-                    <i class="ph ph-x text-base"></i>
+                <button @click="auditModal.show = false" class="text-slate-400 hover:text-white bg-white/10 hover:bg-white/20 rounded-full p-2.5 transition">
+                    <i class="ph ph-x text-lg"></i>
                 </button>
             </div>
 
             <form @submit.prevent="triggerConfirm('Kirim Laporan', 'Pastikan data ceklis valid. Laporan akan disimpan.', 'submitAudit')" class="flex flex-col flex-1 overflow-hidden">
-                <div class="p-4 space-y-4 flex-1 overflow-y-auto custom-scrollbar bg-slate-50">
+                <div class="p-4 md:p-6 space-y-5 flex-1 overflow-y-auto custom-scrollbar bg-slate-50">
                     
-                    <div class="bg-white p-3 md:p-4 rounded-xl shadow-sm border border-slate-200 flex items-center gap-3">
-                        <div class="p-2.5 bg-blue-50 text-blue-600 rounded-lg hidden sm:block"><i class="ph ph-calendar text-xl"></i></div>
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4">
+                        <div class="p-3 bg-blue-50 text-blue-600 rounded-xl hidden sm:block"><i class="ph ph-calendar text-2xl"></i></div>
                         <div class="w-full">
-                            <label class="block text-[9px] md:text-[10px] font-bold text-slate-400 uppercase mb-0.5">Tanggal Kontrol Harian</label>
-                            <input type="date" x-model="auditModal.date" class="w-full border-none bg-transparent text-slate-800 cursor-not-allowed outline-none font-black text-xs md:text-sm p-0 m-0 pointer-events-none" readonly>
+                            <label class="block text-[10px] md:text-xs font-bold text-slate-400 uppercase mb-1">Tanggal Kontrol Harian</label>
+                            <!-- Tanggal Locked -->
+                            <input type="date" x-model="auditModal.date" class="w-full border-none bg-transparent text-slate-800 cursor-not-allowed outline-none font-black text-sm p-0 m-0 pointer-events-none" readonly>
                         </div>
                     </div>
 
-                    <div class="space-y-4">
+                    <div class="space-y-5">
                         <template x-for="areaName in Object.keys(allowedChecklistGroups)" :key="areaName">
-                            <div class="bg-white p-3 md:p-4 rounded-xl shadow-sm border border-slate-200">
-                                <h4 class="font-black text-indigo-900 text-xs md:text-sm uppercase mb-3 flex items-center gap-2 border-b border-slate-100 pb-2">
-                                    <i class="ph ph-map-pin text-indigo-500 text-base"></i> <span x-text="areaName"></span>
+                            <div class="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-slate-100">
+                                <h4 class="font-black text-indigo-900 text-sm md:text-base uppercase mb-4 flex items-center gap-2 border-b border-slate-100 pb-3">
+                                    <i class="ph ph-map-pin text-indigo-500"></i> <span x-text="areaName"></span>
                                 </h4>
                                 
-                                <div class="space-y-2">
+                                <div class="space-y-3">
                                     <template x-for="item in allowedChecklistGroups[areaName]" :key="item.id">
                                         <template x-if="auditModal.responses[item.id] !== undefined">
-                                            <label class="flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all group" :class="auditModal.responses[item.id] ? 'bg-emerald-50/70 border-emerald-300 shadow-sm' : 'bg-slate-50 border-slate-200 hover:border-slate-300 hover:bg-slate-100'">
-                                                <span class="text-xs font-semibold w-[85%] leading-snug transition-colors" :class="auditModal.responses[item.id] ? 'text-emerald-900' : 'text-slate-600'" x-text="item.deskripsi"></span>
+                                            <!-- Checkbox Item -->
+                                            <label class="flex items-center justify-between p-3 md:p-4 rounded-xl border cursor-pointer transition group" :class="auditModal.responses[item.id] ? 'bg-emerald-50/50 border-emerald-300 shadow-sm' : 'bg-slate-50 border-slate-100 hover:border-slate-300'">
+                                                <span class="text-xs md:text-sm font-bold w-[85%] leading-relaxed transition" :class="auditModal.responses[item.id] ? 'text-emerald-900' : 'text-slate-600'" x-text="item.deskripsi"></span>
                                                 <div class="relative flex items-center justify-center">
-                                                    <input type="checkbox" x-model="auditModal.responses[item.id]" class="w-5 h-5 md:w-6 md:h-6 text-emerald-600 bg-white border-2 border-slate-300 rounded focus:ring-emerald-500 cursor-pointer peer transition-all appearance-none checked:bg-emerald-500 checked:border-emerald-500">
-                                                    <i x-show="auditModal.responses[item.id]" class="ph ph-check absolute text-white pointer-events-none font-black text-sm md:text-base"></i>
+                                                    <input type="checkbox" x-model="auditModal.responses[item.id]" class="w-6 h-6 text-emerald-600 bg-white border-2 border-slate-300 rounded-lg focus:ring-emerald-500 cursor-pointer peer transition appearance-none checked:bg-emerald-500 checked:border-emerald-500">
+                                                    <i x-show="auditModal.responses[item.id]" class="ph ph-check absolute text-white pointer-events-none font-black text-sm"></i>
                                                 </div>
                                             </label>
                                         </template>
@@ -1032,14 +1118,14 @@
                     </div>
                 </div>
 
-                <div class="bg-white p-3 md:p-4 flex flex-col sm:flex-row justify-between items-center border-t border-slate-200 gap-3 shrink-0">
-                    <p class="text-[9px] md:text-[10px] text-slate-500 font-bold text-center sm:text-left w-full sm:w-auto flex items-center justify-center sm:justify-start gap-1">
-                        <i class="ph ph-info text-sm"></i> Centang tugas yang diselesaikan.
+                <div class="bg-white p-4 md:p-6 flex flex-col sm:flex-row justify-between items-center border-t border-slate-200 gap-4 sm:gap-0 shrink-0">
+                    <p class="text-[10px] text-slate-400 font-bold text-center sm:text-left w-full sm:w-auto flex items-center justify-center sm:justify-start gap-1">
+                        <i class="ph ph-info"></i> Centang tugas yang telah diselesaikan.
                     </p>
-                    <div class="flex space-x-2 w-full sm:w-auto justify-end">
-                        <button type="button" @click="auditModal.show = false" class="flex-1 sm:flex-none px-4 py-2.5 text-xs font-bold text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-lg transition">Batal</button>
-                        <button type="submit" class="flex-1 sm:flex-none bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-2.5 rounded-lg text-xs transition shadow-md shadow-indigo-200 flex items-center justify-center gap-2">
-                            <i class="ph ph-paper-plane-tilt text-sm"></i> Kirim
+                    <div class="flex space-x-3 w-full sm:w-auto justify-end">
+                        <button type="button" @click="auditModal.show = false" class="flex-1 sm:flex-none px-6 py-3 text-xs md:text-sm font-bold text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-xl transition">Batal</button>
+                        <button type="submit" class="flex-1 sm:flex-none bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-8 py-3 rounded-xl text-xs md:text-sm transition shadow-lg shadow-indigo-200 flex items-center justify-center gap-2">
+                            <i class="ph ph-paper-plane-tilt"></i> Kirim
                         </button>
                     </div>
                 </div>
@@ -1047,7 +1133,6 @@
         </div>
     </div>
 
-    <!-- Modal Pop-Up Konfirmasi Umum -->
     <div x-show="confirmModal.show" class="fixed inset-0 z-[60] flex items-center justify-center p-4 no-print" x-transition x-cloak>
         <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" @click="confirmModal.show = false"></div>
         <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm z-10 p-6 md:p-8 transform transition-all text-center border border-white">
