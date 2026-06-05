@@ -2,845 +2,1098 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Logsheet 5R (Online)</title>
-    
-    <!-- Tailwind CSS -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Monitoring & Audit 5R</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- Alert -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script>
+        document.addEventListener('alpine:init', () => {
+            const supabaseUrl = 'https://qtsjehqdakvmmmnyuzda.supabase.co';
+            const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF0c2plaHFkYWt2bW1tbnl1emRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNDc4NzksImV4cCI6MjA5MDYyMzg3OX0.zeWEZw4Pw3dWqZpwRZFXnUHvDd_sMamSI9jRQquQPB8';
+            const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
+            Alpine.data('auditApp', () => ({
+                isSupabaseReady: false,
+                userRole: 'guest', 
+                loginId: '',
+                loginPassword: '',
+                currentUser: null,
+                adminTab: 'matrix',
+                
+                selectedMonth: new Date().getMonth(), 
+                selectedYear: new Date().getFullYear(), 
+                selectedHub: 'all',
+                selectedPicId: 'all',
+                
+                toast: { show: false, message: '', type: 'success' },
+                
+                confirmModal: { show: false, title: '', message: '', actionType: '', targetId: null },
+
+                userForm: { userId: '', nama: '', level: 'pic', password: '', hub: '', assignedAreas: [] },
+                isEditingUser: false,
+                itemForm: { id: '', area: '', deskripsi: '' },
+                isEditingItem: false,
+                
+                auditModal: { show: false, date: new Date().toISOString().split('T')[0], responses: {} },
+                
+                users: [],
+                activeChecklistItems: [],
+                auditLogs: [],
+
+                init() {
+                    this.loadDatabase();
+                    this.generateDaysInMonth();
+                    this.watcher();
+                },
+
+                get groupedChecklist() {
+                    const groups = {};
+                    let index = 1;
+                    this.activeChecklistItems.forEach(item => {
+                        if (!groups[item.area]) groups[item.area] = [];
+                        groups[item.area].push({ ...item, globalIndex: index++ });
+                    });
+                    return groups;
+                },
+
+                get allowedChecklistGroups() {
+                    const allGroups = this.groupedChecklist;
+                    if (this.userRole !== 'pic') return allGroups;
+                    if (this.currentUser?.assignedAreas.includes('ALL')) return allGroups;
+
+                    const allowed = {};
+                    for (const area in allGroups) {
+                        if (this.currentUser?.assignedAreas.includes(area)) {
+                            allowed[area] = allGroups[area];
+                        }
+                    }
+                    return allowed;
+                },
+
+                initResponses() {
+                    this.activeChecklistItems.forEach(item => {
+                        if (this.auditModal.responses[item.id] === undefined) {
+                            this.auditModal.responses[item.id] = false; 
+                        }
+                    });
+                },
+
+                async loadDatabase() {
+                    const defaultUsers = [
+                        { userId: "admin", nama: "Super Admin", level: "admin", password: "admin", hub: "ALL", assignedAreas: ["ALL"] },
+                        { userId: "1001", nama: "Sudirman (PIC All Area)", level: "pic", password: "1001", hub: "HUB MKS", assignedAreas: ["ALL"] },
+                        { userId: "1002", nama: "Budi Santoso (OB Office)", level: "pic", password: "1002", hub: "HUB MKS", assignedAreas: ["Area Office"] },
+                        { userId: "1003", nama: "Andi (PIC BPP Full Area)", level: "pic", password: "1003", hub: "HUB BPP", assignedAreas: ["ALL"] },
+                        { userId: "9999", nama: "Manager Visitor", level: "visitor", password: "9999", hub: "ALL", assignedAreas: ["ALL"] }
+                    ];
+
+                    const defaultItems = [
+                        { id: "item-1", area: "Area Office", deskripsi: "Menyapu dan mengepel lantai kantor" },
+                        { id: "item-2", area: "Area Office", deskripsi: "Membuang sampah pada tempat sampah kantor" },
+                        { id: "item-3", area: "Area Operasional", deskripsi: "Membersihkan Lantai Pasca Proses sorting" },
+                        { id: "item-4", area: "Area Operasional", deskripsi: "Area Leader dalam keadaan rapi" },
+                        { id: "item-5", area: "Area Holding", deskripsi: "Barang Holding tersimpan rapi sesuai letaknya" },
+                        { id: "item-6", area: "Area Gudang", deskripsi: "Memisahkan barang tidak terpakai dari area operasional" }
+                    ];
+
+                    const defaultLogs = [
+                        { id: "log-1", date: "2026-06-01", picId: "1001", picName: "Sudirman (PIC All Area)", hub: "HUB MKS", answers: { "item-3": true, "item-4": true, "item-5": true } },
+                        { id: "log-2", date: "2026-06-01", picId: "1002", picName: "Budi Santoso (OB Office)", hub: "HUB MKS", answers: { "item-1": true, "item-2": false } }
+                    ];
+
+                    try {
+                        const { data: usersData, error: uErr } = await supabase.from('audit_users').select('*');
+                        const { data: itemsData, error: iErr } = await supabase.from('items').select('*');
+                        const { data: logsData, error: lErr } = await supabase.from('logs').select('*');
+
+                        if (uErr || iErr || lErr) {
+                            this.showToast('Tabel Supabase belum ditemukan. Menggunakan Mode Lokal', 'error');
+                            this.isSupabaseReady = false;
+                        } else {
+                            this.isSupabaseReady = true;
+                        }
+
+                        if (this.isSupabaseReady) {
+                            if (usersData && usersData.length > 0) this.users = usersData;
+                            else { await supabase.from('audit_users').insert(defaultUsers); this.users = defaultUsers; }
+
+                            if (itemsData && itemsData.length > 0) this.activeChecklistItems = itemsData;
+                            else { await supabase.from('items').insert(defaultItems); this.activeChecklistItems = defaultItems; }
+
+                            if (logsData && logsData.length > 0) this.auditLogs = logsData;
+                            else { await supabase.from('logs').insert(defaultLogs); this.auditLogs = defaultLogs; }
+                        } else {
+                            this.users = JSON.parse(localStorage.getItem('audit5r_users_v6')) || defaultUsers;
+                            this.activeChecklistItems = JSON.parse(localStorage.getItem('audit5r_items_v6')) || defaultItems;
+                            this.auditLogs = JSON.parse(localStorage.getItem('audit5r_logs_v6')) || defaultLogs;
+                        }
+                    } catch (error) {
+                        this.showToast('Koneksi Gagal. Menggunakan Mode Lokal', 'error');
+                        this.isSupabaseReady = false;
+                        this.users = JSON.parse(localStorage.getItem('audit5r_users_v6')) || defaultUsers;
+                        this.activeChecklistItems = JSON.parse(localStorage.getItem('audit5r_items_v6')) || defaultItems;
+                        this.auditLogs = JSON.parse(localStorage.getItem('audit5r_logs_v6')) || defaultLogs;
+                    }
+
+                    this.initResponses();
+                    this.saveToStorage();
+                },
+
+                saveToStorage() {
+                    localStorage.setItem('audit5r_users_v6', JSON.stringify(this.users));
+                    localStorage.setItem('audit5r_items_v6', JSON.stringify(this.activeChecklistItems));
+                    localStorage.setItem('audit5r_logs_v6', JSON.stringify(this.auditLogs));
+                },
+
+                showToast(message, type = 'success') {
+                    this.toast.message = message;
+                    this.toast.type = type;
+                    this.toast.show = true;
+                    setTimeout(() => { this.toast.show = false; }, 3000);
+                },
+
+                triggerConfirm(title, message, actionType, id = null) {
+                    this.confirmModal.title = title;
+                    this.confirmModal.message = message;
+                    this.confirmModal.actionType = actionType;
+                    this.confirmModal.targetId = id;
+                    this.confirmModal.show = true;
+                },
+
+                executeConfirm() {
+                    if (this.confirmModal.actionType === 'deleteUser') this.executeDeleteUser(this.confirmModal.targetId);
+                    if (this.confirmModal.actionType === 'deleteItem') this.executeDeleteItem(this.confirmModal.targetId);
+                    if (this.confirmModal.actionType === 'submitAudit') this.executeSubmitAudit();
+                    this.confirmModal.show = false;
+                },
+
+                handleLogin() {
+                    const uId = this.loginId.trim().toLowerCase();
+                    const uPass = this.loginPassword.trim();
+                    const matchedUser = this.users.find(u => u.userId.toLowerCase() === uId && u.password === uPass);
+                    if (matchedUser) {
+                        this.userRole = matchedUser.level;
+                        this.currentUser = matchedUser;
+                        this.showToast(`Selamat Datang, ${matchedUser.nama}`);
+                        this.loginId = '';
+                        this.loginPassword = '';
+                    } else {
+                        this.showToast('ID atau Kata Sandi Salah', 'error');
+                    }
+                },
+
+                logout() {
+                    this.userRole = 'guest';
+                    this.currentUser = null;
+                    this.showToast('Kamu telah keluar dari sistem');
+                },
+
+                async saveUser() {
+                    if (this.userForm.assignedAreas.includes('ALL')) {
+                        this.userForm.assignedAreas = ['ALL'];
+                    }
+
+                    const uId = this.userForm.userId.trim().toLowerCase();
+                    
+                    // Validasi: ID Pengguna hanya boleh angka, kecuali khusus untuk 'admin'
+                    if (uId !== 'admin' && !/^\d+$/.test(uId)) {
+                        this.showToast('ID Pengguna harus berupa Angka (Kecuali admin)', 'error');
+                        return;
+                    }
+
+                    const payload = { ...this.userForm, userId: uId };
+
+                    if (this.isEditingUser) {
+                        if (this.isSupabaseReady) await supabase.from('audit_users').update(payload).eq('userId', uId);
+                        const index = this.users.findIndex(u => u.userId === uId);
+                        if (index !== -1) this.users[index] = payload;
+                        this.showToast('Profil pengguna diperbarui');
+                    } else {
+                        if (this.users.some(u => u.userId.toLowerCase() === uId)) {
+                            this.showToast('ID Pengguna sudah digunakan', 'error');
+                            return;
+                        }
+                        if (this.isSupabaseReady) await supabase.from('audit_users').insert([payload]);
+                        this.users.push(payload);
+                        this.showToast('Pengguna baru ditambahkan');
+                    }
+                    this.saveToStorage();
+                    this.cancelEditUser();
+                },
+
+                startEditUser(user) {
+                    this.isEditingUser = true;
+                    const areas = Array.isArray(user.assignedAreas) ? user.assignedAreas : ['ALL'];
+                    this.userForm = { ...user, assignedAreas: [...areas] };
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                },
+
+                cancelEditUser() {
+                    this.isEditingUser = false;
+                    this.userForm = { userId: '', nama: '', level: 'pic', password: '', hub: '', assignedAreas: [] };
+                },
+
+                async executeDeleteUser(userId) {
+                    if (this.isSupabaseReady) await supabase.from('audit_users').delete().eq('userId', userId);
+                    this.users = this.users.filter(u => u.userId !== userId);
+                    this.saveToStorage();
+                    this.showToast('Pengguna dihapus');
+                },
+
+                async saveItem() {
+                    const payload = { ...this.itemForm };
+                    if (this.isEditingItem) {
+                        if (this.isSupabaseReady) await supabase.from('items').update(payload).eq('id', payload.id);
+                        const index = this.activeChecklistItems.findIndex(i => i.id === payload.id);
+                        if (index !== -1) this.activeChecklistItems[index] = payload;
+                        this.showToast('Parameter diubah');
+                    } else {
+                        payload.id = 'item-' + Date.now();
+                        if (this.isSupabaseReady) await supabase.from('items').insert([payload]);
+                        this.activeChecklistItems.push(payload);
+                        this.initResponses();
+                        this.showToast('Parameter ditambahkan');
+                    }
+                    this.saveToStorage();
+                    this.cancelEditItem();
+                },
+
+                startEditItem(item) {
+                    this.isEditingItem = true;
+                    this.itemForm = { ...item };
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                },
+
+                cancelEditItem() {
+                    this.isEditingItem = false;
+                    this.itemForm = { id: '', area: '', deskripsi: '' };
+                },
+
+                async executeDeleteItem(id) {
+                    if (this.isSupabaseReady) await supabase.from('items').delete().eq('id', id);
+                    this.activeChecklistItems = this.activeChecklistItems.filter(item => item.id !== id);
+                    this.saveToStorage();
+                    this.showToast('Parameter dihapus');
+                },
+
+                openAuditModal() {
+                    this.auditModal.date = new Date().toISOString().split('T')[0];
+                    const existingLog = this.auditLogs.find(log => log.date === this.auditModal.date && log.picId === this.currentUser.userId);
+                    
+                    this.auditModal.responses = {};
+                    this.activeChecklistItems.forEach(item => {
+                        this.auditModal.responses[item.id] = existingLog && existingLog.answers[item.id] !== undefined ? existingLog.answers[item.id] : false;
+                    });
+                    this.auditModal.show = true;
+                },
+
+                async executeSubmitAudit() {
+                    const existingLogIndex = this.auditLogs.findIndex(log => log.date === this.auditModal.date && log.picId === this.currentUser.userId);
+                    
+                    const filteredResponses = {};
+                    for (const area in this.allowedChecklistGroups) {
+                        this.allowedChecklistGroups[area].forEach(item => {
+                            filteredResponses[item.id] = this.auditModal.responses[item.id] === true;
+                        });
+                    }
+
+                    const logId = existingLogIndex !== -1 ? this.auditLogs[existingLogIndex].id : 'log-' + Date.now();
+                    const newLog = {
+                        id: logId,
+                        date: this.auditModal.date,
+                        picId: this.currentUser.userId,
+                        picName: this.currentUser.nama,
+                        hub: this.currentUser.hub,
+                        answers: filteredResponses
+                    };
+
+                    if (existingLogIndex !== -1) {
+                        if (this.isSupabaseReady) await supabase.from('logs').update(newLog).eq('id', logId);
+                        this.auditLogs[existingLogIndex] = newLog;
+                        this.showToast('Ceklis audit diperbarui');
+                    } else {
+                        if (this.isSupabaseReady) await supabase.from('logs').insert([newLog]);
+                        this.auditLogs.push(newLog);
+                        this.showToast('Ceklis harian disimpan');
+                    }
+
+                    this.saveToStorage();
+                    this.auditModal.show = false;
+                },
+
+                daysInMonthArray: [],
+                generateDaysInMonth() {
+                    this.daysInMonthArray = [];
+                    const daysInMonth = new Date(this.selectedYear, parseInt(this.selectedMonth) + 1, 0).getDate();
+                    const dayLabels = ['MIN', 'SEN', 'SEL', 'RAB', 'KAM', 'JUM', 'SAB'];
+
+                    for (let dayNum = 1; dayNum <= daysInMonth; dayNum++) {
+                        const dateObj = new Date(this.selectedYear, parseInt(this.selectedMonth), dayNum);
+                        const dayIndex = dateObj.getDay(); 
+                        const dateString = `${this.selectedYear}-${String(parseInt(this.selectedMonth) + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+
+                        this.daysInMonthArray.push({
+                            dayNum,
+                            dayName: dayLabels[dayIndex],
+                            isSunday: dayIndex === 0,
+                            dateString
+                        });
+                    }
+                },
+
+                watcher() {
+                    this.$watch('selectedMonth', () => this.generateDaysInMonth());
+                    this.$watch('selectedYear', () => this.generateDaysInMonth());
+                },
+
+                getMonthName(monthNum) {
+                    const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+                    return months[monthNum];
+                },
+
+                getUserName(userId) {
+                    const usr = this.users.find(u => u.userId === userId);
+                    return usr ? usr.nama : 'Unknown';
+                },
+
+                getUniqueAreas() {
+                    const areas = this.activeChecklistItems.map(item => item.area);
+                    return [...new Set(areas)];
+                },
+
+                getUniqueHubs() {
+                    const hubs = this.users.filter(u => u.level === 'pic' && u.hub).map(u => u.hub);
+                    return [...new Set(hubs)];
+                },
+
+                getRoleBadgeClass(level) {
+                    switch (level) {
+                        case 'admin': return 'bg-amber-100 text-amber-800 border-amber-200';
+                        case 'pic': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+                        case 'visitor': return 'bg-blue-100 text-blue-800 border-blue-200';
+                        default: return 'bg-slate-100 text-slate-800';
+                    }
+                },
+
+                getCombinedAuditStatus(itemId, dateString) {
+                    let logsForDate = this.auditLogs.filter(log => log.date === dateString);
+
+                    if (this.userRole === 'pic') {
+                        logsForDate = logsForDate.filter(log => log.hub === this.currentUser.hub);
+                    } else {
+                        if (this.selectedHub !== 'all') {
+                            logsForDate = logsForDate.filter(log => log.hub === this.selectedHub);
+                        }
+                        if (this.selectedPicId !== 'all') {
+                            logsForDate = logsForDate.filter(log => log.picId === this.selectedPicId);
+                        }
+                    }
+
+                    if (logsForDate.length === 0) return '';
+
+                    let hasChecked = false;
+                    
+                    logsForDate.forEach(log => {
+                        if (log.answers[itemId] === true) {
+                            hasChecked = true;
+                        }
+                    });
+
+                    return hasChecked ? '<span class="text-emerald-500 font-bold text-base"><i class="ph ph-check-circle"></i></span>' : ''; 
+                },
+
+                exportCSV() {
+                    let csvContent = "data:text/csv;charset=utf-8,";
+                    csvContent += "No,Area,Item Ceklis,";
+                    this.daysInMonthArray.forEach(day => {
+                        csvContent += `${day.dayName} ${day.dayNum},`;
+                    });
+                    csvContent += "\r\n";
+
+                    const groups = this.groupedChecklist;
+                    for (const area in groups) {
+                        groups[area].forEach((item) => {
+                            let row = `${item.globalIndex},${item.area.toUpperCase()},"${item.deskripsi}",`;
+                            this.daysInMonthArray.forEach(day => {
+                                let logsForDate = this.auditLogs.filter(log => log.date === day.dateString);
+                                
+                                if (this.userRole === 'pic') {
+                                    logsForDate = logsForDate.filter(log => log.hub === this.currentUser.hub);
+                                } else {
+                                    if (this.selectedHub !== 'all') logsForDate = logsForDate.filter(log => log.hub === this.selectedHub);
+                                    if (this.selectedPicId !== 'all') logsForDate = logsForDate.filter(log => log.picId === this.selectedPicId);
+                                }
+
+                                if (logsForDate.length === 0) {
+                                    row += ","; 
+                                } else {
+                                    let hasChecked = logsForDate.some(log => log.answers[item.id] === true);
+                                    row += hasChecked ? "V," : ","; 
+                                }
+                            });
+                            csvContent += row + "\r\n";
+                        });
+                    }
+
+                    const encodedUri = encodeURI(csvContent);
+                    const link = document.createElement("a");
+                    link.setAttribute("href", encodedUri);
+                    link.setAttribute("download", `Laporan_Audit_5R_${this.getMonthName(this.selectedMonth)}_${this.selectedYear}.csv`);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                },
+
+                printReport() {
+                    window.print();
+                }
+            }));
+        });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <style>
-        /* --- 1. RESET CSS & BASIC --- */
-        body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            background: #f1f5f9; 
-            color: #1e293b;
-            overscroll-behavior-y: none;
-        }
+        [x-cloak] { display: none !important; }
         
-        .main-container {
-            background: white;
-            width: 100%;
-            max-width: 1400px;
-            margin: 0 auto;
-            display: flex;
-            flex-direction: column;
-            height: 100dvh;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-
-        @media (min-width: 1024px) {
-            .main-container {
-                height: 90vh;
-                margin: 20px auto;
-                border-radius: 8px;
-                border: 1px solid #cbd5e1;
-            }
-        }
-
-        .header-section {
-            background: #1e3a8a;
-            color: white;
-            padding: 12px 16px;
-            flex-shrink: 0;
-        }
-        @media (min-width: 1024px) { .header-section { border-radius: 8px 8px 0 0; } }
-
-        .meta-section {
-            padding: 12px 16px;
-            background: #f8fafc;
-            border-bottom: 2px solid #e2e8f0;
-            flex-shrink: 0; 
-        }
-
-        .table-container {
-            flex-grow: 1; 
-            overflow: auto; 
-            position: relative;
-            background: white;
-            -webkit-overflow-scrolling: touch;
-        }
-
-        table {
-            border-collapse: separate; 
-            border-spacing: 0;
-            font-size: 12px;
-            min-width: 100%;
-        }
-
-        .col-no { width: 40px; min-width: 40px; }
-        .col-item { width: 220px; min-width: 220px; max-width: 250px; }
-        .col-date { min-width: 35px; width: 35px; }
-
-        thead th {
-            position: sticky;
-            top: 0;
-            z-index: 40;
-            background-color: #f1f5f9; 
-            color: #334155;
-            border-bottom: 1px solid #94a3b8;
-            border-right: 1px solid #e2e8f0;
-            background-clip: padding-box;
-        }
-
-        .th-row-1 th { height: 40px; border-top: 1px solid #e2e8f0; }
-        .th-row-2 th { top: 40px; height: 45px; background-color: white; z-index: 35; vertical-align: middle; }
-
-        td {
-            border-bottom: 1px solid #e2e8f0;
-            border-right: 1px solid #e2e8f0;
-            padding: 4px;
-            vertical-align: middle;
-        }
-
-        /* Sticky Left Columns */
-        th.col-no, td.col-no-cell {
-            position: sticky;
-            left: 0;
-            z-index: 30;
-            background-color: #f8fafc;
-            border-right: 1px solid #cbd5e1;
-        }
-        thead th.col-no { z-index: 50; }
-
-        th.col-item, td.col-item-cell {
-            position: sticky;
-            left: 40px;
-            z-index: 30;
-            background-color: #f8fafc;
-            border-right: 2px solid #94a3b8;
-        }
-        thead th.col-item { z-index: 50; } 
-
-        tbody tr:hover td { background-color: #eff6ff; }
-        tbody tr:hover td.col-no-cell, tbody tr:hover td.col-item-cell { background-color: #e0f2fe; }
-
-        .badge {
-            display: inline-block;
-            font-size: 9px;
-            font-weight: bold;
-            padding: 2px 6px;
-            border-radius: 4px;
-            border: 1px solid #e2e8f0;
-            margin-bottom: 2px;
-            white-space: nowrap;
-        }
-
-        .group-header {
-            position: sticky;
-            left: 0;
-            z-index: 25;
-            background-color: #e0f2fe; 
-            color: #0c4a6e; 
-            font-weight: bold;
-            text-transform: uppercase;
-            font-size: 11px;
-            padding: 8px 10px;
-            border-bottom: 1px solid #bae6fd;
-            border-right: 1px solid #e2e8f0;
-            text-align: left;
-        }
-
-        .check-box {
-            cursor: pointer;
-            height: 32px;
-            width: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 16px;
-            transition: all 0.1s;
-            border-radius: 4px;
-        }
-        .check-box:active { background-color: #dbeafe; transform: scale(0.95); }
-        .check-box.checked { background-color: #dcfce7; color: #166534; }
-        
-        .check-box.locked {
-            background-color: #f1f5f9; 
-            color: #94a3b8;
-            cursor: not-allowed;
-            pointer-events: none; 
-            background-image: repeating-linear-gradient(45deg, transparent, transparent 2px, #e2e8f0 2px, #e2e8f0 4px);
-        }
-        .check-box.locked.checked {
-            background-color: #e2e8f0;
-            color: #64748b; 
-            border: 1px solid #cbd5e1;
-        }
-
-        .cell-sunday { background-color: #fef2f2; }
-
-        .status-badge {
-            font-size: 10px;
-            padding: 4px 8px;
-            border-radius: 99px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-weight: bold;
-        }
-        .status-online { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
-        .status-offline { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
-
         @media print {
-            @page { size: landscape; margin: 5mm; }
-            body { margin: 0; padding: 0; background: white; height: auto; overflow: visible; }
-            .no-print, #loginModal, button, .admin-select-wrapper { display: none !important; }
-            .main-container {
-                box-shadow: none; margin: 0; border: none; 
-                width: 100%; max-width: none; height: auto;
-                display: block; overflow: visible;
-            }
-            .header-section { background: white; color: black; border-bottom: 2px solid black; padding: 5px 0; }
-            .meta-section { border: none; padding: 5px 0; }
-            .table-container { overflow: visible !important; height: auto !important; display: block !important; }
-            table { font-size: 10px; width: 100%; table-layout: fixed; }
-            thead th, th.col-no, th.col-item, td.col-no-cell, td.col-item-cell { position: static !important; background: transparent !important; }
-            thead th { background: #eee !important; border: 1px solid black; color: black; }
-            td { border: 1px solid black; padding: 2px; }
-            .group-header { background-color: #f0f9ff !important; color: black !important; border: 1px solid black; }
-            .check-box { height: 15px; font-size: 10px; }
-            .col-no { width: 3%; }
-            .col-item { width: 40%; }
-            input, select { border: none; background: transparent; padding: 0; font-weight: bold; appearance: none; }
-            select::-ms-expand { display: none; }
+            body { background-color: #ffffff; color: #000000; font-size: 10px; margin: 0; padding: 0; }
+            .no-print { display: none !important; }
+            .print-container { display: block !important; width: 100% !important; max-width: 100% !important; padding: 0 !important; margin: 0 !important; box-shadow: none !important; border: none !important; }
+            table { page-break-inside: avoid; width: 100% !important; border-collapse: collapse !important; }
+            th, td { padding: 2px 4px !important; font-size: 8px !important; border: 1px solid #000000 !important; }
+            @page { size: landscape; margin: 0.5cm; }
         }
+        
+        .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        input, select, textarea { transition: all 0.2s ease-in-out; }
     </style>
 </head>
-<body>
+<body class="bg-slate-50 font-sans text-slate-800 min-h-screen flex flex-col" x-data="auditApp" x-cloak>
 
-    <!-- MODERN LOGIN SCREEN -->
-    <div id="loginModal" class="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/90 backdrop-blur-sm transition-all duration-500 p-4">
-        <div class="bg-white p-6 md:p-8 rounded-2xl shadow-2xl w-full max-w-sm relative overflow-hidden">
-            <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-800"></div>
-            
-            <div class="text-center mb-6 mt-2">
-                <div class="bg-blue-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 text-blue-700 shadow-sm ring-4 ring-blue-50/50">
-                    <i data-lucide="shield-check" class="w-8 h-8"></i>
-                </div>
-                <h2 class="text-xl font-bold text-gray-800 tracking-tight">Login Sistem 5R</h2>
-                <p class="text-gray-500 text-xs mt-1">Sistem Online & Real-time</p>
-            </div>
-
-            <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
-                <div>
-                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Pilih User</label>
-                    <div class="relative group">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                            <i data-lucide="user" class="w-5 h-5"></i>
-                        </div>
-                        <select id="loginUser" class="w-full pl-10 pr-10 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 bg-gray-50 focus:bg-white text-sm outline-none">
-                            <option value="">-- Pilih --</option>
-                            <option value="MKS">MKS</option>
-                            <option value="BPP">BPP</option>
-                            <option value="BJM">BJM</option>
-                            <option value="Coordinator">Coordinator</option>
-                        </select>
-                        <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400">
-                            <i data-lucide="chevron-down" class="w-5 h-5"></i>
-                        </div>
-                    </div>
-                </div>
-                
-                <div>
-                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Password</label>
-                    <div class="relative group">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                            <i data-lucide="lock" class="w-5 h-5"></i>
-                        </div>
-                        <input type="password" id="loginPass" class="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 bg-gray-50 focus:bg-white text-sm outline-none" placeholder="Password">
-                    </div>
-                </div>
-
-                <button type="submit" id="btnLogin" disabled class="w-full bg-gray-400 cursor-not-allowed text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 mt-2 shadow-md">
-                    <span>MENGHUBUNGKAN...</span>
-                </button>
-                
-                <div id="loginErrorMsg" class="hidden">
-                    <div class="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2 mt-2">
-                        <i data-lucide="alert-circle" class="w-4 h-4 text-red-600 mt-0.5"></i>
-                        <p class="text-xs text-red-600 font-medium">Username atau password salah.</p>
-                    </div>
-                </div>
-            </form>
-            
-            <div class="mt-6 pt-4 border-t border-gray-100 text-center flex justify-center gap-2 items-center">
-                <div id="statusDot" class="w-2 h-2 rounded-full bg-yellow-500 animate-pulse"></div>
-                <p id="statusText" class="text-[10px] text-gray-400 uppercase font-bold">Connecting...</p>
-            </div>
+    <!-- Notifikasi Dynamic Island -->
+    <div class="fixed top-6 left-1/2 transform -translate-x-1/2 z-[100] no-print" 
+         x-show="toast.show" 
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0 -translate-y-8 scale-90"
+         x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+         x-transition:leave-end="opacity-0 -translate-y-8 scale-90"
+         x-cloak>
+        <div class="bg-slate-900 text-white px-6 py-3 rounded-full shadow-2xl flex items-center space-x-3 border border-slate-700 min-w-[200px] justify-center">
+            <i class="ph text-xl" :class="toast.type === 'success' ? 'ph-check-circle text-emerald-400' : 'ph-warning-circle text-rose-400'"></i>
+            <span x-text="toast.message" class="font-medium text-sm md:text-base whitespace-nowrap"></span>
         </div>
     </div>
 
-    <!-- MAIN APP -->
-    <div id="appContainer" class="hidden h-full flex flex-col">
-        <!-- Controls -->
-        <div class="w-full max-w-[1400px] mx-auto p-2 md:p-4 no-print bg-white md:bg-transparent border-b md:border-none border-gray-200">
-            <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
-                <div class="flex items-center justify-between md:justify-start gap-3 w-full md:w-auto">
-                    <div class="text-sm font-bold text-gray-600 bg-white px-3 py-1.5 rounded-full shadow-sm border border-gray-200 flex items-center gap-2">
-                        <i data-lucide="user-circle" class="w-4 h-4 text-blue-600"></i>
-                        <span id="displayUser" class="text-blue-800 truncate max-w-[100px] md:max-w-none">Guest</span>
-                    </div>
-                    <div class="status-badge status-online">
-                        <div class="w-2 h-2 rounded-full bg-green-600 animate-pulse"></div>
-                        <span>Online</span>
-                    </div>
-                </div>
-
-                <div id="adminControls" class="hidden flex flex-wrap items-center gap-2 border-t md:border-t-0 md:border-l border-gray-300 pt-2 md:pt-0 md:pl-2 w-full md:w-auto">
-                    <div class="flex items-center bg-gray-100 rounded px-2 py-1">
-                        <span class="text-[10px] text-gray-500 mr-2 font-bold">VIEW:</span>
-                        <select id="adminViewSelector" class="text-xs font-bold bg-transparent outline-none text-blue-800 cursor-pointer w-24">
-                            <!-- Options generated by JS -->
-                        </select>
-                    </div>
-                    <div class="flex items-center gap-1 bg-slate-100 px-2 py-1 rounded border border-slate-300">
-                        <i data-lucide="lock" class="w-3 h-3 text-slate-500"></i>
-                        <input type="date" id="adminLockDate" class="text-[10px] bg-white border border-slate-300 rounded px-1 h-5 w-24">
-                        <button onclick="saveLockDate()" class="bg-slate-700 text-white text-[10px] px-2 py-0.5 rounded font-bold">SET</button>
-                    </div>
-                </div>
-
-                <div class="flex gap-2 w-full md:w-auto justify-end">
-                    <button onclick="doReset()" id="btnReset" class="hidden px-3 py-2 bg-red-100 text-red-700 border border-red-200 text-xs font-bold rounded">RESET</button>
-                    <button type="button" onclick="window.print();" class="flex-1 md:flex-none px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded flex items-center justify-center gap-2 shadow-sm">
-                        <i data-lucide="printer" class="w-4 h-4"></i> <span class="hidden sm:inline">CETAK</span>
-                    </button>
-                    <button onclick="doLogout()" class="px-3 py-2 bg-white border border-gray-300 text-red-500 text-xs font-bold rounded hover:bg-red-50">
-                        <i data-lucide="log-out" class="w-4 h-4"></i>
-                    </button>
-                </div>
-            </div>
-            <div id="savingIndicator" class="hidden text-[10px] text-gray-400 italic text-right mt-1">Menyimpan data...</div>
-        </div>
-
-        <!-- Paper Container -->
-        <div class="main-container">
-            <div class="header-section flex items-center gap-3">
-                <div class="bg-white/10 p-2 rounded">
-                    <i data-lucide="check-square" class="w-6 h-6 text-white"></i> 
-                </div>
+    <!-- Header -->
+    <header class="bg-white border-b border-slate-200 shadow-sm no-print sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-5 py-4 flex flex-row justify-between items-center gap-2">
+            <div class="flex items-center space-x-2 md:space-x-3 w-auto justify-start">
+                <div class="bg-indigo-600 text-white p-2.5 rounded-xl font-black text-lg md:text-xl tracking-wider shadow-md shadow-indigo-200">5R</div>
                 <div>
-                    <h1 class="text-lg md:text-2xl font-bold uppercase tracking-wider leading-none">Sistem Pencatatan 5R</h1>
-                    <p class="text-[10px] md:text-xs opacity-80 font-mono mt-1">Digital Logsheet v2.0 Mobile</p>
+                    <h1 class="text-sm md:text-lg font-bold tracking-tight text-slate-900 flex items-center gap-2">
+                        Audit Daily
+                        <span x-show="isSupabaseReady" class="bg-emerald-100 text-emerald-700 border border-emerald-200 text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Online</span>
+                        <span x-show="!isSupabaseReady" class="bg-amber-100 text-amber-700 border border-amber-200 text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Lokal</span>
+                    </h1>
+                    <p class="text-[10px] md:text-xs text-slate-500 font-medium">Daily ceklis 5R HUB Under Kalsulamp</p>
                 </div>
             </div>
+            <div class="flex items-center space-x-2 md:space-x-4 w-auto justify-end">
+                <template x-if="userRole === 'guest'">
+                    <span class="text-xs bg-slate-100 px-4 py-2 rounded-full text-slate-500 font-semibold border border-slate-200 hidden sm:block">Silakan Masuk</span>
+                </template>
+                <template x-if="userRole !== 'guest'">
+                    <div class="flex items-center space-x-3 md:space-x-4 bg-slate-50 pl-3 md:pl-5 pr-1.5 py-1.5 rounded-full border border-slate-200 shadow-sm">
+                        <div class="text-right hidden sm:block">
+                            <p class="text-xs font-bold text-slate-800" x-text="currentUser?.nama"></p>
+                        </div>
+                        <button @click="logout()" class="text-xs bg-white border border-slate-200 text-slate-600 hover:text-rose-600 hover:border-rose-200 p-2 rounded-full transition flex items-center justify-center shadow-sm" title="Keluar">
+                            <i class="ph ph-sign-out text-base"></i>
+                        </button>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </header>
 
-            <div class="meta-section">
-                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
-                    <div class="col-span-2 sm:col-span-1">
-                        <label class="font-bold uppercase text-gray-500 block mb-1">Periode</label>
-                        <div class="flex gap-2">
-                            <select id="selMonth" class="flex-1 border border-gray-300 p-2 rounded font-bold bg-white focus:ring-2 focus:ring-blue-500 outline-none"></select>
-                            <select id="selYear" class="w-20 border border-gray-300 p-2 rounded font-bold bg-white focus:ring-2 focus:ring-blue-500 outline-none"></select>
+    <main class="flex-grow max-w-7xl w-full mx-auto p-4 md:p-6 print-container">
+        
+        <!-- Login -->
+        <div x-show="userRole === 'guest'" class="max-w-md mx-auto mt-12 md:mt-20 bg-white rounded-3xl shadow-xl shadow-slate-200/50 p-8 md:p-10 border border-slate-100 no-print" x-transition>
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <i class="ph ph-lock-key text-3xl"></i>
+                </div>
+                <h2 class="text-2xl font-black text-slate-800">Masuk Sistem</h2>
+                <p class="text-slate-500 text-sm mt-2 font-medium">Gunakan kredensial Kamu untuk akses</p>
+            </div>
+
+            <form @submit.prevent="handleLogin()">
+                <div class="space-y-5">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-2">ID Pengguna</label>
+                        <div class="relative">
+                            <i class="ph ph-user absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 text-lg"></i>
+                            <input type="text" x-model="loginId" class="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition text-sm font-medium" placeholder="ID Angka / admin" required>
                         </div>
                     </div>
-                    <div class="col-span-2 sm:col-span-1">
-                        <label class="font-bold uppercase text-gray-500 block mb-1">Penanggung Jawab</label>
-                        <input type="text" id="inpPic" class="w-full border border-gray-300 p-2 rounded font-bold bg-white focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Nama Lengkap">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-2">Kata Sandi</label>
+                        <div class="relative">
+                            <i class="ph ph-lock absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 text-lg"></i>
+                            <input type="password" x-model="loginPassword" class="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition text-sm font-medium" placeholder="Masukkan kata sandi" required>
+                        </div>
                     </div>
-                    <div class="col-span-2">
-                        <label class="font-bold uppercase text-gray-500 block mb-1">Lokasi / Area</label>
-                        <input type="text" id="inpArea" class="w-full border border-gray-300 p-2 rounded font-bold bg-white focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Contoh: Warehouse A">
+                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-2xl shadow-lg shadow-indigo-200 transition mt-4 flex justify-center items-center gap-2">
+                        <span>Masuk Sekarang</span>
+                        <i class="ph ph-arrow-right font-bold"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Dashboard PIC -->
+        <div x-show="userRole === 'pic'" class="space-y-6 md:space-y-8 no-print" x-transition x-cloak>
+            <div class="bg-gradient-to-r from-indigo-600 to-blue-600 p-6 md:p-8 rounded-3xl shadow-xl text-white flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                <div>
+                    <span class="text-[10px] md:text-xs font-bold text-indigo-100 uppercase tracking-wider bg-white/20 px-3 py-1.5 rounded-lg border border-white/20">Panel PIC</span>
+                    <h2 class="text-2xl md:text-3xl font-black mt-3" x-text="'Halo, ' + currentUser?.nama"></h2>
+                    <p class="text-indigo-100 text-sm mt-2 flex items-center gap-2">
+                        <i class="ph ph-map-pin"></i> <span class="font-bold" x-text="currentUser?.hub"></span>
+                        <span class="opacity-50">|</span>
+                        <i class="ph ph-shield-check"></i> <span x-text="currentUser?.assignedAreas?.includes('ALL') ? 'Semua Area' : currentUser?.assignedAreas?.join(', ')"></span>
+                    </p>
+                </div>
+                <button @click="openAuditModal()" class="w-full md:w-auto bg-white text-indigo-600 hover:bg-slate-50 px-6 py-4 rounded-2xl font-black shadow-lg flex items-center justify-center space-x-2 transition transform hover:scale-105">
+                    <i class="ph ph-clipboard-text text-xl"></i>
+                    <span>Input Ceklis Hari Ini</span>
+                </button>
+            </div>
+
+            <div class="bg-white p-5 md:p-8 rounded-3xl shadow-xl shadow-slate-200/40 border border-slate-100">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="p-2 bg-indigo-50 text-indigo-600 rounded-xl"><i class="ph ph-calendar-check text-xl"></i></div>
+                    <h3 class="text-lg font-black text-slate-800" x-text="'Progress ' + currentUser?.hub"></h3>
+                </div>
+                <div class="overflow-x-auto custom-scrollbar border border-slate-200 rounded-2xl">
+                    <table class="w-full text-left border-collapse min-w-[800px] md:min-w-[1000px]">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200">
+                                <th rowspan="2" class="p-3 text-[10px] md:text-xs font-bold text-slate-600 uppercase w-10 text-center border-r border-slate-200 align-middle">No</th>
+                                <th rowspan="2" class="p-3 text-[10px] md:text-xs font-bold text-slate-600 uppercase min-w-[200px] border-r border-slate-200 align-middle">ITEM TUGAS 5R</th>
+                                <template x-for="day in daysInMonthArray">
+                                    <th :class="day.isSunday ? 'bg-rose-50 text-rose-500' : 'text-slate-500'" class="py-1.5 text-[9px] font-bold text-center border-l border-slate-200 w-8 border-b">
+                                        <span x-text="day.dayName"></span>
+                                    </th>
+                                </template>
+                            </tr>
+                            <tr class="bg-slate-50 border-b border-slate-200">
+                                <template x-for="day in daysInMonthArray">
+                                    <th :class="day.isSunday ? 'bg-rose-50 text-rose-600' : 'text-slate-700'" class="py-1.5 text-[10px] font-black text-center border-l border-slate-200 w-8">
+                                        <span x-text="day.dayNum"></span>
+                                    </th>
+                                </template>
+                            </tr>
+                        </thead>
+                        <template x-for="areaName in Object.keys(allowedChecklistGroups)" :key="areaName">
+                            <tbody>
+                                <tr class="bg-indigo-50/50 border-b border-slate-200">
+                                    <td colspan="40" class="p-3 text-[10px] md:text-xs font-black text-indigo-900 uppercase tracking-wider" x-text="areaName"></td>
+                                </tr>
+                                <template x-for="item in allowedChecklistGroups[areaName]" :key="item.id">
+                                    <tr class="border-b border-slate-100 hover:bg-slate-50 transition">
+                                        <td class="p-3 text-[10px] md:text-xs text-slate-400 text-center font-bold border-r border-slate-200" x-text="item.globalIndex"></td>
+                                        <td class="p-3 border-r border-slate-200">
+                                            <p class="text-[11px] md:text-xs font-semibold text-slate-700 leading-snug" x-text="item.deskripsi"></p>
+                                        </td>
+                                        <template x-for="day in daysInMonthArray">
+                                            <td :class="day.isSunday ? 'bg-rose-50/30' : ''" class="p-0 border-l border-slate-200 text-center align-middle h-8">
+                                                <span x-html="getCombinedAuditStatus(item.id, day.dateString)"></span>
+                                            </td>
+                                        </template>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </template>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard Admin/Visitor -->
+        <div x-show="userRole === 'visitor' || userRole === 'admin'" class="space-y-6 md:space-y-8 no-print" x-transition x-cloak>
+            
+            <div x-show="userRole === 'admin'" class="bg-white p-2 rounded-2xl md:rounded-full shadow-lg shadow-slate-200/50 border border-slate-100 flex flex-row gap-2 overflow-x-auto custom-scrollbar w-full md:w-fit mx-auto">
+                <button @click="adminTab = 'matrix'" :class="adminTab === 'matrix' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'" class="px-6 py-3 rounded-full text-xs md:text-sm font-bold transition flex items-center justify-center gap-2 whitespace-nowrap"><i class="ph ph-table"></i> Matriks Rekap</button>
+                <button @click="adminTab = 'users'" :class="adminTab === 'users' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'" class="px-6 py-3 rounded-full text-xs md:text-sm font-bold transition flex items-center justify-center gap-2 whitespace-nowrap"><i class="ph ph-users"></i> Kelola Tim</button>
+                <button @click="adminTab = 'items'" :class="adminTab === 'items' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'" class="px-6 py-3 rounded-full text-xs md:text-sm font-bold transition flex items-center justify-center gap-2 whitespace-nowrap"><i class="ph ph-list-checks"></i> Kelola Tugas</button>
+            </div>
+
+            <!-- Tab Rekap Matriks -->
+            <div x-show="adminTab === 'matrix' || userRole === 'visitor'" class="space-y-6">
+                <div class="bg-white p-5 md:p-8 rounded-3xl shadow-xl shadow-slate-200/40 border border-slate-100">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-5 mb-8">
+                        <div>
+                            <span x-show="userRole === 'visitor'" class="text-[10px] font-black text-blue-600 uppercase tracking-wider bg-blue-50 px-3 py-1 rounded-lg border border-blue-100 mb-3 inline-block">Mode Peninjau</span>
+                            <h3 class="text-xl md:text-2xl font-black text-slate-800 flex items-center gap-3">
+                                <i class="ph ph-chart-bar text-indigo-600 bg-indigo-50 p-2 rounded-xl"></i>
+                                Laporan Matriks 5R
+                            </h3>
+                            <p class="text-xs md:text-sm text-slate-500 mt-2 font-medium">Gabungan seluruh laporan harian tim. Tanda (✓) berarti area tuntas dibersihkan.</p>
+                        </div>
+                        <div class="flex flex-wrap gap-3 w-full md:w-auto">
+                            <button @click="printReport()" class="flex-1 md:flex-none bg-white border-2 border-slate-200 hover:border-slate-800 hover:bg-slate-50 text-slate-800 px-5 py-3 rounded-2xl text-xs md:text-sm font-bold shadow-sm flex items-center justify-center gap-2 transition">
+                                <i class="ph ph-printer text-lg"></i> <span>Cetak</span>
+                            </button>
+                            <button @click="exportCSV()" class="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-2xl text-xs md:text-sm font-bold shadow-lg shadow-emerald-200 flex items-center justify-center gap-2 transition">
+                                <i class="ph ph-file-csv text-lg"></i> <span>Download CSV</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 p-5 bg-slate-50 rounded-2xl mb-8 border border-slate-100">
+                        <div>
+                            <label class="block text-[10px] md:text-xs font-bold text-slate-400 uppercase mb-2">Bulan</label>
+                            <select x-model="selectedMonth" class="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none">
+                                <option value="0">Januari</option> <option value="1">Februari</option> <option value="2">Maret</option>
+                                <option value="3">April</option> <option value="4">Mei</option> <option value="5">Juni</option>
+                                <option value="6">Juli</option> <option value="7">Agustus</option> <option value="8">September</option>
+                                <option value="9">Oktober</option> <option value="10">November</option> <option value="11">Desember</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] md:text-xs font-bold text-slate-400 uppercase mb-2">Tahun</label>
+                            <select x-model="selectedYear" class="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <option value="2025">2025</option> <option value="2026">2026</option> <option value="2027">2027</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] md:text-xs font-bold text-slate-400 uppercase mb-2">Filter Lokasi HUB</label>
+                            <select x-model="selectedHub" class="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <option value="all">Semua HUB Gabungan</option>
+                                <template x-for="hub in getUniqueHubs()" :key="hub">
+                                    <option :value="hub" x-text="hub"></option>
+                                </template>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] md:text-xs font-bold text-slate-400 uppercase mb-2">Filter Personil (Opsional)</label>
+                            <select x-model="selectedPicId" class="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <option value="all">Semua Personil</option>
+                                <template x-for="usr in users.filter(u => u.level === 'pic' && (selectedHub === 'all' || u.hub === selectedHub))" :key="usr.userId">
+                                    <option :value="usr.userId" x-text="usr.nama"></option>
+                                </template>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto custom-scrollbar border border-slate-200 rounded-2xl">
+                        <table class="w-full text-left border-collapse min-w-[800px] md:min-w-[1000px]">
+                            <thead>
+                                <tr class="bg-slate-50 border-b border-slate-200">
+                                    <th rowspan="2" class="p-3 text-[10px] md:text-xs font-bold text-slate-600 uppercase w-10 text-center border-r border-slate-200 align-middle">No</th>
+                                    <th rowspan="2" class="p-3 text-[10px] md:text-xs font-bold text-slate-600 uppercase min-w-[200px] border-r border-slate-200 align-middle">ITEM TUGAS 5R</th>
+                                    <template x-for="day in daysInMonthArray">
+                                        <th :class="day.isSunday ? 'bg-rose-50 text-rose-500' : 'text-slate-500'" class="py-1.5 text-[9px] font-bold text-center border-l border-slate-200 w-8 border-b">
+                                            <span x-text="day.dayName"></span>
+                                        </th>
+                                    </template>
+                                </tr>
+                                <tr class="bg-slate-50 border-b border-slate-200">
+                                    <template x-for="day in daysInMonthArray">
+                                        <th :class="day.isSunday ? 'bg-rose-50 text-rose-600' : 'text-slate-700'" class="py-1.5 text-[10px] font-black text-center border-l border-slate-200 w-8">
+                                            <span x-text="day.dayNum"></span>
+                                        </th>
+                                    </template>
+                                </tr>
+                            </thead>
+                            <template x-for="areaName in Object.keys(groupedChecklist)" :key="areaName">
+                                <tbody>
+                                    <tr class="bg-indigo-50/50 border-b border-slate-200">
+                                        <td colspan="40" class="p-3 text-[10px] md:text-xs font-black text-indigo-900 uppercase tracking-wider" x-text="areaName"></td>
+                                    </tr>
+                                    <template x-for="item in groupedChecklist[areaName]" :key="item.id">
+                                        <tr class="border-b border-slate-100 hover:bg-slate-50 transition">
+                                            <td class="p-3 text-[10px] md:text-xs text-slate-400 text-center font-bold border-r border-slate-200" x-text="item.globalIndex"></td>
+                                            <td class="p-3 border-r border-slate-200">
+                                                <p class="text-[11px] md:text-xs font-semibold text-slate-700 leading-snug" x-text="item.deskripsi"></p>
+                                            </td>
+                                            <template x-for="day in daysInMonthArray">
+                                                <td :class="day.isSunday ? 'bg-rose-50/30' : ''" class="p-0 border-l border-slate-200 text-center align-middle h-8">
+                                                    <span x-html="getCombinedAuditStatus(item.id, day.dateString)"></span>
+                                                </td>
+                                            </template>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </template>
+                        </table>
                     </div>
                 </div>
             </div>
 
-            <div class="table-container">
-                <table>
+            <!-- Tab Manajemen Tim -->
+            <div x-show="adminTab === 'users' && userRole === 'admin'" class="grid grid-cols-1 lg:grid-cols-3 gap-6" x-transition>
+                <div class="bg-white p-6 md:p-8 rounded-3xl shadow-xl shadow-slate-200/40 border border-slate-100 h-fit lg:sticky lg:top-24">
+                    <h3 class="text-lg md:text-xl font-black text-slate-800 mb-6 flex items-center gap-3" x-text="isEditingUser ? 'Edit Data Profil' : 'Tambah Anggota Baru'"></h3>
+                    <form @submit.prevent="saveUser()">
+                        <div class="space-y-5">
+                            <div>
+                                <label class="block text-[10px] md:text-xs font-bold text-slate-500 uppercase mb-2">ID Login (Hanya Angka)</label>
+                                <input type="text" x-model="userForm.userId" :disabled="isEditingUser" class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white disabled:bg-slate-100 disabled:text-slate-400 transition" placeholder="Contoh: 1002" required>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] md:text-xs font-bold text-slate-500 uppercase mb-2">Nama Pekerja</label>
+                                <input type="text" x-model="userForm.nama" class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition" placeholder="Cth: Budi (OB)" required>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] md:text-xs font-bold text-slate-500 uppercase mb-2">Kata Sandi</label>
+                                <input type="password" x-model="userForm.password" class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition" placeholder="Masukkan sandi" required>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] md:text-xs font-bold text-slate-500 uppercase mb-2">Tingkat Akses</label>
+                                <div class="relative">
+                                    <select x-model="userForm.level" class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition appearance-none">
+                                        <option value="pic">PIC (Input Ceklis)</option>
+                                        <option value="admin">Admin (Akses Penuh)</option>
+                                        <option value="visitor">Visitor (Hanya Lihat)</option>
+                                    </select>
+                                    <i class="ph ph-caret-down absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400 pointer-events-none"></i>
+                                </div>
+                            </div>
+                            
+                            <div x-show="userForm.level === 'pic'" class="space-y-5">
+                                <div>
+                                    <label class="block text-[10px] md:text-xs font-bold text-slate-500 uppercase mb-2">Lokasi HUB</label>
+                                    <input type="text" x-model="userForm.hub" class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition" placeholder="Cth: HUB MKS" :required="userForm.level === 'pic'">
+                                </div>
+
+                                <div class="p-5 bg-indigo-50/50 border border-indigo-100 rounded-2xl">
+                                    <label class="block text-[10px] md:text-xs font-black text-indigo-900 uppercase mb-3 border-b border-indigo-200 pb-2 flex items-center gap-2"><i class="ph ph-shield-check text-lg"></i> Hak Akses Area</label>
+                                    <div class="space-y-3 max-h-40 overflow-y-auto custom-scrollbar pt-1">
+                                        <label class="flex items-center space-x-3 cursor-pointer group">
+                                            <input type="checkbox" value="ALL" x-model="userForm.assignedAreas" class="w-5 h-5 text-indigo-600 rounded-md border-slate-300 focus:ring-indigo-500">
+                                            <span class="text-sm font-black text-slate-800 group-hover:text-indigo-600 transition">Berikan Akses Penuh</span>
+                                        </label>
+                                        <template x-for="area in getUniqueAreas()" :key="area">
+                                            <label class="flex items-center space-x-3 cursor-pointer group" :class="userForm.assignedAreas.includes('ALL') ? 'opacity-40 grayscale' : ''">
+                                                <input type="checkbox" :value="area" x-model="userForm.assignedAreas" :disabled="userForm.assignedAreas.includes('ALL')" class="w-5 h-5 text-emerald-600 rounded-md border-slate-300 focus:ring-emerald-500">
+                                                <span class="text-sm font-semibold text-slate-700 group-hover:text-emerald-700 transition" x-text="area"></span>
+                                            </label>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3 pt-4 border-t border-slate-100">
+                                <button type="button" x-show="isEditingUser" @click="cancelEditUser()" class="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-3.5 px-6 rounded-2xl transition text-sm flex items-center justify-center gap-2"><i class="ph ph-x"></i> Batal</button>
+                                <button type="submit" class="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-bold py-3.5 rounded-2xl shadow-lg transition text-sm flex items-center justify-center gap-2">
+                                    <i class="ph" :class="isEditingUser ? 'ph-check' : 'ph-plus'"></i> <span x-text="isEditingUser ? 'Simpan' : 'Tambah'"></span>
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="bg-white p-6 md:p-8 rounded-3xl shadow-xl shadow-slate-200/40 border border-slate-100 lg:col-span-2">
+                    <h3 class="text-lg md:text-xl font-black text-slate-800 mb-6 flex items-center gap-3"><i class="ph ph-users text-indigo-600 bg-indigo-50 p-2 rounded-xl"></i> Daftar Tim Aktif</h3>
+                    <div class="overflow-x-auto custom-scrollbar rounded-xl border border-slate-100">
+                        <table class="w-full text-left border-collapse min-w-[600px]">
+                            <thead>
+                                <tr class="bg-slate-50 border-b border-slate-200">
+                                    <th class="p-4 text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-wider">Profil User</th>
+                                    <th class="p-4 text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-wider">Kata Sandi</th>
+                                    <th class="p-4 text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-wider">HUB</th>
+                                    <th class="p-4 text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-wider">Area Tugas</th>
+                                    <th class="p-4 text-[10px] md:text-xs font-bold text-slate-400 uppercase text-center tracking-wider w-24">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <template x-for="usr in users" :key="usr.userId">
+                                    <tr class="border-b border-slate-100 hover:bg-slate-50 transition">
+                                        <td class="p-4">
+                                            <p class="text-sm font-bold text-slate-800" x-text="usr.nama"></p>
+                                            <div class="flex items-center gap-2 mt-1">
+                                                <span class="text-xs font-mono text-slate-500" x-text="usr.userId"></span>
+                                                <span :class="getRoleBadgeClass(usr.level)" class="border text-[9px] font-bold px-2 py-0.5 rounded-md uppercase" x-text="usr.level"></span>
+                                            </div>
+                                        </td>
+                                        <td class="p-4">
+                                            <div class="flex items-center gap-1.5">
+                                                <i class="ph ph-key text-slate-400 text-base"></i>
+                                                <span class="text-xs md:text-sm font-mono font-medium text-slate-700 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md tracking-wider" x-text="usr.password"></span>
+                                            </div>
+                                        </td>
+                                        <td class="p-4 text-xs md:text-sm text-slate-800 font-bold" x-text="usr.hub || '-'"></td>
+                                        <td class="p-4 text-[10px] md:text-xs text-slate-600">
+                                            <template x-if="usr.assignedAreas && usr.assignedAreas.includes('ALL')">
+                                                <span class="font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-md border border-indigo-100"><i class="ph ph-star"></i> Full Area</span>
+                                            </template>
+                                            <template x-if="usr.assignedAreas && !usr.assignedAreas.includes('ALL')">
+                                                <div class="flex flex-wrap gap-1">
+                                                    <template x-for="area in usr.assignedAreas" :key="area">
+                                                        <span class="bg-slate-100 border border-slate-200 px-2 py-1 rounded-md font-medium text-slate-700" x-text="area"></span>
+                                                    </template>
+                                                </div>
+                                            </template>
+                                        </td>
+                                        <td class="p-4 text-center">
+                                            <div class="flex justify-center items-center gap-2">
+                                                <button @click="startEditUser(usr)" class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white flex items-center justify-center transition" title="Edit Profil">
+                                                    <i class="ph ph-pencil-simple text-base"></i>
+                                                </button>
+                                                <button @click="triggerConfirm('Hapus Anggota', 'Apakah Kamu yakin ingin menghapus data anggota ini secara permanen?', 'deleteUser', usr.userId)" class="w-8 h-8 rounded-lg bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white flex items-center justify-center transition disabled:opacity-50 disabled:cursor-not-allowed" :disabled="usr.userId === 'admin'" title="Hapus Data">
+                                                    <i class="ph ph-trash text-base"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Manajemen Parameter -->
+            <div x-show="adminTab === 'items' && userRole === 'admin'" class="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6" x-transition>
+                <div class="bg-white p-6 md:p-8 rounded-3xl shadow-xl shadow-slate-200/40 border border-slate-100 h-fit lg:sticky lg:top-24">
+                    <h3 class="text-lg md:text-xl font-black text-slate-800 mb-6 flex items-center gap-3" x-text="isEditingItem ? 'Perbarui Data Tugas' : 'Tambah Parameter Tugas'"></h3>
+                    <form @submit.prevent="saveItem()">
+                        <div class="space-y-5">
+                            <div>
+                                <label class="block text-[10px] md:text-xs font-bold text-slate-500 uppercase mb-2">Area / Zona</label>
+                                <input type="text" x-model="itemForm.area" class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition font-medium" placeholder="Contoh: Office, Toilet, Sortir" required>
+                                <p class="text-[10px] text-indigo-500 mt-2 font-medium bg-indigo-50 p-2 rounded-lg"><i class="ph ph-info"></i> Gunakan teks area yang identik agar sistem otomatis melakukan pengelompokan.</p>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] md:text-xs font-bold text-slate-500 uppercase mb-2">Pekerjaan yang dicek</label>
+                                <textarea x-model="itemForm.deskripsi" class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition resize-none custom-scrollbar" rows="4" placeholder="Cth: Lantai harus bebas dari sisa sampah solatip." required></textarea>
+                            </div>
+                            <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3 pt-4 border-t border-slate-100">
+                                <button type="button" x-show="isEditingItem" @click="cancelEditItem()" class="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-3.5 px-6 rounded-2xl transition text-sm flex items-center justify-center gap-2"><i class="ph ph-x"></i> Batal</button>
+                                <button type="submit" class="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-bold py-3.5 rounded-2xl shadow-lg transition text-sm flex items-center justify-center gap-2">
+                                    <i class="ph" :class="isEditingItem ? 'ph-check' : 'ph-floppy-disk'"></i> <span x-text="isEditingItem ? 'Simpan' : 'Tambahkan'"></span>
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="bg-white p-6 md:p-8 rounded-3xl shadow-xl shadow-slate-200/40 border border-slate-100 lg:col-span-2">
+                    <h3 class="text-lg md:text-xl font-black text-slate-800 mb-6 flex items-center gap-3"><i class="ph ph-list-checks text-indigo-600 bg-indigo-50 p-2 rounded-xl"></i> Daftar Parameter Kerja 5R</h3>
+                    <div class="overflow-x-auto custom-scrollbar rounded-xl border border-slate-100">
+                        <table class="w-full text-left border-collapse min-w-[500px]">
+                            <thead>
+                                <tr class="bg-slate-50 border-b border-slate-200">
+                                    <th class="p-4 text-[10px] md:text-xs font-bold text-slate-400 uppercase w-32 md:w-48 tracking-wider">Area Tugas</th>
+                                    <th class="p-4 text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-wider">Spesifikasi Pekerjaan</th>
+                                    <th class="p-4 text-[10px] md:text-xs font-bold text-slate-400 uppercase text-center w-24 tracking-wider">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <template x-for="item in activeChecklistItems" :key="item.id">
+                                    <tr class="border-b border-slate-100 hover:bg-slate-50 transition">
+                                        <td class="p-4 align-top">
+                                            <span class="bg-indigo-50 border border-indigo-100 text-indigo-700 text-[10px] font-bold px-2.5 py-1 rounded-lg uppercase whitespace-nowrap" x-text="item.area"></span>
+                                        </td>
+                                        <td class="p-4 text-xs md:text-sm text-slate-700 font-semibold leading-relaxed" x-text="item.deskripsi"></td>
+                                        <td class="p-4 text-center align-top">
+                                            <div class="flex justify-center items-center gap-2">
+                                                <button @click="startEditItem(item)" class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white flex items-center justify-center transition" title="Edit">
+                                                    <i class="ph ph-pencil-simple text-base"></i>
+                                                </button>
+                                                <button @click="triggerConfirm('Hapus Tugas', 'Apakah Kamu yakin ingin menghapus data ceklis ini?', 'deleteItem', item.id)" class="w-8 h-8 rounded-lg bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white flex items-center justify-center transition" title="Hapus">
+                                                    <i class="ph ph-trash text-base"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="hidden print:block w-full">
+            <div class="flex justify-between items-center border-b-2 border-slate-950 pb-3 mb-4">
+                <div>
+                    <h1 class="text-xl font-black uppercase tracking-wide text-slate-900">Lembar Rekapitulasi Audit 5R</h1>
+                    <p class="text-xs text-slate-500">Lembar Monitoring Kendali Harian Standar Kebersihan dan Kerapian Area</p>
+                </div>
+                <div class="text-right text-xs">
+                    <p class="font-bold">Dokumen Fisik Kontrol</p>
+                    <p x-text="'Dicetak: ' + new Date().toLocaleDateString('id-ID')"></p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-4 mb-4 border border-slate-400 p-2 text-xs">
+                <div>
+                    <p class="uppercase font-bold text-slate-500 text-[9px]">Periode Laporan</p>
+                    <p class="font-bold text-slate-800" x-text="getMonthName(selectedMonth) + ' ' + selectedYear"></p>
+                </div>
+                <div>
+                    <p class="uppercase font-bold text-slate-500 text-[9px]">Kode HUB Terkait</p>
+                    <p class="font-bold text-slate-800" x-text="userRole === 'pic' ? currentUser?.hub : (selectedHub === 'all' ? 'Semua Hub Wilayah' : selectedHub)"></p>
+                </div>
+                <div>
+                    <p class="uppercase font-bold text-slate-500 text-[9px]">Filter Pekerja (PIC)</p>
+                    <p class="font-bold text-slate-800" x-text="selectedPicId === 'all' ? 'Seluruh Anggota Tim (Gabungan)' : getUserName(selectedPicId)"></p>
+                </div>
+            </div>
+
+            <div class="border rounded border-slate-900 overflow-hidden w-full">
+                <table class="w-full text-left border-collapse border border-slate-900 table-fixed">
                     <thead>
-                        <tr class="th-row-1">
-                            <th rowspan="2" class="col-no">NO</th>
-                            <th rowspan="2" class="col-item text-left pl-2">
-                                ITEM CEK <br>
-                                <span class="font-normal italic text-[9px] text-gray-500 opacity-70">Geser ke kanan &rarr;</span>
-                            </th>
-                            <th colspan="31" class="text-center bg-gray-50 text-xs font-bold text-gray-400 py-1" id="headerDatesTitle">TANGGAL</th>
+                        <tr class="bg-slate-100 border-b border-slate-500">
+                            <th rowspan="2" class="p-1 text-center font-bold border-r border-slate-500 w-[3%] align-middle">NO</th>
+                            <th rowspan="2" class="p-1 font-bold border-r border-slate-500 w-[35%] align-middle">ITEM CEK PEKERJAAN</th>
+                            <template x-for="day in daysInMonthArray">
+                                <th :class="day.isSunday ? 'bg-rose-100 text-rose-600' : ''" class="p-0.5 text-[7px] text-center border-l border-b border-slate-500 w-[2%]">
+                                    <span x-text="day.dayName"></span>
+                                </th>
+                            </template>
                         </tr>
-                        <tr class="th-row-2" id="headerDatesRow"></tr>
+                        <tr class="bg-slate-100 border-b border-slate-500">
+                            <template x-for="day in daysInMonthArray">
+                                <th :class="day.isSunday ? 'bg-rose-100 text-rose-600' : ''" class="p-0.5 text-[8px] font-black text-center border-l border-slate-500 w-[2%]">
+                                    <span x-text="day.dayNum"></span>
+                                </th>
+                            </template>
+                        </tr>
                     </thead>
-                    <tbody id="tableBody"></tbody>
+                    <template x-for="areaName in Object.keys(groupedChecklist)" :key="areaName">
+                        <tbody>
+                            <tr class="bg-slate-200 border-b border-slate-500">
+                                <td colspan="40" class="p-1 text-[8px] font-black text-slate-900 uppercase tracking-wider border-slate-500" x-text="areaName"></td>
+                            </tr>
+                            <template x-for="item in groupedChecklist[areaName]" :key="item.id">
+                                <tr class="border-b border-slate-400">
+                                    <td class="p-1 text-center border-r border-slate-500 text-[8px] font-bold" x-text="item.globalIndex"></td>
+                                    <td class="p-1 border-r border-slate-500 text-[8px] leading-tight font-medium text-slate-900" x-text="item.deskripsi"></td>
+                                    <template x-for="day in daysInMonthArray">
+                                        <td :class="day.isSunday ? 'bg-rose-50' : ''" class="p-0 border-l border-slate-500 text-center align-middle h-4">
+                                            <span x-html="getCombinedAuditStatus(item.id, day.dateString)"></span>
+                                        </td>
+                                    </template>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </template>
                 </table>
             </div>
 
-            <div class="p-4 bg-white border-t border-e2e8f0 flex-shrink-0 text-xs">
-                <div class="flex flex-col md:flex-row gap-6">
-                    <div class="flex-1">
-                        <p class="font-bold mb-1 text-gray-700">KETERANGAN:</p>
-                        <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px] text-gray-600">
-                            <div class="flex items-center gap-1"><i data-lucide="check" class="w-3 h-3 text-green-600"></i> Kondisi OK</div>
-                            <div class="flex items-center gap-1"><div class="w-3 h-3 bg-red-50 border border-red-100 rounded"></div> Hari Libur</div>
-                            <div class="flex items-center gap-1"><i data-lucide="lock" class="w-3 h-3 text-gray-400"></i> Terkunci</div>
-                            <div>(*) Cek Mingguan</div>
-                        </div>
+            <div class="mt-8 grid grid-cols-2 text-center text-xs">
+                <div>
+                    <p class="font-bold text-slate-700">DILAPORKAN OLEH,</p>
+                    <div class="h-16"></div>
+                    <p class="font-bold underline text-slate-900" x-text="selectedPicId === 'all' ? '(Semua Tim PIC Terkait)' : getUserName(selectedPicId)"></p>
+                    <p class="text-[10px] text-slate-500">Penanggung Jawab Harian</p>
+                </div>
+                <div>
+                    <p class="font-bold text-slate-700">DIKETAHUI OLEH,</p>
+                    <div class="h-16"></div>
+                    <p class="font-bold underline text-slate-900">Supervisor / Manager</p>
+                    <p class="text-[10px] text-slate-500">Kepala Bagian Operasional</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal Form Ceklis -->
+    <div x-show="auditModal.show" class="fixed inset-0 z-50 overflow-y-auto no-print flex items-end sm:items-center justify-center p-0 md:p-4" x-transition x-cloak>
+        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" @click="auditModal.show = false"></div>
+
+        <div class="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden w-full max-w-2xl z-10 mt-20 sm:mt-0 transform transition-all border border-white/20 relative flex flex-col max-h-[90vh]">
+            <div class="bg-slate-900 text-white p-5 md:p-6 flex justify-between items-center shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center">
+                        <i class="ph ph-clipboard-text text-xl"></i>
                     </div>
-                    
-                    <div class="flex gap-8 justify-between md:justify-end mt-2 md:mt-0">
-                        <div class="text-center">
-                            <p class="mb-8 font-bold text-gray-400 uppercase text-[10px]">Dibuat Oleh,</p>
-                            <p class="border-t border-black min-w-[80px] pt-1 font-bold truncate max-w-[100px]" id="txtSigner">Leader</p>
-                        </div>
-                        <div class="text-center">
-                            <p class="mb-8 font-bold text-gray-400 uppercase text-[10px]">Diketahui,</p>
-                            <p class="border-t border-black min-w-[80px] pt-1 font-bold">Supervisor</p>
-                        </div>
+                    <div>
+                        <h3 class="text-base md:text-lg font-black tracking-wide">Pengecekan Harian</h3>
+                        <p class="text-[10px] md:text-xs text-emerald-400 font-bold mt-0.5 uppercase" x-text="currentUser?.assignedAreas?.includes('ALL') ? 'Semua Area' : currentUser?.assignedAreas?.join(', ')"></p>
                     </div>
                 </div>
+                <button @click="auditModal.show = false" class="text-slate-400 hover:text-white bg-white/10 hover:bg-white/20 rounded-full p-2.5 transition">
+                    <i class="ph ph-x text-lg"></i>
+                </button>
+            </div>
+
+            <form @submit.prevent="triggerConfirm('Kirim Laporan', 'Pastikan data ceklis valid. Laporan akan disimpan.', 'submitAudit')" class="flex flex-col flex-1 overflow-hidden">
+                <div class="p-4 md:p-6 space-y-5 flex-1 overflow-y-auto custom-scrollbar bg-slate-50">
+                    
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4">
+                        <div class="p-3 bg-blue-50 text-blue-600 rounded-xl hidden sm:block"><i class="ph ph-calendar text-2xl"></i></div>
+                        <div class="w-full">
+                            <label class="block text-[10px] md:text-xs font-bold text-slate-400 uppercase mb-1">Tanggal Kontrol Harian</label>
+                            <input type="date" x-model="auditModal.date" class="w-full border-none bg-transparent text-slate-800 cursor-not-allowed outline-none font-black text-sm p-0 m-0 pointer-events-none" readonly>
+                        </div>
+                    </div>
+
+                    <div class="space-y-5">
+                        <template x-for="areaName in Object.keys(allowedChecklistGroups)" :key="areaName">
+                            <div class="bg-white p-4 md:p-6 rounded-3xl shadow-sm border border-slate-100">
+                                <h4 class="font-black text-indigo-900 text-sm md:text-base uppercase mb-4 flex items-center gap-2">
+                                    <i class="ph ph-map-pin text-indigo-500"></i> <span x-text="areaName"></span>
+                                </h4>
+                                
+                                <div class="space-y-3">
+                                    <template x-for="item in allowedChecklistGroups[areaName]" :key="item.id">
+                                        <template x-if="auditModal.responses[item.id] !== undefined">
+                                            <label class="flex items-center justify-between p-4 rounded-2xl border-2 cursor-pointer transition group" :class="auditModal.responses[item.id] ? 'bg-emerald-50/50 border-emerald-400 shadow-sm' : 'bg-slate-50 border-slate-100 hover:border-slate-300'">
+                                                <span class="text-xs md:text-sm font-bold w-[85%] leading-relaxed transition" :class="auditModal.responses[item.id] ? 'text-emerald-900' : 'text-slate-600'" x-text="item.deskripsi"></span>
+                                                <div class="relative flex items-center justify-center">
+                                                    <input type="checkbox" x-model="auditModal.responses[item.id]" class="w-7 h-7 text-emerald-600 bg-white border-2 border-slate-300 rounded-xl focus:ring-emerald-500 cursor-pointer peer transition appearance-none checked:bg-emerald-500 checked:border-emerald-500">
+                                                    <i x-show="auditModal.responses[item.id]" class="ph ph-check absolute text-white pointer-events-none font-black text-lg"></i>
+                                                </div>
+                                            </label>
+                                        </template>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 md:p-6 flex flex-col sm:flex-row justify-between items-center border-t border-slate-200 gap-4 sm:gap-0 shrink-0">
+                    <p class="text-[10px] text-slate-400 font-bold text-center sm:text-left w-full sm:w-auto flex items-center justify-center sm:justify-start gap-1">
+                        <i class="ph ph-info"></i> Centang tugas yang telah diselesaikan.
+                    </p>
+                    <div class="flex space-x-3 w-full sm:w-auto justify-end">
+                        <button type="button" @click="auditModal.show = false" class="flex-1 sm:flex-none px-6 py-3.5 text-xs md:text-sm font-bold text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-2xl transition">Batal</button>
+                        <button type="submit" class="flex-1 sm:flex-none bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-8 py-3.5 rounded-2xl text-xs md:text-sm transition shadow-lg shadow-indigo-200 flex items-center justify-center gap-2">
+                            <i class="ph ph-paper-plane-tilt"></i> Kirim
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Pop-Up Konfirmasi Umum -->
+    <div x-show="confirmModal.show" class="fixed inset-0 z-[60] flex items-center justify-center p-4 no-print" x-transition x-cloak>
+        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" @click="confirmModal.show = false"></div>
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm z-10 p-6 md:p-8 transform transition-all text-center border border-white">
+            <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" :class="confirmModal.actionType.includes('delete') ? 'bg-rose-50 text-rose-500' : 'bg-indigo-50 text-indigo-500'">
+                <i class="ph text-3xl" :class="confirmModal.actionType.includes('delete') ? 'ph-trash' : 'ph-question'"></i>
+            </div>
+            <h3 class="text-lg md:text-xl font-black text-slate-800 mb-2" x-text="confirmModal.title"></h3>
+            <p class="text-xs md:text-sm text-slate-500 font-medium mb-8 leading-relaxed" x-text="confirmModal.message"></p>
+            <div class="flex space-x-3 w-full">
+                <button @click="confirmModal.show = false" class="flex-1 px-4 py-3.5 text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-2xl transition">Batal</button>
+                <button @click="executeConfirm()" class="flex-1 px-4 py-3.5 text-sm font-bold text-white rounded-2xl shadow-lg transition" :class="confirmModal.actionType.includes('delete') ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-200' : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200'" x-text="confirmModal.actionType.includes('delete') ? 'Ya, Hapus' : 'Ya, Lanjutkan'"></button>
             </div>
         </div>
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-
-        // CONFIG MANUAL - Pastikan sama persis dengan yang ada di Firebase Console Anda
-        const manualConfig = {
-            apiKey: "AIzaSyAqbDeVLDBRDEIfi4RliLMC-3Qrwh8p96k",
-            authDomain: "logsheet-5r.firebaseapp.com",
-            projectId: "logsheet-5r",
-            storageBucket: "logsheet-5r.firebasestorage.app",
-            messagingSenderId: "358725557740",
-            appId: "1:358725557740:web:664cca8d2ae984221ff4c9"
-        };
-
-        let app, auth, db, appId;
-
-        try {
-            // Priority: Gunakan Config Canvas jika ada, jika tidak gunakan Manual
-            if (typeof __firebase_config !== 'undefined') {
-                const firebaseConfig = JSON.parse(__firebase_config);
-                app = initializeApp(firebaseConfig);
-                appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-            } else {
-                if (manualConfig.apiKey === "ISI_API_KEY_DISINI") throw new Error("Config Error");
-                app = initializeApp(manualConfig);
-                appId = '5r-logsheet-app'; 
-            }
-            auth = getAuth(app);
-            db = getFirestore(app);
-            initAuth();
-        } catch (error) {
-            console.error("Firebase Init Error:", error);
-            document.getElementById('statusText').innerText = "Config Error";
-            document.getElementById('statusDot').classList.remove('bg-yellow-500');
-            document.getElementById('statusDot').classList.add('bg-red-500');
-        }
-
-        const GROUPS = [
-            {
-                title: "Area Operational",
-                items: [
-                    { cat: 'RESIK', txt: 'Membersihkan Lantai Pasca Proses sorting' },
-                    { cat: 'RAPI', txt: 'Area Leader dalam keadaan rapi' },
-                    { cat: 'RAPI', txt: 'Barang Holding tersimpan pada Area Holding' },
-                    { cat: 'RAWAT', txt: 'Memastikan ketersediaan Consomable', week: true },
-                    { cat: 'RINGKAS', txt: 'Menata dan mengumpulkan MB bekas pada Areanya' },
-                    { cat: 'RAJIN', txt: 'Mematikan Kipas Angin pada jam Non Operational Aktif' },
-                    { cat: 'RINGKAS', txt: 'Marka Pedestrian terbebas dari Barang-barang/Tools' },
-                    { cat: 'RESIK', txt: 'Penjualan Limbah Operational (Bagashild/MB/Plastik)' }
-                ]
-            },
-            {
-                title: "Area Tools",
-                items: [
-                    { cat: 'RAWAT', txt: 'Perawatan dan Pembersihan Tools' },
-                    { cat: 'RAPI', txt: 'Mengembalikan HandPallet pada Checkpoint' },
-                    { cat: 'RAPI', txt: 'Mengembalikan Sorting Basket, Palletmesh MB stand, Keranjang Kuning pada Checkpoint' }
-                ]
-            },
-            {
-                title: "Area Lain lain",
-                items: [
-                    { cat: 'RAPI', txt: 'Area Istirahat/Musholla dalam keadaan Rapih dan terbebas dari barang pribadi' },
-                    { cat: 'SAFETY', txt: 'Memastikan persediaan P3K sesuai dengan standar K3', week: true },
-                    { cat: 'RAJIN', txt: 'Informasi board di update', week: true }
-                ]
-            }
-        ];
-
-        const MONTHS = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-        
-        const ACCOUNTS = { 
-            'Coordinator': { p: 'TES123', role: 'admin' }, 
-            'MKS': { p: 'MKS01', role: 'user', name: 'Muhammad fahri', area: 'HUB Makassar' },
-            'BPP': { p: 'BPP01', role: 'user', name: 'Mulyadi', area: 'HUB Balikpapan' },
-            'BJM': { p: 'BJM01', role: 'user', name: 'Muhammad Ridho', area: 'HUB Banjarmasin' } 
-        };
-
-        let state = { user: null, viewUser: null, year: new Date().getFullYear(), month: new Date().getMonth(), checks: {}, lockDate: null };
-        let unsubscribeListener = null;
-
-        async function initAuth() {
-            try {
-                await signInAnonymously(auth);
-                const btn = document.getElementById('btnLogin');
-                btn.disabled = false;
-                btn.classList.remove('bg-gray-400', 'cursor-not-allowed');
-                btn.classList.add('bg-gradient-to-r', 'from-blue-700', 'to-indigo-800', 'shadow-lg');
-                btn.innerHTML = `<span>MASUK APLIKASI</span><i data-lucide="arrow-right" class="w-4 h-4"></i>`;
-                document.getElementById('statusText').innerText = "Server Connected";
-                document.getElementById('statusDot').classList.replace('bg-yellow-500', 'bg-green-500');
-                lucide.createIcons();
-            } catch (error) {
-                console.error(error);
-                document.getElementById('statusText').innerText = "Connection Failed";
-                document.getElementById('statusDot').classList.replace('bg-yellow-500', 'bg-red-500');
-                
-                // Show Helpful Error
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Gagal Terhubung',
-                    text: 'Gagal login ke database. Pastikan "Anonymous Auth" sudah diaktifkan di Firebase Console > Build > Authentication > Sign-in method.',
-                    footer: '<a href="https://console.firebase.google.com" target="_blank">Buka Firebase Console</a>'
-                });
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            lucide.createIcons();
-            const ySel = document.getElementById('selYear');
-            for(let i=state.year-1; i<=state.year+2; i++) ySel.add(new Option(i, i));
-            ySel.value = state.year;
-            
-            const mSel = document.getElementById('selMonth');
-            MONTHS.forEach((m, i) => mSel.add(new Option(m, i)));
-            mSel.value = state.month;
-
-            let timeout;
-            const debouncedSave = () => { clearTimeout(timeout); timeout = setTimeout(saveData, 1000); };
-
-            document.getElementById('inpArea').oninput = debouncedSave;
-            document.getElementById('inpPic').oninput = (e) => {
-                document.getElementById('txtSigner').innerText = e.target.value || 'Leader';
-                debouncedSave();
-            };
-            
-            ySel.onchange = (e) => { state.year = parseInt(e.target.value); setupRealtimeListener(); };
-            mSel.onchange = (e) => { state.month = parseInt(e.target.value); setupRealtimeListener(); };
-            
-            window.handleLogin = handleLogin;
-            window.toggleCheck = toggleCheck;
-            window.doReset = doReset;
-            window.doLogout = doLogout;
-            window.saveLockDate = saveLockDate;
-        });
-
-        function handleLogin(e) {
-            e.preventDefault();
-            // Tambahan Check Auth Firebase
-            if (!auth.currentUser) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Belum Terhubung',
-                    text: 'Tunggu sebentar hingga indikator "Connecting" berubah menjadi hijau, atau refresh halaman.'
-                });
-                return;
-            }
-
-            const u = document.getElementById('loginUser').value;
-            const p = document.getElementById('loginPass').value;
-            const errBox = document.getElementById('loginErrorMsg');
-
-            if(u && ACCOUNTS[u] && ACCOUNTS[u].p === p) {
-                state.user = { id: u, ...ACCOUNTS[u] };
-                errBox.classList.add('hidden'); 
-                showApp();
-            } else {
-                errBox.classList.remove('hidden'); 
-            }
-        }
-
-        function showApp() {
-            document.getElementById('loginModal').classList.add('hidden');
-            document.getElementById('loginModal').classList.remove('flex');
-            document.getElementById('appContainer').classList.remove('hidden');
-            
-            document.getElementById('displayUser').innerText = state.user.id;
-            const adminControls = document.getElementById('adminControls');
-            const btnReset = document.getElementById('btnReset');
-
-            if(state.user.role === 'admin') {
-                adminControls.classList.remove('hidden');
-                btnReset.classList.remove('hidden');
-                document.getElementById('inpArea').readOnly = false;
-                document.getElementById('inpPic').readOnly = false;
-                
-                const adminSelect = document.getElementById('adminViewSelector');
-                adminSelect.innerHTML = '';
-                let firstUser = '';
-                Object.keys(ACCOUNTS).forEach(key => {
-                    if(ACCOUNTS[key].role === 'user') {
-                        if(!firstUser) firstUser = key;
-                        adminSelect.add(new Option(key, key));
-                    }
-                });
-                state.viewUser = firstUser;
-                adminSelect.value = firstUser;
-                adminSelect.onchange = (e) => { state.viewUser = e.target.value; setupRealtimeListener(); };
-            } else {
-                adminControls.classList.add('hidden');
-                btnReset.classList.add('hidden');
-                state.viewUser = state.user.id;
-                document.getElementById('inpArea').readOnly = true;
-                document.getElementById('inpPic').readOnly = true;
-            }
-            setupRealtimeListener();
-        }
-
-        function doLogout() {
-            if(unsubscribeListener) unsubscribeListener();
-            state.user = null; state.viewUser = null;
-            document.getElementById('loginPass').value = '';
-            document.getElementById('loginUser').value = '';
-            document.getElementById('appContainer').classList.add('hidden');
-            document.getElementById('loginModal').classList.replace('hidden', 'flex');
-        }
-
-        function getDocId() { return `${state.viewUser}_${state.year}_${state.month}`; }
-
-        function setupRealtimeListener() {
-            if (unsubscribeListener) unsubscribeListener();
-            state.checks = {}; 
-            state.lockDate = null;
-            render(); 
-            
-            const docId = getDocId();
-            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'logsheet_5r', docId);
-
-            unsubscribeListener = onSnapshot(docRef, (docSnap) => {
-                const targetAccount = ACCOUNTS[state.viewUser];
-                const defaultArea = targetAccount ? targetAccount.area : '';
-                const defaultPic = targetAccount ? targetAccount.name : '';
-
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    state.checks = data.checks || {};
-                    state.lockDate = data.lockDate || null; 
-                    
-                    const areaEl = document.getElementById('inpArea');
-                    const picEl = document.getElementById('inpPic');
-                    
-                    if(document.activeElement !== areaEl) areaEl.value = data.area || defaultArea;
-                    if(document.activeElement !== picEl) {
-                        picEl.value = data.pic || defaultPic;
-                        document.getElementById('txtSigner').innerText = (data.pic || defaultPic);
-                    }
-                    
-                    if(state.user.role === 'admin' && document.getElementById('adminLockDate')) {
-                        document.getElementById('adminLockDate').value = state.lockDate || '';
-                    }
-
-                } else {
-                    state.checks = {};
-                    state.lockDate = null;
-                    document.getElementById('inpArea').value = defaultArea;
-                    document.getElementById('inpPic').value = defaultPic;
-                    document.getElementById('txtSigner').innerText = defaultPic;
-                    if(document.getElementById('adminLockDate')) document.getElementById('adminLockDate').value = '';
-                }
-                render();
-            }, (error) => {
-                console.error("Firestore Listen Error:", error);
-                
-                // DETEKSI ERROR PERMISSION DENIED DAN BERI SOLUSI
-                if (error.code === 'permission-denied') {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Akses Ditolak!',
-                        html: `
-                            <p class="mb-4">Database menolak akses data. Ini karena <b>Rules</b> belum diatur.</p>
-                            <div class="text-left bg-gray-100 p-4 rounded text-sm">
-                                <strong>Cara Memperbaiki:</strong>
-                                <ol class="list-decimal ml-5 mt-1 space-y-1">
-                                    <li>Buka <a href="https://console.firebase.google.com" target="_blank" class="text-blue-600 underline">Firebase Console</a>.</li>
-                                    <li>Masuk ke menu <b>Firestore Database</b> > Tab <b>Rules</b>.</li>
-                                    <li>Hapus semua, ganti dengan:</li>
-                                </ol>
-                                <pre class="bg-black text-green-400 p-2 mt-2 rounded overflow-x-auto text-xs">allow read, write: if true;</pre>
-                                <p class="mt-2 text-xs text-gray-500">*Gunakan aturan di atas untuk test mode.</p>
-                            </div>
-                        `,
-                        width: '600px'
-                    });
-                }
-            });
-        }
-
-        async function saveData() {
-            if(!auth.currentUser) return;
-            const docId = getDocId();
-            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'logsheet_5r', docId);
-            const dataToSave = {
-                checks: state.checks,
-                area: document.getElementById('inpArea').value,
-                pic: document.getElementById('inpPic').value,
-                updatedAt: new Date().toISOString()
-            };
-            const indicator = document.getElementById('savingIndicator');
-            indicator.classList.remove('hidden');
-            try {
-                await setDoc(docRef, dataToSave, { merge: true });
-                setTimeout(() => indicator.classList.add('hidden'), 500);
-            } catch (e) { console.error(e); }
-        }
-
-        async function saveLockDate() {
-            if(state.user.role !== 'admin') return;
-            const dateVal = document.getElementById('adminLockDate').value;
-            const docId = getDocId();
-            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'logsheet_5r', docId);
-            
-            try {
-                await setDoc(docRef, { lockDate: dateVal }, { merge: true });
-                Swal.fire('Terkunci', `Data sebelum tanggal ${dateVal} telah dikunci.`, 'success');
-            } catch(e) {
-                Swal.fire('Error', 'Gagal menyimpan kunci.', 'error');
-            }
-        }
-
-        function render() {
-            const daysInMonth = new Date(state.year, state.month + 1, 0).getDate();
-            const dateRow = document.getElementById('headerDatesRow');
-            const tbody = document.getElementById('tableBody');
-            
-            document.getElementById('headerDatesTitle').colSpan = daysInMonth;
-            let hHtml = '';
-            
-            const dayNames = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
-
-            for(let d=1; d<=daysInMonth; d++) {
-                const dateObj = new Date(state.year, state.month, d);
-                const dayIdx = dateObj.getDay();
-                const dayName = dayNames[dayIdx];
-                const isSun = dayIdx === 0;
-                
-                const textClass = isSun ? 'text-red-600' : 'text-gray-600';
-                const bgClass = isSun ? 'bg-red-50' : 'bg-white';
-
-                hHtml += `
-                <th class="text-center border-l border-gray-300 col-date ${bgClass} py-1">
-                    <div class="text-[9px] uppercase ${textClass} font-normal leading-none mb-0.5">${dayName}</div>
-                    <div class="text-sm font-bold ${textClass} leading-none">${d}</div>
-                </th>`;
-            }
-            dateRow.innerHTML = hHtml;
-
-            let bHtml = '';
-            let globalNo = 0; 
-            
-            let lockThreshold = null;
-            if(state.lockDate) {
-                lockThreshold = new Date(state.lockDate);
-                lockThreshold.setHours(0,0,0,0);
-            }
-
-            GROUPS.forEach(group => {
-                bHtml += `<tr><td colspan="${2 + daysInMonth}" class="group-header">${group.title}</td></tr>`;
-                group.items.forEach(item => {
-                    globalNo++;
-                    let badgeClass = 'bg-gray-100 text-gray-600 border-gray-300';
-                    if(item.cat === 'RESIK') badgeClass = 'bg-green-50 text-green-700 border-green-200';
-                    if(item.cat === 'RAPI') badgeClass = 'bg-blue-50 text-blue-700 border-blue-200';
-                    if(item.cat === 'RINGKAS') badgeClass = 'bg-red-50 text-red-700 border-red-200';
-                    if(item.cat === 'RAWAT') badgeClass = 'bg-purple-50 text-purple-700 border-purple-200';
-                    if(item.cat === 'RAJIN') badgeClass = 'bg-orange-50 text-orange-700 border-orange-200';
-                    if(item.cat === 'SAFETY') badgeClass = 'bg-yellow-50 text-yellow-700 border-yellow-200';
-                    
-                    const weekBadge = item.week ? '<span class="text-red-500 ml-1 font-bold">*</span>' : '';
-
-                    bHtml += `
-                    <tr>
-                        <td class="text-center font-mono text-gray-500 bg-gray-50 col-no-cell">${globalNo}</td>
-                        <td class="p-2 col-item-cell">
-                            <span class="badge ${badgeClass}">${item.cat}</span>
-                            <div class="text-[11px] leading-tight font-medium mt-1">${item.txt} ${weekBadge}</div>
-                        </td>
-                    `;
-
-                    for(let d=1; d<=daysInMonth; d++) {
-                        const key = `${globalNo}-${d}`;
-                        const isChecked = state.checks[key];
-                        const isSun = new Date(state.year, state.month, d).getDay() === 0;
-                        
-                        const currentCellDate = new Date(state.year, state.month, d);
-                        currentCellDate.setHours(0,0,0,0);
-                        
-                        let isLocked = false;
-                        if(lockThreshold && currentCellDate < lockThreshold) {
-                            isLocked = true;
-                        }
-
-                        const bgClass = isSun ? 'cell-sunday' : '';
-                        const activeClass = isChecked ? 'checked' : '';
-                        const lockedClass = isLocked ? 'locked' : '';
-                        
-                        const clickEvent = isLocked ? '' : `onclick="toggleCheck(${globalNo}, ${d})"`;
-                        
-                        let displayVal = '';
-                        if (isLocked && isChecked) displayVal = '<i data-lucide="check" class="w-4 h-4 opacity-50"></i>';
-                        else if (!isLocked && isChecked) displayVal = '<i data-lucide="check" class="w-5 h-5"></i>';
-                        else if (isLocked) displayVal = '<i data-lucide="lock" class="w-3 h-3 opacity-30"></i>';
-
-                        bHtml += `
-                        <td class="${bgClass}">
-                            <div class="check-box ${activeClass} ${lockedClass}" ${clickEvent}>
-                                ${displayVal}
-                            </div>
-                        </td>`;
-                    }
-                    bHtml += `</tr>`;
-                });
-            });
-
-            tbody.innerHTML = bHtml;
-            lucide.createIcons();
-        }
-
-        function toggleCheck(id, day) {
-            if(state.lockDate) {
-                const lockThreshold = new Date(state.lockDate);
-                lockThreshold.setHours(0,0,0,0);
-                const currentCellDate = new Date(state.year, state.month, day);
-                currentCellDate.setHours(0,0,0,0);
-                
-                if(currentCellDate < lockThreshold) {
-                    Swal.fire('Terkunci', 'Data tanggal ini sudah dikunci oleh Admin.', 'warning');
-                    return;
-                }
-            }
-
-            const key = `${id}-${day}`;
-            if(state.checks[key]) {
-                state.checks[key] = false; 
-            } else {
-                state.checks[key] = true;
-            }
-            
-            render();
-            saveData(); 
-        }
-
-        function doReset() {
-            Swal.fire({
-                title: 'Hapus Data?', text: 'Data akan terhapus dari server.', icon: 'warning',
-                showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Ya, Hapus'
-            }).then(async (r) => {
-                if(r.isConfirmed) {
-                    state.checks = {};
-                    render();
-                    const docId = getDocId();
-                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'logsheet_5r', docId);
-                    await setDoc(docRef, { checks: {} }, { merge: true });
-                    Swal.fire('Terhapus', '', 'success');
-                }
-            });
-        }
-    </script>
 </body>
 </html>
