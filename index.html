@@ -371,15 +371,33 @@
                     this.p3kModal.show = true;
                 },
 
+                adminEditP3k(monthNum, weekNum) {
+                    if(this.userRole !== 'admin') return;
+                    
+                    if(this.selectedHub === 'all') {
+                        this.showToast('Harap pilih Filter Lokasi HUB spesifik terlebih dahulu untuk mengedit data.', 'error');
+                        return;
+                    }
+
+                    this.p3kModal.month = monthNum;
+                    this.p3kModal.week = weekNum;
+                    
+                    const existingLog = this.getP3kLogForPeriod(monthNum, weekNum);
+                    this.p3kModal.tipe = existingLog ? existingLog.tipeKotak : 'A';
+                    
+                    if (!existingLog) {
+                        const today = new Date();
+                        this.p3kModal.dateFilled = `${today.getDate().toString().padStart(2, '0')}/${(parseInt(monthNum)+1).toString().padStart(2, '0')}/${this.selectedYear}`;
+                    } else {
+                        this.p3kModal.dateFilled = existingLog.dateFilled;
+                    }
+
+                    this.loadP3kExistingLog();
+                    this.p3kModal.show = true;
+                },
+
                 loadP3kExistingLog() {
-                    const targetHub = (this.userRole === 'admin' && this.selectedHub !== 'all') ? this.selectedHub : this.currentUser.hub;
-                    const existingLog = this.p3kLogs.find(log => 
-                        log.year == this.selectedYear && 
-                        log.month == this.p3kModal.month && 
-                        log.week == this.p3kModal.week && 
-                        log.picId === this.currentUser.userId &&
-                        log.hub === targetHub
-                    );
+                    const existingLog = this.getP3kLogForPeriod(this.p3kModal.month, this.p3kModal.week);
 
                     this.p3kModal.responses = {};
                     if(existingLog) {
@@ -395,13 +413,12 @@
 
                 async executeSubmitP3k() {
                     const targetHub = (this.userRole === 'admin' && this.selectedHub !== 'all') ? this.selectedHub : this.currentUser.hub;
-                    const existingLogIndex = this.p3kLogs.findIndex(log => 
-                        log.year == this.selectedYear && 
-                        log.month == this.p3kModal.month && 
-                        log.week == this.p3kModal.week && 
-                        log.picId === this.currentUser.userId &&
-                        log.hub === targetHub
-                    );
+                    
+                    const existingLog = this.getP3kLogForPeriod(this.p3kModal.month, this.p3kModal.week);
+                    let existingLogIndex = -1;
+                    if(existingLog) {
+                        existingLogIndex = this.p3kLogs.findIndex(l => l.id === existingLog.id);
+                    }
 
                     const logId = existingLogIndex !== -1 ? this.p3kLogs[existingLogIndex].id : 'p3k-' + Date.now();
                     
@@ -410,15 +427,19 @@
                         parsedResponses[key] = this.p3kModal.responses[key] === '' ? 0 : parseInt(this.p3kModal.responses[key]);
                     }
 
+                    const picIdToSave = existingLog ? existingLog.picId : this.currentUser.userId;
+                    const picNameToSave = existingLog ? existingLog.picName : this.currentUser.nama;
+                    const hubToSave = existingLog ? existingLog.hub : targetHub;
+
                     const newLog = {
                         id: logId,
                         year: this.selectedYear,
                         month: this.p3kModal.month,
                         week: this.p3kModal.week,
                         tipeKotak: this.p3kModal.tipe,
-                        picId: this.currentUser.userId,
-                        picName: this.currentUser.nama,
-                        hub: targetHub,
+                        picId: picIdToSave,
+                        picName: picNameToSave,
+                        hub: hubToSave,
                         dateFilled: this.p3kModal.dateFilled,
                         answers: parsedResponses
                     };
@@ -690,11 +711,14 @@
                             <template x-for="item in p3kItems" :key="item.id">
                                 <tr class="border-b hover:bg-slate-50 transition">
                                     <td class="p-3 border-r sticky left-0 z-10 bg-white shadow-[1px_0_0_#e2e8f0]">
-                                        <p class="text-xs font-bold text-slate-700" x-text="item.name"></p>
+                                        <p class="text-xs font-bold text-slate-800" x-text="item.name"></p>
                                     </td>
                                     <template x-for="m in monthsInSemester">
                                         <template x-for="w in [1, 2, 3, 4, 5]">
-                                            <td class="p-1 border-l border-slate-200 text-center align-middle" :class="w % 2 === 0 ? 'bg-slate-50/50' : ''" x-html="getP3kStatus(item.id, m, w)"></td>
+                                            <td class="p-1 border-l border-slate-200 text-center align-middle" 
+                                                :class="[w % 2 === 0 ? 'bg-slate-50/50' : '', userRole === 'admin' ? 'cursor-pointer hover:bg-rose-100 transition' : '']" 
+                                                @click="adminEditP3k(m, w)"
+                                                x-html="getP3kStatus(item.id, m, w)"></td>
                                         </template>
                                     </template>
                                 </tr>
@@ -1195,13 +1219,41 @@
                     
                     <div class="grid grid-cols-2 gap-4">
                         <div class="bg-rose-50 p-3 rounded-xl border border-rose-100 flex flex-col justify-center">
-                            <label class="block text-[10px] font-bold text-rose-500 uppercase mb-0.5">Jadwal Inspeksi Terdeteksi</label>
-                            <div class="font-black text-rose-800 text-lg">Minggu ke-<span x-text="p3kModal.week"></span></div>
-                            <div class="text-xs font-bold text-rose-600">Tgl: <span x-text="p3kModal.dateFilled"></span></div>
+                            <label class="block text-[10px] font-bold text-rose-500 uppercase mb-0.5">Jadwal Inspeksi</label>
+                            
+                            <template x-if="userRole === 'admin'">
+                                <div class="space-y-2 mt-1">
+                                    <select x-model="p3kModal.month" @change="loadP3kExistingLog()" class="w-full text-xs font-bold p-1 rounded border border-rose-200 text-rose-700 bg-white outline-none">
+                                        <option value="0">Januari</option><option value="1">Februari</option><option value="2">Maret</option><option value="3">April</option><option value="4">Mei</option><option value="5">Juni</option><option value="6">Juli</option><option value="7">Agustus</option><option value="8">September</option><option value="9">Oktober</option><option value="10">November</option><option value="11">Desember</option>
+                                    </select>
+                                    <select x-model="p3kModal.week" @change="loadP3kExistingLog()" class="w-full text-xs font-bold p-1 rounded border border-rose-200 text-rose-700 bg-white outline-none">
+                                        <option value="1">Minggu 1</option><option value="2">Minggu 2</option><option value="3">Minggu 3</option><option value="4">Minggu 4</option><option value="5">Minggu 5</option>
+                                    </select>
+                                    <input type="text" x-model="p3kModal.dateFilled" class="w-full text-xs font-bold p-1 rounded border border-rose-200 text-rose-700 bg-white outline-none" placeholder="Tgl Cth: 20/06/2026">
+                                </div>
+                            </template>
+                            
+                            <template x-if="userRole !== 'admin'">
+                                <div>
+                                    <div class="font-black text-rose-800 text-lg">Minggu ke-<span x-text="p3kModal.week"></span></div>
+                                    <div class="text-xs font-bold text-rose-600">Tgl: <span x-text="p3kModal.dateFilled"></span></div>
+                                </div>
+                            </template>
                         </div>
                         <div class="bg-slate-100 p-3 rounded-xl border border-slate-200 flex flex-col justify-center">
-                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Tipe Kotak (Admin Config)</label>
-                            <div class="font-black text-slate-800 text-lg">TIPE <span x-text="p3kModal.tipe"></span></div>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Tipe Kotak</label>
+                            
+                            <template x-if="userRole === 'admin'">
+                                <select x-model="p3kModal.tipe" @change="loadP3kExistingLog()" class="w-full text-xs font-bold p-1.5 mt-1 rounded border border-slate-300 text-slate-700 bg-white outline-none">
+                                    <option value="A">TIPE A</option>
+                                    <option value="B">TIPE B</option>
+                                    <option value="C">TIPE C</option>
+                                </select>
+                            </template>
+                            
+                            <template x-if="userRole !== 'admin'">
+                                <div class="font-black text-slate-800 text-lg">TIPE <span x-text="p3kModal.tipe"></span></div>
+                            </template>
                         </div>
                     </div>
 
