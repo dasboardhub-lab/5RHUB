@@ -240,7 +240,7 @@
                     this.userModal.show = true;
                 },
                 openEditUserModal(user) {
-                    this.userForm = { ...user };
+                    this.userForm = { assignedAreas: ['ALL'], ...user };
                     this.userModal.isEdit = true;
                     this.userModal.show = true;
                 },
@@ -527,6 +527,7 @@
                     return months[monthNum];
                 },
                 getUniqueHubs() { return [...new Set(this.users.filter(u => u.level === 'pic' && u.hub).map(u => u.hub))]; },
+                getUniqueAreas() { return [...new Set(this.activeChecklistItems.map(item => item.area))]; },
                 
                 getCombinedAuditStatus(itemId, dateString) {
                     let logsForDate = this.auditLogs.filter(log => log.date === dateString);
@@ -925,6 +926,7 @@
                                 <th class="p-4 font-bold">Nama Personil</th>
                                 <th class="p-4 font-bold">Lokasi Hub</th>
                                 <th class="p-4 font-bold">Role</th>
+                                <th class="p-4 font-bold">Akses Area 5R</th>
                                 <th class="p-4 font-bold text-center">Hak Akses P3K</th>
                                 <th class="p-4 font-bold text-center">Aksi</th>
                             </tr>
@@ -937,6 +939,9 @@
                                     <td class="p-4 text-slate-500 font-medium" x-text="usr.hub || '-'"></td>
                                     <td class="p-4">
                                         <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider" :class="usr.level === 'admin' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'" x-text="usr.level"></span>
+                                    </td>
+                                    <td class="p-4 text-xs font-medium text-slate-500 max-w-[150px] truncate" :title="(usr.assignedAreas && usr.assignedAreas.includes('ALL')) ? 'Semua Area' : (usr.assignedAreas || []).join(', ')">
+                                        <span x-text="(usr.assignedAreas && usr.assignedAreas.includes('ALL')) ? 'Semua Area' : (usr.assignedAreas || []).join(', ')"></span>
                                     </td>
                                     <td class="p-4 text-center">
                                         <template x-if="usr.isP3kInspector">
@@ -1126,6 +1131,25 @@
                         <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Lokasi Hub</label>
                         <input type="text" x-model="userForm.hub" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 font-bold outline-none focus:border-indigo-500" placeholder="Contoh: HUB JKT">
                     </div>
+                </div>
+
+                <!-- Hak Akses Area 5R Khusus Role PIC -->
+                <div x-show="userForm.level === 'pic'" class="mt-4">
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-2">Hak Akses Area 5R</label>
+                    <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 max-h-32 overflow-y-auto custom-scrollbar">
+                        <label class="flex items-center gap-2 mb-2 cursor-pointer group">
+                            <input type="checkbox" value="ALL" x-model="userForm.assignedAreas" class="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer">
+                            <span class="text-xs font-bold text-slate-700 group-hover:text-indigo-600 transition">Akses Semua Area (ALL)</span>
+                        </label>
+                        <div class="border-t border-slate-200 my-2"></div>
+                        <template x-for="area in getUniqueAreas()" :key="area">
+                            <label class="flex items-center gap-2 mb-2 cursor-pointer group">
+                                <input type="checkbox" :value="area" x-model="userForm.assignedAreas" class="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer">
+                                <span class="text-xs font-medium text-slate-600 group-hover:text-indigo-600 transition" x-text="area"></span>
+                            </label>
+                        </template>
+                    </div>
+                    <p class="text-[9px] text-slate-400 mt-1">* Centang "ALL" agar user dapat mengisi semua form 5R, atau pilih area spesifik untuk membatasi form yang dapat diisi.</p>
                 </div>
                 
                 <!-- Konfigurasi P3K Khusus Role PIC -->
