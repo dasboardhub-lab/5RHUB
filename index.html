@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Monitoring & Audit 5R & P3K</title>
+    <title>Sistem Monitoring & Audit 5R</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Supabase SDK -->
@@ -23,69 +23,32 @@
                 loginId: '',
                 loginPassword: '',
                 currentUser: null,
-                
-                // Module Navigation
-                activeModule: '5r', // '5r' atau 'p3k'
                 adminTab: 'matrix',
-                selectedSemester: 1, // Tambahan state untuk P3K
                 
                 selectedMonth: new Date().getMonth(), 
                 selectedYear: new Date().getFullYear(), 
-                selectedHub: '',
+                selectedHub: 'all',
                 selectedPicId: 'all',
                 
                 toast: { show: false, message: '', type: 'success' },
                 confirmModal: { show: false, title: '', message: '', actionType: '', targetId: null },
 
-                // User Management State
-                userModal: { show: false, isEdit: false },
-                userForm: { userId: '', nama: '', level: 'pic', password: '', hub: '', assignedAreas: ['ALL'], isP3kInspector: false, p3kType: 'A' },
-                
-                // Item Management State
-                itemModal: { show: false, isEdit: false },
+                userForm: { userId: '', nama: '', level: 'pic', password: '', hub: '', assignedAreas: [] },
+                isEditingUser: false,
                 itemForm: { id: '', area: '', deskripsi: '' },
-
-                // 5R Data
+                isEditingItem: false,
+                
+                // Tanggal default selalu hari ini (Local timezone browser)
                 auditModal: { show: false, date: new Date().toISOString().split('T')[0], responses: {} },
+                
                 users: [],
                 activeChecklistItems: [],
                 auditLogs: [],
-
-                // P3K Data (Sesuai PDF)
-                p3kModal: { show: false, week: 1, tipe: 'A', dateFilled: '', responses: {} },
-                p3kLogs: [],
-                p3kItems: [
-                    { id: 'p1', name: 'Kassa Steril', a: 20, b: 40, c: 40 },
-                    { id: 'p2', name: 'Perban (Lebar 5 CM)', a: 2, b: 4, c: 6 },
-                    { id: 'p3', name: 'Perban (Lebar 10 CM)', a: 2, b: 6, c: 4 },
-                    { id: 'p4', name: 'Perban (Lebar 1,25 CM)', a: 2, b: 4, c: 6 },
-                    { id: 'p5', name: 'Plester Cepat', a: 19, b: 15, c: 20 },
-                    { id: 'p6', name: 'Kapas (25 Gram)', a: 1, b: 3, c: 2 },
-                    { id: 'p7', name: 'Kain Segitiga / Mittela', a: 2, b: 4, c: 6 },
-                    { id: 'p8', name: 'Gunting', a: 1, b: 1, c: 1 },
-                    { id: 'p9', name: 'Peniti', a: 12, b: 12, c: 12 },
-                    { id: 'p10', name: 'Sarung Tangan Sekali Pakai', a: 2, b: 4, c: 3 },
-                    { id: 'p11', name: 'Sarung Tangan Pasangan', a: 2, b: 6, c: 4 },
-                    { id: 'p12', name: 'Masker', a: 1, b: 1, c: 1 },
-                    { id: 'p13', name: 'Pinset', a: 1, b: 1, c: 1 },
-                    { id: 'p14', name: 'Lampu Senter', a: 1, b: 1, c: 1 },
-                    { id: 'p15', name: 'Gelas Cuci Mata', a: 1, b: 2, c: 3 },
-                    { id: 'p16', name: 'Kantong Plastik Bersih', a: 1, b: 1, c: 1 },
-                    { id: 'p17', name: 'Akuades (100 ml Lar. Saline)', a: 1, b: 1, c: 1 },
-                    { id: 'p18', name: 'Povidon Iodin (60 ml)', a: 1, b: 1, c: 1 },
-                    { id: 'p19', name: 'Alkohol 70%', a: 1, b: 1, c: 1 },
-                    { id: 'p20', name: 'Buku Panduan P3K', a: 1, b: 1, c: 1 },
-                    { id: 'p21', name: 'Buku Catatan Daftar Isi Kotak', a: 1, b: 1, c: 1 },
-                ],
 
                 init() {
                     this.loadDatabase();
                     this.generateDaysInMonth();
                     this.watcher();
-                },
-
-                get monthsInSemester() {
-                    return this.selectedSemester == 1 ? [0, 1, 2, 3, 4, 5] : [6, 7, 8, 9, 10, 11];
                 },
 
                 get groupedChecklist() {
@@ -118,33 +81,38 @@
                             this.auditModal.responses[item.id] = false; 
                         }
                     });
-                    this.p3kItems.forEach(item => {
-                        if (this.p3kModal.responses[item.id] === undefined) {
-                            this.p3kModal.responses[item.id] = ''; 
-                        }
-                    });
                 },
 
                 async loadDatabase() {
                     const defaultUsers = [
-                        { userId: "admin", nama: "Super Admin", level: "admin", password: "admin", hub: "ALL", assignedAreas: ["ALL"], isP3kInspector: false, p3kType: 'A' },
-                        { userId: "1001", nama: "Sudirman (PIC P3K & 5R)", level: "pic", password: "password123", hub: "HUB MKS", assignedAreas: ["ALL"], isP3kInspector: true, p3kType: 'A' },
-                        { userId: "1002", nama: "Ahmad (Hanya 5R)", level: "pic", password: "password123", hub: "HUB JKT", assignedAreas: ["ALL"], isP3kInspector: false, p3kType: 'B' }
+                        { userId: "admin", nama: "Super Admin", level: "admin", password: "admin", hub: "ALL", assignedAreas: ["ALL"] },
+                        { userId: "1001", nama: "Sudirman (PIC All Area)", level: "pic", password: "password123", hub: "HUB MKS", assignedAreas: ["ALL"] },
+                        { userId: "1002", nama: "Budi Santoso (OB Office)", level: "pic", password: "password123", hub: "HUB MKS", assignedAreas: ["Area Office"] },
+                        { userId: "1003", nama: "Andi (PIC BPP Full Area)", level: "pic", password: "password123", hub: "HUB BPP", assignedAreas: ["ALL"] },
+                        { userId: "1004", nama: "Manager Visitor", level: "visitor", password: "password123", hub: "ALL", assignedAreas: ["ALL"] }
                     ];
 
                     const defaultItems = [
                         { id: "item-1", area: "Area Office", deskripsi: "Menyapu dan mengepel lantai kantor" },
-                        { id: "item-3", area: "Area Operasional", deskripsi: "Membersihkan Lantai Pasca Proses sorting" }
+                        { id: "item-2", area: "Area Office", deskripsi: "Membuang sampah pada tempat sampah kantor" },
+                        { id: "item-3", area: "Area Operasional", deskripsi: "Membersihkan Lantai Pasca Proses sorting" },
+                        { id: "item-4", area: "Area Operasional", deskripsi: "Area Leader dalam keadaan rapi" },
+                        { id: "item-5", area: "Area Holding", deskripsi: "Barang Holding tersimpan rapi sesuai letaknya" },
+                        { id: "item-6", area: "Area Gudang", deskripsi: "Memisahkan barang tidak terpakai dari area operasional" }
+                    ];
+
+                    const defaultLogs = [
+                        { id: "log-1", date: "2026-06-01", picId: "1001", picName: "Sudirman (PIC All Area)", hub: "HUB MKS", answers: { "item-3": true, "item-4": true, "item-5": true } },
+                        { id: "log-2", date: "2026-06-01", picId: "1002", picName: "Budi Santoso (OB Office)", hub: "HUB MKS", answers: { "item-1": true, "item-2": false } }
                     ];
 
                     try {
                         const { data: usersData, error: uErr } = await supabase.from('audit_users').select('*');
                         const { data: itemsData, error: iErr } = await supabase.from('items').select('*');
                         const { data: logsData, error: lErr } = await supabase.from('logs').select('*');
-                        const { data: p3kLogsData, error: pErr } = await supabase.from('p3k_logs').select('*');
 
                         if (uErr || iErr || lErr) {
-                            this.showToast('Supabase Tables missing. Menggunakan Mode Lokal', 'error');
+                            this.showToast('Tabel Supabase belum ditemukan. Menggunakan Mode Lokal', 'error');
                             this.isSupabaseReady = false;
                         } else {
                             this.isSupabaseReady = true;
@@ -158,24 +126,18 @@
                             else { await supabase.from('items').insert(defaultItems); this.activeChecklistItems = defaultItems; }
 
                             if (logsData && logsData.length > 0) this.auditLogs = logsData;
-                            if (p3kLogsData && p3kLogsData.length > 0) this.p3kLogs = p3kLogsData;
-                            else this.p3kLogs = JSON.parse(localStorage.getItem('audit5r_p3klogs_v2')) || [];
+                            else { await supabase.from('logs').insert(defaultLogs); this.auditLogs = defaultLogs; }
                         } else {
-                            this.users = JSON.parse(localStorage.getItem('audit5r_users_v7')) || defaultUsers;
-                            this.activeChecklistItems = JSON.parse(localStorage.getItem('audit5r_items_v7')) || defaultItems;
-                            this.auditLogs = JSON.parse(localStorage.getItem('audit5r_logs_v7')) || [];
-                            this.p3kLogs = JSON.parse(localStorage.getItem('audit5r_p3klogs_v2')) || [];
+                            this.users = JSON.parse(localStorage.getItem('audit5r_users_v6')) || defaultUsers;
+                            this.activeChecklistItems = JSON.parse(localStorage.getItem('audit5r_items_v6')) || defaultItems;
+                            this.auditLogs = JSON.parse(localStorage.getItem('audit5r_logs_v6')) || defaultLogs;
                         }
-
-                        const hubs = this.getUniqueHubs();
-                        if (hubs.length > 0 && this.selectedHub === '') this.selectedHub = hubs[0];
-                        
                     } catch (error) {
+                        this.showToast('Koneksi Gagal. Menggunakan Mode Lokal', 'error');
                         this.isSupabaseReady = false;
-                        this.users = JSON.parse(localStorage.getItem('audit5r_users_v7')) || defaultUsers;
-                        this.activeChecklistItems = JSON.parse(localStorage.getItem('audit5r_items_v7')) || defaultItems;
-                        this.auditLogs = JSON.parse(localStorage.getItem('audit5r_logs_v7')) || [];
-                        this.p3kLogs = JSON.parse(localStorage.getItem('audit5r_p3klogs_v2')) || [];
+                        this.users = JSON.parse(localStorage.getItem('audit5r_users_v6')) || defaultUsers;
+                        this.activeChecklistItems = JSON.parse(localStorage.getItem('audit5r_items_v6')) || defaultItems;
+                        this.auditLogs = JSON.parse(localStorage.getItem('audit5r_logs_v6')) || defaultLogs;
                     }
 
                     this.initResponses();
@@ -183,10 +145,9 @@
                 },
 
                 saveToStorage() {
-                    localStorage.setItem('audit5r_users_v7', JSON.stringify(this.users));
-                    localStorage.setItem('audit5r_items_v7', JSON.stringify(this.activeChecklistItems));
-                    localStorage.setItem('audit5r_logs_v7', JSON.stringify(this.auditLogs));
-                    localStorage.setItem('audit5r_p3klogs_v2', JSON.stringify(this.p3kLogs));
+                    localStorage.setItem('audit5r_users_v6', JSON.stringify(this.users));
+                    localStorage.setItem('audit5r_items_v6', JSON.stringify(this.activeChecklistItems));
+                    localStorage.setItem('audit5r_logs_v6', JSON.stringify(this.auditLogs));
                 },
 
                 showToast(message, type = 'success') {
@@ -208,13 +169,13 @@
                     if (this.confirmModal.actionType === 'deleteUser') this.executeDeleteUser(this.confirmModal.targetId);
                     if (this.confirmModal.actionType === 'deleteItem') this.executeDeleteItem(this.confirmModal.targetId);
                     if (this.confirmModal.actionType === 'submitAudit') this.executeSubmitAudit();
-                    if (this.confirmModal.actionType === 'submitP3k') this.executeSubmitP3k();
                     this.confirmModal.show = false;
                 },
 
                 handleLogin() {
                     const uId = this.loginId.trim().toLowerCase();
                     const uPass = this.loginPassword.trim();
+                    
                     const matchedUser = this.users.find(u => u.userId.toLowerCase() === uId && u.password === uPass);
                     if (matchedUser) {
                         this.userRole = matchedUser.level;
@@ -233,88 +194,97 @@
                     this.showToast('Kamu telah keluar dari sistem');
                 },
 
-                /* --- Admin: User Management --- */
-                openAddUserModal() {
-                    this.userForm = { userId: '', nama: '', level: 'pic', password: '', hub: '', assignedAreas: ['ALL'], isP3kInspector: false, p3kType: 'A' };
-                    this.userModal.isEdit = false;
-                    this.userModal.show = true;
-                },
-                openEditUserModal(user) {
-                    this.userForm = { ...user };
-                    this.userModal.isEdit = true;
-                    this.userModal.show = true;
-                },
                 async saveUser() {
-                    const isNew = !this.userModal.isEdit;
-                    if (isNew) {
-                        if (this.users.find(u => u.userId === this.userForm.userId)) {
-                            this.showToast('ID Pengguna sudah ada', 'error');
+                    // Validasi: Cegah penggunaan huruf pada ID jika bukan admin
+                    const uId = this.userForm.userId.trim().toLowerCase();
+                    if (uId !== 'admin' && !/^\d+$/.test(uId)) {
+                        this.showToast('ID Pengguna harus berupa Angka!', 'error');
+                        return;
+                    }
+
+                    if (this.userForm.assignedAreas.includes('ALL')) {
+                        this.userForm.assignedAreas = ['ALL'];
+                    }
+
+                    const payload = { ...this.userForm, userId: uId };
+
+                    if (this.isEditingUser) {
+                        if (this.isSupabaseReady) await supabase.from('audit_users').update(payload).eq('userId', uId);
+                        const index = this.users.findIndex(u => u.userId === uId);
+                        if (index !== -1) this.users[index] = payload;
+                        this.showToast('Profil pengguna diperbarui');
+                    } else {
+                        if (this.users.some(u => u.userId.toLowerCase() === uId)) {
+                            this.showToast('ID Pengguna sudah digunakan', 'error');
                             return;
                         }
-                        this.users.push({ ...this.userForm });
-                        if (this.isSupabaseReady) await supabase.from('audit_users').insert([this.userForm]);
-                        this.showToast('Pengguna berhasil ditambahkan');
-                    } else {
-                        const index = this.users.findIndex(u => u.userId === this.userForm.userId);
-                        if (index !== -1) {
-                            this.users[index] = { ...this.userForm };
-                            if (this.isSupabaseReady) await supabase.from('audit_users').update(this.userForm).eq('userId', this.userForm.userId);
-                            this.showToast('Data pengguna diperbarui');
-                        }
+                        if (this.isSupabaseReady) await supabase.from('audit_users').insert([payload]);
+                        this.users.push(payload);
+                        this.showToast('Pengguna baru ditambahkan');
                     }
                     this.saveToStorage();
-                    this.userModal.show = false;
+                    this.cancelEditUser();
                 },
+
+                startEditUser(user) {
+                    this.isEditingUser = true;
+                    const areas = Array.isArray(user.assignedAreas) ? user.assignedAreas : ['ALL'];
+                    this.userForm = { ...user, assignedAreas: [...areas] };
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                },
+
+                cancelEditUser() {
+                    this.isEditingUser = false;
+                    this.userForm = { userId: '', nama: '', level: 'pic', password: '', hub: '', assignedAreas: [] };
+                },
+
                 async executeDeleteUser(userId) {
-                    this.users = this.users.filter(u => u.userId !== userId);
                     if (this.isSupabaseReady) await supabase.from('audit_users').delete().eq('userId', userId);
+                    this.users = this.users.filter(u => u.userId !== userId);
                     this.saveToStorage();
                     this.showToast('Pengguna dihapus');
                 },
 
-                /* --- Item 5R Management --- */
-                openAddItemModal() {
-                    this.itemForm = { id: '', area: '', deskripsi: '' };
-                    this.itemModal.isEdit = false;
-                    this.itemModal.show = true;
-                },
-                openEditItemModal(item) {
-                    this.itemForm = { ...item };
-                    this.itemModal.isEdit = true;
-                    this.itemModal.show = true;
-                },
                 async saveItem() {
-                    const isNew = !this.itemModal.isEdit;
-                    if (isNew) {
-                        this.itemForm.id = 'item-' + Date.now();
-                        this.activeChecklistItems.push({ ...this.itemForm });
-                        if (this.isSupabaseReady) await supabase.from('items').insert([this.itemForm]);
-                        this.showToast('Tugas ditambahkan');
+                    const payload = { ...this.itemForm };
+                    if (this.isEditingItem) {
+                        if (this.isSupabaseReady) await supabase.from('items').update(payload).eq('id', payload.id);
+                        const index = this.activeChecklistItems.findIndex(i => i.id === payload.id);
+                        if (index !== -1) this.activeChecklistItems[index] = payload;
+                        this.showToast('Parameter checklist berhasil diubah');
                     } else {
-                        const index = this.activeChecklistItems.findIndex(i => i.id === this.itemForm.id);
-                        if (index !== -1) {
-                            this.activeChecklistItems[index] = { ...this.itemForm };
-                            if (this.isSupabaseReady) await supabase.from('items').update(this.itemForm).eq('id', this.itemForm.id);
-                            this.showToast('Tugas diperbarui');
-                        }
+                        payload.id = 'item-' + Date.now();
+                        if (this.isSupabaseReady) await supabase.from('items').insert([payload]);
+                        this.activeChecklistItems.push(payload);
+                        this.initResponses();
+                        this.showToast('Parameter checklist berhasil ditambahkan');
                     }
                     this.saveToStorage();
-                    this.initResponses();
-                    this.itemModal.show = false;
+                    this.cancelEditItem();
                 },
-                async executeDeleteItem(itemId) {
-                    this.activeChecklistItems = this.activeChecklistItems.filter(i => i.id !== itemId);
-                    if (this.isSupabaseReady) await supabase.from('items').delete().eq('id', itemId);
+
+                startEditItem(item) {
+                    this.isEditingItem = true;
+                    this.itemForm = { ...item };
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                },
+
+                cancelEditItem() {
+                    this.isEditingItem = false;
+                    this.itemForm = { id: '', area: '', deskripsi: '' };
+                },
+
+                async executeDeleteItem(id) {
+                    if (this.isSupabaseReady) await supabase.from('items').delete().eq('id', id);
+                    this.activeChecklistItems = this.activeChecklistItems.filter(item => item.id !== id);
                     this.saveToStorage();
-                    this.showToast('Tugas dihapus');
+                    this.showToast('Parameter dihapus');
                 },
 
-
-                /* --- 5R Logic --- */
                 openAuditModal() {
-                    this.auditModal.date = new Date().toLocaleDateString('en-CA').split('T')[0]; 
-                    const targetHub = (this.userRole === 'admin' && this.selectedHub !== 'all') ? this.selectedHub : this.currentUser.hub;
-                    const existingLog = this.auditLogs.find(log => log.date === this.auditModal.date && log.picId === this.currentUser.userId && log.hub === targetHub);
+                    // Paksa tanggal selalu menyesuaikan hari ini (sesuai browser/perangkat)
+                    this.auditModal.date = new Date().toLocaleDateString('en-CA').split('T')[0]; // YYYY-MM-DD
+                    const existingLog = this.auditLogs.find(log => log.date === this.auditModal.date && log.picId === this.currentUser.userId);
                     
                     this.auditModal.responses = {};
                     this.activeChecklistItems.forEach(item => {
@@ -324,8 +294,8 @@
                 },
 
                 async executeSubmitAudit() {
-                    const targetHub = (this.userRole === 'admin' && this.selectedHub !== 'all') ? this.selectedHub : this.currentUser.hub;
-                    const existingLogIndex = this.auditLogs.findIndex(log => log.date === this.auditModal.date && log.picId === this.currentUser.userId && log.hub === targetHub);
+                    const existingLogIndex = this.auditLogs.findIndex(log => log.date === this.auditModal.date && log.picId === this.currentUser.userId);
+                    
                     const filteredResponses = {};
                     for (const area in this.allowedChecklistGroups) {
                         this.allowedChecklistGroups[area].forEach(item => {
@@ -334,213 +304,207 @@
                     }
 
                     const logId = existingLogIndex !== -1 ? this.auditLogs[existingLogIndex].id : 'log-' + Date.now();
-                    const newLog = { id: logId, date: this.auditModal.date, picId: this.currentUser.userId, picName: this.currentUser.nama, hub: targetHub, answers: filteredResponses };
+                    const newLog = {
+                        id: logId,
+                        date: this.auditModal.date,
+                        picId: this.currentUser.userId,
+                        picName: this.currentUser.nama,
+                        hub: this.currentUser.hub,
+                        answers: filteredResponses
+                    };
 
                     if (existingLogIndex !== -1) {
                         if (this.isSupabaseReady) await supabase.from('logs').update(newLog).eq('id', logId);
                         this.auditLogs[existingLogIndex] = newLog;
-                        this.showToast('Ceklis 5R diperbarui');
+                        this.showToast('Ceklis audit diperbarui');
                     } else {
                         if (this.isSupabaseReady) await supabase.from('logs').insert([newLog]);
                         this.auditLogs.push(newLog);
-                        this.showToast('Ceklis 5R harian disimpan');
+                        this.showToast('Ceklis harian disimpan');
                     }
+
                     this.saveToStorage();
                     this.auditModal.show = false;
                 },
 
-                /* --- P3K Logic --- */
-                calculateCurrentWeek() {
-                    const today = new Date();
-                    const date = today.getDate();
-                    return Math.ceil(date / 7) > 5 ? 5 : Math.ceil(date / 7);
-                },
+                // Fitur Inline Edit Khusus Admin (Klik Pada Sel Tabel)
+                async toggleAdminCheck(itemId, dateString) {
+                    if (this.userRole !== 'admin') return;
 
-                openP3kModal() {
-                    // Otomatis deteksi minggu dari tanggal saat ini
-                    this.p3kModal.week = this.calculateCurrentWeek();
-                    // Otomatis deteksi tipe dari konfigurasi admin untuk user ini
-                    this.p3kModal.tipe = this.currentUser.p3kType || 'A';
-                    this.p3kModal.month = new Date().getMonth(); // Menyimpan data spesifik di bulan pengisian
+                    let logsOnDate = this.auditLogs.filter(l => l.date === dateString);
                     
-                    // Simpan tanggal pengisian aktual
-                    const today = new Date();
-                    this.p3kModal.dateFilled = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth()+1).toString().padStart(2, '0')}/${today.getFullYear()}`;
-
-                    this.loadP3kExistingLog();
-                    this.p3kModal.show = true;
-                },
-
-                adminEditP3k(monthNum, weekNum) {
-                    if(this.userRole !== 'admin') return;
-                    
-                    if(this.selectedHub === 'all') {
-                        this.showToast('Harap pilih Filter Lokasi HUB spesifik terlebih dahulu untuk mengedit data.', 'error');
-                        return;
+                    if (this.selectedHub !== 'all') {
+                        logsOnDate = logsOnDate.filter(l => l.hub === this.selectedHub);
+                    }
+                    if (this.selectedPicId !== 'all') {
+                        logsOnDate = logsOnDate.filter(l => l.picId === this.selectedPicId);
                     }
 
-                    this.p3kModal.month = monthNum;
-                    this.p3kModal.week = weekNum;
-                    
-                    const existingLog = this.getP3kLogForPeriod(monthNum, weekNum);
-                    this.p3kModal.tipe = existingLog ? existingLog.tipeKotak : 'A';
-                    
-                    if (!existingLog) {
-                        const today = new Date();
-                        this.p3kModal.dateFilled = `${today.getDate().toString().padStart(2, '0')}/${(parseInt(monthNum)+1).toString().padStart(2, '0')}/${this.selectedYear}`;
+                    let targetLog = null;
+
+                    if (logsOnDate.length > 0) {
+                        // Jika log sudah ada, ambil log pertama dan balik valuenya
+                        targetLog = logsOnDate[0];
+                        const currentStatus = targetLog.answers[itemId] === true;
+                        targetLog.answers[itemId] = !currentStatus; // Toggle
+                        
+                        if (this.isSupabaseReady) {
+                            await supabase.from('logs').update({ answers: targetLog.answers }).eq('id', targetLog.id);
+                        }
                     } else {
-                        this.p3kModal.dateFilled = existingLog.dateFilled;
+                        // Jika log belum ada pada tanggal itu, buat log Override khusus Admin
+                        const newLogId = 'log-' + Date.now();
+                        targetLog = {
+                            id: newLogId,
+                            date: dateString,
+                            picId: this.currentUser.userId, // ID Admin
+                            picName: this.currentUser.nama + " (Admin Override)",
+                            hub: this.selectedHub !== 'all' ? this.selectedHub : 'ALL',
+                            answers: { [itemId]: true } // Otomatis True karena diklik
+                        };
+                        this.auditLogs.push(targetLog);
+                        
+                        if (this.isSupabaseReady) {
+                            await supabase.from('logs').insert([targetLog]);
+                        }
                     }
-
-                    this.loadP3kExistingLog();
-                    this.p3kModal.show = true;
-                },
-
-                loadP3kExistingLog() {
-                    const existingLog = this.getP3kLogForPeriod(this.p3kModal.month, this.p3kModal.week);
-
-                    this.p3kModal.responses = {};
-                    if(existingLog) {
-                        this.p3kItems.forEach(item => {
-                            this.p3kModal.responses[item.id] = existingLog.answers[item.id] !== undefined ? existingLog.answers[item.id] : '';
-                        });
-                    } else {
-                        this.p3kItems.forEach(item => {
-                            this.p3kModal.responses[item.id] = '';
-                        });
-                    }
-                },
-
-                async executeSubmitP3k() {
-                    const targetHub = (this.userRole === 'admin' && this.selectedHub !== 'all') ? this.selectedHub : this.currentUser.hub;
                     
-                    const existingLog = this.getP3kLogForPeriod(this.p3kModal.month, this.p3kModal.week);
-                    let existingLogIndex = -1;
-                    if(existingLog) {
-                        existingLogIndex = this.p3kLogs.findIndex(l => l.id === existingLog.id);
-                    }
-
-                    const logId = existingLogIndex !== -1 ? this.p3kLogs[existingLogIndex].id : 'p3k-' + Date.now();
-                    
-                    let parsedResponses = {};
-                    for(let key in this.p3kModal.responses) {
-                        parsedResponses[key] = this.p3kModal.responses[key] === '' ? 0 : parseInt(this.p3kModal.responses[key]);
-                    }
-
-                    const picIdToSave = existingLog ? existingLog.picId : this.currentUser.userId;
-                    const picNameToSave = existingLog ? existingLog.picName : this.currentUser.nama;
-                    const hubToSave = existingLog ? existingLog.hub : targetHub;
-
-                    const newLog = {
-                        id: logId,
-                        year: this.selectedYear,
-                        month: this.p3kModal.month,
-                        week: this.p3kModal.week,
-                        tipeKotak: this.p3kModal.tipe,
-                        picId: picIdToSave,
-                        picName: picNameToSave,
-                        hub: hubToSave,
-                        dateFilled: this.p3kModal.dateFilled,
-                        answers: parsedResponses
-                    };
-
-                    if (existingLogIndex !== -1) {
-                        if (this.isSupabaseReady) await supabase.from('p3k_logs').update(newLog).eq('id', logId).catch(()=>console.log("Supabase error"));
-                        this.p3kLogs[existingLogIndex] = newLog;
-                        this.showToast('Inspeksi P3K diperbarui');
-                    } else {
-                        if (this.isSupabaseReady) await supabase.from('p3k_logs').insert([newLog]).catch(()=>console.log("Supabase error"));
-                        this.p3kLogs.push(newLog);
-                        this.showToast('Inspeksi P3K disimpan');
-                    }
                     this.saveToStorage();
-                    this.p3kModal.show = false;
                 },
 
-                getP3kLogForPeriod(monthNum, weekNum) {
-                    let logsForPeriod = this.p3kLogs.filter(log => 
-                        log.year == this.selectedYear && 
-                        log.month == monthNum && 
-                        log.week == weekNum
-                    );
-
-                    if (this.userRole === 'pic') {
-                        logsForPeriod = logsForPeriod.filter(log => log.hub === this.currentUser.hub && log.picId === this.currentUser.userId);
-                    } else {
-                        if (this.selectedHub !== 'all') logsForPeriod = logsForPeriod.filter(log => log.hub === this.selectedHub);
-                        if (this.selectedPicId !== 'all') logsForPeriod = logsForPeriod.filter(log => log.picId === this.selectedPicId);
-                    }
-                    return logsForPeriod.length > 0 ? logsForPeriod[0] : null;
-                },
-
-                getP3kStatus(itemId, monthNum, weekNum) {
-                    const log = this.getP3kLogForPeriod(monthNum, weekNum);
-                    if (!log) return '<span class="text-slate-300">-</span>';
-
-                    const qty = log.answers[itemId] !== undefined ? log.answers[itemId] : 0;
-                    const tipe = log.tipeKotak.toLowerCase(); 
-                    const stdItem = this.p3kItems.find(i => i.id === itemId);
-                    const stdValue = stdItem ? stdItem[tipe] : 0;
-
-                    if (qty >= stdValue) {
-                        return `<span class="text-emerald-600 font-bold">${qty}</span>`;
-                    } else {
-                        return `<span class="text-rose-600 font-bold">${qty}</span> <span class="text-[8px] text-rose-400">/${stdValue}</span>`;
-                    }
-                },
-
-                getP3kMeta(monthNum, weekNum, field) {
-                    const log = this.getP3kLogForPeriod(monthNum, weekNum);
-                    if (!log) return '-';
-                    if(field === 'picName') return log[field].split(' ')[0]; // Ambil nama panggilan untuk menghemat layout
-                    return log[field] || '-';
-                },
-
-                /* --- Utility & Watchers --- */
                 daysInMonthArray: [],
                 generateDaysInMonth() {
                     this.daysInMonthArray = [];
                     const daysInMonth = new Date(this.selectedYear, parseInt(this.selectedMonth) + 1, 0).getDate();
                     const dayLabels = ['MIN', 'SEN', 'SEL', 'RAB', 'KAM', 'JUM', 'SAB'];
+
                     for (let dayNum = 1; dayNum <= daysInMonth; dayNum++) {
                         const dateObj = new Date(this.selectedYear, parseInt(this.selectedMonth), dayNum);
                         const dayIndex = dateObj.getDay(); 
                         const dateString = `${this.selectedYear}-${String(parseInt(this.selectedMonth) + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
-                        this.daysInMonthArray.push({ dayNum, dayName: dayLabels[dayIndex], isSunday: dayIndex === 0, dateString });
+
+                        this.daysInMonthArray.push({
+                            dayNum,
+                            dayName: dayLabels[dayIndex],
+                            isSunday: dayIndex === 0,
+                            dateString
+                        });
                     }
                 },
 
                 watcher() {
                     this.$watch('selectedMonth', () => this.generateDaysInMonth());
                     this.$watch('selectedYear', () => this.generateDaysInMonth());
-                    this.$watch('p3kModal.week', () => this.loadP3kExistingLog());
                 },
 
                 getMonthName(monthNum) {
                     const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
                     return months[monthNum];
                 },
-                getUniqueHubs() { return [...new Set(this.users.filter(u => u.level === 'pic' && u.hub).map(u => u.hub))]; },
-                
+
+                getUserName(userId) {
+                    const usr = this.users.find(u => u.userId === userId);
+                    return usr ? usr.nama : 'Unknown';
+                },
+
+                getUniqueAreas() {
+                    const areas = this.activeChecklistItems.map(item => item.area);
+                    return [...new Set(areas)];
+                },
+
+                getUniqueHubs() {
+                    const hubs = this.users.filter(u => u.level === 'pic' && u.hub).map(u => u.hub);
+                    return [...new Set(hubs)];
+                },
+
+                getRoleBadgeClass(level) {
+                    switch (level) {
+                        case 'admin': return 'bg-amber-100 text-amber-800 border-amber-200';
+                        case 'pic': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+                        case 'visitor': return 'bg-blue-100 text-blue-800 border-blue-200';
+                        default: return 'bg-slate-100 text-slate-800';
+                    }
+                },
+
                 getCombinedAuditStatus(itemId, dateString) {
                     let logsForDate = this.auditLogs.filter(log => log.date === dateString);
-                    if (this.userRole === 'pic') logsForDate = logsForDate.filter(log => log.hub === this.currentUser.hub);
-                    else {
-                        if (this.selectedHub !== 'all') logsForDate = logsForDate.filter(log => log.hub === this.selectedHub);
-                        if (this.selectedPicId !== 'all') logsForDate = logsForDate.filter(log => log.picId === this.selectedPicId);
+
+                    if (this.userRole === 'pic') {
+                        logsForDate = logsForDate.filter(log => log.hub === this.currentUser.hub);
+                    } else {
+                        if (this.selectedHub !== 'all') {
+                            logsForDate = logsForDate.filter(log => log.hub === this.selectedHub);
+                        }
+                        if (this.selectedPicId !== 'all') {
+                            logsForDate = logsForDate.filter(log => log.picId === this.selectedPicId);
+                        }
                     }
+
                     if (logsForDate.length === 0) return '';
-                    let hasChecked = logsForDate.some(log => log.answers[itemId] === true);
+
+                    let hasChecked = false;
+                    
+                    logsForDate.forEach(log => {
+                        if (log.answers[itemId] === true) {
+                            hasChecked = true;
+                        }
+                    });
+
                     return hasChecked ? '<span class="text-emerald-500 font-bold text-base"><i class="ph ph-check-circle"></i></span>' : ''; 
                 },
 
-                printReport() { window.print(); }
+                exportCSV() {
+                    let csvContent = "data:text/csv;charset=utf-8,";
+                    csvContent += "No,Area,Item Ceklis,";
+                    this.daysInMonthArray.forEach(day => {
+                        csvContent += `${day.dayName} ${day.dayNum},`;
+                    });
+                    csvContent += "\r\n";
+
+                    const groups = this.groupedChecklist;
+                    for (const area in groups) {
+                        groups[area].forEach((item) => {
+                            let row = `${item.globalIndex},${item.area.toUpperCase()},"${item.deskripsi}",`;
+                            this.daysInMonthArray.forEach(day => {
+                                let logsForDate = this.auditLogs.filter(log => log.date === day.dateString);
+                                
+                                if (this.userRole === 'pic') {
+                                    logsForDate = logsForDate.filter(log => log.hub === this.currentUser.hub);
+                                } else {
+                                    if (this.selectedHub !== 'all') logsForDate = logsForDate.filter(log => log.hub === this.selectedHub);
+                                    if (this.selectedPicId !== 'all') logsForDate = logsForDate.filter(log => log.picId === this.selectedPicId);
+                                }
+
+                                if (logsForDate.length === 0) {
+                                    row += ","; 
+                                } else {
+                                    let hasChecked = logsForDate.some(log => log.answers[item.id] === true);
+                                    row += hasChecked ? "V," : ","; 
+                                }
+                            });
+                            csvContent += row + "\r\n";
+                        });
+                    }
+
+                    const encodedUri = encodeURI(csvContent);
+                    const link = document.createElement("a");
+                    link.setAttribute("href", encodedUri);
+                    link.setAttribute("download", `Laporan_Audit_5R_${this.getMonthName(this.selectedMonth)}_${this.selectedYear}.csv`);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                },
+
+                printReport() {
+                    window.print();
+                }
             }));
         });
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <style>
         [x-cloak] { display: none !important; }
+        
         @media print {
             body { background-color: #ffffff; color: #000000; font-size: 10px; margin: 0; padding: 0; }
             .no-print { display: none !important; }
@@ -549,46 +513,55 @@
             th, td { padding: 2px 4px !important; font-size: 8px !important; border: 1px solid #000000 !important; }
             @page { size: landscape; margin: 0.5cm; }
         }
+        
         .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 10px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-        input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
+        input, select, textarea { transition: all 0.2s ease-in-out; }
     </style>
 </head>
 <body class="bg-slate-50 font-sans text-slate-800 min-h-screen flex flex-col" x-data="auditApp" x-cloak>
 
-    <!-- Toasts -->
-    <div class="fixed top-6 left-1/2 transform -translate-x-1/2 z-[100] no-print" x-show="toast.show" x-transition x-cloak>
+    <div class="fixed top-6 left-1/2 transform -translate-x-1/2 z-[100] no-print" 
+         x-show="toast.show" 
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0 -translate-y-8 scale-90"
+         x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+         x-transition:leave-end="opacity-0 -translate-y-8 scale-90"
+         x-cloak>
         <div class="bg-slate-900 text-white px-6 py-3 rounded-full shadow-2xl flex items-center space-x-3 border border-slate-700 min-w-[200px] justify-center">
             <i class="ph text-xl" :class="toast.type === 'success' ? 'ph-check-circle text-emerald-400' : 'ph-warning-circle text-rose-400'"></i>
             <span x-text="toast.message" class="font-medium text-sm md:text-base whitespace-nowrap"></span>
         </div>
     </div>
 
-    <!-- Header -->
     <header class="bg-white border-b border-slate-200 shadow-sm no-print sticky top-0 z-40">
-        <div class="max-w-7xl mx-auto px-4 md:px-5 py-3 md:py-4 flex flex-row justify-between items-center gap-3">
-            <div class="flex items-center space-x-3">
-                <div class="bg-indigo-600 text-white p-2.5 rounded-xl font-black text-xl tracking-wider shadow-md hidden sm:block">QMS</div>
+        <div class="max-w-7xl mx-auto px-5 py-4 flex flex-col sm:flex-row justify-between items-center gap-4 sm:gap-0">
+            <div class="flex items-center space-x-3 w-full sm:w-auto justify-center sm:justify-start">
+                <div class="bg-indigo-600 text-white p-2.5 rounded-xl font-black text-xl tracking-wider shadow-md shadow-indigo-200">5R</div>
                 <div>
-                    <h1 class="text-sm md:text-lg font-bold tracking-tight text-slate-900 flex items-center gap-2">
-                        Audit System
+                    <h1 class="text-base md:text-lg font-bold tracking-tight text-slate-900 flex items-center gap-2">
+                        Audit Daily
                         <span x-show="isSupabaseReady" class="bg-emerald-100 text-emerald-700 border border-emerald-200 text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Online</span>
                         <span x-show="!isSupabaseReady" class="bg-amber-100 text-amber-700 border border-amber-200 text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Lokal</span>
                     </h1>
+                    <p class="text-xs text-slate-500 font-medium">Daily ceklis 5R HUB Under Kalsulamp</p>
                 </div>
             </div>
-            <div class="flex items-center">
+            <div class="flex items-center space-x-4 w-full sm:w-auto justify-center sm:justify-end">
                 <template x-if="userRole === 'guest'">
                     <span class="text-xs bg-slate-100 px-4 py-2 rounded-full text-slate-500 font-semibold border border-slate-200">Silakan Masuk</span>
                 </template>
                 <template x-if="userRole !== 'guest'">
-                    <div class="flex items-center gap-4 bg-slate-50 pl-5 pr-1.5 py-1.5 rounded-full border border-slate-200 shadow-sm">
-                        <div class="text-right hidden md:block">
+                    <div class="flex items-center space-x-4 bg-slate-50 pl-5 pr-1.5 py-1.5 rounded-full border border-slate-200 shadow-sm">
+                        <div class="text-right hidden sm:block">
                             <p class="text-xs font-bold text-slate-800" x-text="currentUser?.nama"></p>
                         </div>
-                        <button @click="logout()" class="text-xs bg-white border border-slate-200 text-slate-600 hover:text-rose-600 hover:border-rose-200 p-2 rounded-full transition flex items-center justify-center shadow-sm">
+                        <button @click="logout()" class="text-xs bg-white border border-slate-200 text-slate-600 hover:text-rose-600 hover:border-rose-200 p-2 rounded-full transition flex items-center justify-center shadow-sm" title="Keluar">
                             <i class="ph ph-sign-out text-base"></i>
                         </button>
                     </div>
@@ -599,79 +572,97 @@
 
     <main class="flex-grow max-w-7xl w-full mx-auto p-4 md:p-6 print-container">
         
-        <!-- Login Form -->
-        <div x-show="userRole === 'guest'" class="max-w-md mx-auto mt-20 bg-white rounded-3xl shadow-xl shadow-slate-200/50 p-10 border border-slate-100 no-print" x-transition>
+        <div x-show="userRole === 'guest'" class="max-w-md mx-auto mt-12 md:mt-20 bg-white rounded-3xl shadow-xl shadow-slate-200/50 p-8 md:p-10 border border-slate-100 no-print" x-transition>
             <div class="text-center mb-8">
                 <div class="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
                     <i class="ph ph-lock-key text-3xl"></i>
                 </div>
                 <h2 class="text-2xl font-black text-slate-800">Masuk Sistem</h2>
+                <p class="text-slate-500 text-sm mt-2 font-medium">Gunakan kredensial Kamu untuk akses</p>
             </div>
+
             <form @submit.prevent="handleLogin()">
                 <div class="space-y-5">
                     <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase mb-2">ID Pengguna</label>
-                        <input type="text" x-model="loginId" class="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition text-sm font-medium" placeholder="Contoh: 1001 / admin" required>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-2">ID Pengguna (Angka)</label>
+                        <div class="relative">
+                            <i class="ph ph-user absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 text-lg"></i>
+                            <input type="text" x-model="loginId" class="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition text-sm font-medium" placeholder="Contoh: 1002 / admin" required>
+                        </div>
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-600 uppercase mb-2">Kata Sandi</label>
-                        <input type="password" x-model="loginPassword" class="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition text-sm font-medium" required>
+                        <div class="relative">
+                            <i class="ph ph-lock absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 text-lg"></i>
+                            <input type="password" x-model="loginPassword" class="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition text-sm font-medium" placeholder="Masukkan kata sandi" required>
+                        </div>
                     </div>
-                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-2xl shadow-lg mt-4 flex justify-center items-center gap-2">
-                        <span>Masuk Sekarang</span><i class="ph ph-arrow-right font-bold"></i>
+                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-2xl shadow-lg shadow-indigo-200 transition mt-4 flex justify-center items-center gap-2">
+                        <span>Masuk Sekarang</span>
+                        <i class="ph ph-arrow-right font-bold"></i>
                     </button>
                 </div>
             </form>
         </div>
 
-        <!-- Dashboard PIC -->
-        <div x-show="userRole === 'pic'" class="space-y-8 no-print" x-transition x-cloak>
-            <div class="bg-gradient-to-r from-indigo-600 to-blue-600 p-8 rounded-3xl shadow-xl text-white flex flex-col md:flex-row justify-between items-center gap-6">
-                <div class="w-full md:w-auto text-left">
-                    <div class="flex items-center gap-2 mb-3">
-                        <span class="text-[10px] font-bold text-indigo-100 uppercase bg-white/20 px-2 py-1.5 rounded-md border border-white/20">Panel PIC</span>
-                        <div class="flex gap-1 bg-white/10 p-1 rounded-lg border border-white/20">
-                            <button @click="activeModule = '5r'" :class="activeModule === '5r' ? 'bg-white text-indigo-600 shadow-sm' : 'text-indigo-100 hover:text-white'" class="px-3 py-1 text-[10px] font-bold rounded-md transition">5R Harian</button>
-                            <button @click="activeModule = 'p3k'" :class="activeModule === 'p3k' ? 'bg-white text-indigo-600 shadow-sm' : 'text-indigo-100 hover:text-white'" class="px-3 py-1 text-[10px] font-bold rounded-md transition">Kotak P3K</button>
-                        </div>
-                    </div>
-                    <h2 class="text-3xl font-black" x-text="'Halo, ' + currentUser?.nama"></h2>
-                    <p class="text-indigo-100 text-sm mt-2 flex items-center gap-2"><i class="ph ph-map-pin"></i> <span class="font-bold" x-text="currentUser?.hub"></span></p>
+        <div x-show="userRole === 'pic'" class="space-y-6 md:space-y-8 no-print" x-transition x-cloak>
+            <div class="bg-gradient-to-r from-indigo-600 to-blue-600 p-6 md:p-8 rounded-3xl shadow-xl text-white flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                <div>
+                    <span class="text-[10px] md:text-xs font-bold text-indigo-100 uppercase tracking-wider bg-white/20 px-3 py-1.5 rounded-lg border border-white/20">Panel PIC</span>
+                    <h2 class="text-2xl md:text-3xl font-black mt-3" x-text="'Halo, ' + currentUser?.nama"></h2>
+                    <p class="text-indigo-100 text-sm mt-2 flex items-center gap-2">
+                        <i class="ph ph-map-pin"></i> <span class="font-bold" x-text="currentUser?.hub"></span>
+                        <span class="opacity-50">|</span>
+                        <i class="ph ph-shield-check"></i> <span x-text="currentUser?.assignedAreas?.includes('ALL') ? 'Semua Area' : currentUser?.assignedAreas?.join(', ')"></span>
+                    </p>
                 </div>
-                <!-- Action Button changes based on active module -->
-                <button x-show="activeModule === '5r'" @click="openAuditModal()" class="w-full md:w-auto bg-white text-indigo-600 hover:bg-slate-50 px-6 py-4 rounded-2xl font-black shadow-lg flex items-center justify-center space-x-2 transition transform hover:scale-105">
-                    <i class="ph ph-clipboard-text text-xl"></i><span>Input Ceklis 5R</span>
+                <button @click="openAuditModal()" class="w-full md:w-auto bg-white text-indigo-600 hover:bg-slate-50 px-6 py-4 rounded-2xl font-black shadow-lg flex items-center justify-center space-x-2 transition transform hover:scale-105">
+                    <i class="ph ph-clipboard-text text-xl"></i>
+                    <span>Input Ceklis Hari Ini</span>
                 </button>
-                <button x-show="activeModule === 'p3k' && currentUser?.isP3kInspector" @click="openP3kModal()" class="w-full md:w-auto bg-white text-rose-600 hover:bg-slate-50 px-6 py-4 rounded-2xl font-black shadow-lg flex items-center justify-center space-x-2 transition transform hover:scale-105">
-                    <i class="ph ph-first-aid text-xl"></i><span>Inspeksi P3K Minggu Ini</span>
-                </button>
-                <!-- Jika bukan inspektur P3K -->
-                <div x-show="activeModule === 'p3k' && !currentUser?.isP3kInspector" class="bg-white/20 px-4 py-3 rounded-xl border border-white/30 flex items-center gap-2 text-sm font-medium">
-                    <i class="ph ph-info"></i> Anda tidak memiliki akses pengisian P3K.
-                </div>
             </div>
 
-            <!-- View Tabel PIC 5R -->
-            <div x-show="activeModule === '5r'" class="bg-white p-5 md:p-8 rounded-3xl shadow-xl border border-slate-100">
-                <h3 class="text-lg font-black text-slate-800 mb-6"><i class="ph ph-calendar-check text-indigo-600"></i> Progress 5R</h3>
+            <div class="bg-white p-5 md:p-8 rounded-3xl shadow-xl shadow-slate-200/40 border border-slate-100">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="p-2 bg-indigo-50 text-indigo-600 rounded-xl"><i class="ph ph-calendar-check text-xl"></i></div>
+                    <h3 class="text-lg font-black text-slate-800" x-text="'Progress ' + currentUser?.hub"></h3>
+                </div>
                 <div class="overflow-x-auto custom-scrollbar border border-slate-200 rounded-2xl">
-                    <table class="w-full text-left border-collapse min-w-[800px]">
+                    <table class="w-full text-left border-collapse min-w-[800px] md:min-w-[1000px]">
                         <thead>
                             <tr class="bg-slate-50 border-b border-slate-200">
-                                <th rowspan="2" class="p-3 text-xs font-bold text-slate-600 uppercase min-w-[200px] border-r border-slate-200 align-middle sticky left-0 z-20 bg-slate-50 shadow-[1px_0_0_#e2e8f0]">ITEM TUGAS 5R</th>
-                                <template x-for="day in daysInMonthArray"><th :class="day.isSunday ? 'bg-rose-50 text-rose-500' : 'text-slate-500'" class="py-1.5 text-[9px] font-bold text-center border-l w-8 border-b" x-text="day.dayName"></th></template>
+                                <th rowspan="2" class="p-3 text-[10px] md:text-xs font-bold text-slate-600 uppercase w-10 min-w-[40px] text-center border-r border-slate-200 align-middle sticky left-0 z-20 bg-slate-50 shadow-[1px_0_0_#e2e8f0]">No</th>
+                                <th rowspan="2" class="p-3 text-[10px] md:text-xs font-bold text-slate-600 uppercase min-w-[200px] border-r border-slate-200 align-middle sticky left-[40px] md:left-[48px] z-20 bg-slate-50 shadow-[1px_0_0_#e2e8f0]">ITEM TUGAS 5R</th>
+                                <template x-for="day in daysInMonthArray">
+                                    <th :class="day.isSunday ? 'bg-rose-50 text-rose-500' : 'text-slate-500'" class="py-1.5 text-[9px] font-bold text-center border-l border-slate-200 w-10 md:w-8 border-b">
+                                        <span x-text="day.dayName"></span>
+                                    </th>
+                                </template>
                             </tr>
                             <tr class="bg-slate-50 border-b border-slate-200">
-                                <template x-for="day in daysInMonthArray"><th :class="day.isSunday ? 'bg-rose-50 text-rose-600' : 'text-slate-700'" class="py-1.5 text-[10px] font-black text-center border-l w-8" x-text="day.dayNum"></th></template>
+                                <template x-for="day in daysInMonthArray">
+                                    <th :class="day.isSunday ? 'bg-rose-50 text-rose-600' : 'text-slate-700'" class="py-1.5 text-[10px] font-black text-center border-l border-slate-200 w-10 md:w-8">
+                                        <span x-text="day.dayNum"></span>
+                                    </th>
+                                </template>
                             </tr>
                         </thead>
                         <template x-for="areaName in Object.keys(allowedChecklistGroups)" :key="areaName">
                             <tbody>
-                                <tr class="bg-indigo-50/50 border-b border-slate-200"><td colspan="40" class="p-3 text-xs font-black text-indigo-900 uppercase tracking-wider sticky left-0 z-10 bg-indigo-50/50" x-text="areaName"></td></tr>
+                                <tr class="bg-indigo-50/50 border-b border-slate-200">
+                                    <td colspan="40" class="p-3 text-[10px] md:text-xs font-black text-indigo-900 uppercase tracking-wider sticky left-0 z-10 bg-indigo-50/50" x-text="areaName"></td>
+                                </tr>
                                 <template x-for="item in allowedChecklistGroups[areaName]" :key="item.id">
-                                    <tr class="border-b hover:bg-slate-50 transition">
-                                        <td class="p-3 border-r sticky left-0 z-10 bg-white shadow-[1px_0_0_#e2e8f0]"><p class="text-[11px] font-semibold text-slate-700" x-text="item.deskripsi"></p></td>
-                                        <template x-for="day in daysInMonthArray"><td :class="day.isSunday ? 'bg-rose-50/30' : ''" class="p-0 border-l text-center align-middle h-8"><span x-html="getCombinedAuditStatus(item.id, day.dateString)"></span></td></template>
+                                    <tr class="border-b border-slate-100 hover:bg-slate-50 transition">
+                                        <td class="p-3 text-[10px] md:text-xs text-slate-400 text-center font-bold border-r border-slate-200 sticky left-0 z-10 bg-white shadow-[1px_0_0_#e2e8f0]" x-text="item.globalIndex"></td>
+                                        <td class="p-3 border-r border-slate-200 sticky left-[40px] md:left-[48px] z-10 bg-white shadow-[1px_0_0_#e2e8f0]">
+                                            <p class="text-[11px] md:text-xs font-semibold text-slate-700 leading-snug" x-text="item.deskripsi"></p>
+                                        </td>
+                                        <template x-for="day in daysInMonthArray">
+                                            <td :class="day.isSunday ? 'bg-rose-50/30' : ''" class="p-0 border-l border-slate-200 text-center align-middle h-8">
+                                                <span x-html="getCombinedAuditStatus(item.id, day.dateString)"></span>
+                                            </td>
+                                        </template>
                                     </tr>
                                 </template>
                             </tbody>
@@ -679,166 +670,120 @@
                     </table>
                 </div>
             </div>
-
-            <!-- View Tabel PIC P3K -->
-            <div x-show="activeModule === 'p3k'" class="bg-white p-5 md:p-8 rounded-3xl shadow-xl border border-slate-100">
-                <div class="flex justify-between items-center mb-6">
-                    <h3 class="text-lg font-black text-slate-800"><i class="ph ph-first-aid text-rose-600"></i> Progress Inspeksi P3K (Semesteran)</h3>
-                    <select x-model="selectedSemester" class="bg-slate-50 border border-slate-200 rounded-xl p-2 text-xs font-bold outline-none">
-                        <option value="1">Semester 1 (Jan - Jun)</option>
-                        <option value="2">Semester 2 (Jul - Des)</option>
-                    </select>
-                </div>
-                <div class="overflow-x-auto custom-scrollbar border border-slate-200 rounded-2xl">
-                    <table class="w-full text-left border-collapse min-w-[1500px]">
-                        <thead>
-                            <tr class="bg-slate-50 border-b border-slate-200">
-                                <th rowspan="2" class="p-3 text-xs font-bold text-slate-600 uppercase min-w-[200px] border-r align-middle sticky left-0 z-20 bg-slate-50 shadow-[1px_0_0_#e2e8f0]">ISI KOTAK P3K</th>
-                                <template x-for="m in monthsInSemester">
-                                    <th colspan="5" class="py-2 text-[11px] font-bold text-center border-l border-slate-300 text-slate-700 bg-slate-100 uppercase" x-text="getMonthName(m)"></th>
-                                </template>
-                            </tr>
-                            <tr class="bg-slate-50 border-b border-slate-200">
-                                <template x-for="m in monthsInSemester">
-                                    <template x-for="w in [1, 2, 3, 4, 5]">
-                                        <th class="py-1.5 text-[9px] font-bold text-center border-l border-slate-200 text-slate-600 w-10" x-text="'M'+w"></th>
-                                    </template>
-                                </template>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Looping Items P3K -->
-                            <template x-for="item in p3kItems" :key="item.id">
-                                <tr class="border-b hover:bg-slate-50 transition">
-                                    <td class="p-3 border-r sticky left-0 z-10 bg-white shadow-[1px_0_0_#e2e8f0]">
-                                        <p class="text-xs font-bold text-slate-800" x-text="item.name"></p>
-                                    </td>
-                                    <template x-for="m in monthsInSemester">
-                                        <template x-for="w in [1, 2, 3, 4, 5]">
-                                            <td class="p-1 border-l border-slate-200 text-center align-middle" 
-                                                :class="[w % 2 === 0 ? 'bg-slate-50/50' : '', userRole === 'admin' ? 'cursor-pointer hover:bg-rose-100 transition' : '']" 
-                                                @click="adminEditP3k(m, w)"
-                                                x-html="getP3kStatus(item.id, m, w)"></td>
-                                        </template>
-                                    </template>
-                                </tr>
-                            </template>
-                            <!-- Metadata Rows -->
-                            <tr class="border-t-2 border-slate-200 bg-rose-50/30">
-                                <td class="p-3 border-r sticky left-0 z-10 bg-rose-50 shadow-[1px_0_0_#e2e8f0] text-right text-[10px] font-bold text-slate-600 uppercase tracking-wider">Tgl Inspeksi</td>
-                                <template x-for="m in monthsInSemester">
-                                    <template x-for="w in [1, 2, 3, 4, 5]">
-                                        <td class="p-1 border-l border-slate-200 text-center align-middle text-[9px] font-semibold text-slate-600" x-text="getP3kMeta(m, w, 'dateFilled')"></td>
-                                    </template>
-                                </template>
-                            </tr>
-                            <tr class="border-b bg-rose-50/30">
-                                <td class="p-3 border-r sticky left-0 z-10 bg-rose-50 shadow-[1px_0_0_#e2e8f0] text-right text-[10px] font-bold text-slate-600 uppercase tracking-wider">Nama Inspektur</td>
-                                <template x-for="m in monthsInSemester">
-                                    <template x-for="w in [1, 2, 3, 4, 5]">
-                                        <td class="p-1 border-l border-slate-200 text-center align-middle text-[9px] font-black text-rose-700" x-text="getP3kMeta(m, w, 'picName')"></td>
-                                    </template>
-                                </template>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
         </div>
 
-        <!-- Dashboard Admin / Visitor -->
-        <div x-show="userRole === 'visitor' || userRole === 'admin'" class="space-y-8 no-print" x-transition x-cloak>
+        <div x-show="userRole === 'visitor' || userRole === 'admin'" class="space-y-6 md:space-y-8 no-print" x-transition x-cloak>
             
-            <div x-show="userRole === 'admin'" class="bg-white p-2 rounded-full shadow-lg border border-slate-100 flex flex-row gap-2 overflow-x-auto w-fit mx-auto">
-                <button @click="adminTab = 'matrix'" :class="adminTab === 'matrix' ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-50'" class="px-6 py-3 rounded-full text-sm font-bold transition flex items-center gap-2"><i class="ph ph-table"></i> Matriks Rekap</button>
-                <button @click="adminTab = 'users'" :class="adminTab === 'users' ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-50'" class="px-6 py-3 rounded-full text-sm font-bold transition flex items-center gap-2"><i class="ph ph-users"></i> Kelola Tim</button>
-                <button @click="adminTab = 'items'" :class="adminTab === 'items' ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-50'" class="px-6 py-3 rounded-full text-sm font-bold transition flex items-center gap-2"><i class="ph ph-list-checks"></i> Kelola Tugas</button>
+            <div x-show="userRole === 'admin'" class="bg-white p-2 rounded-2xl md:rounded-full shadow-lg shadow-slate-200/50 border border-slate-100 flex flex-col sm:flex-row gap-2 overflow-x-auto custom-scrollbar w-fit mx-auto">
+                <button @click="adminTab = 'matrix'" :class="adminTab === 'matrix' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'" class="px-6 py-3 rounded-full text-xs md:text-sm font-bold transition flex items-center justify-center gap-2 whitespace-nowrap"><i class="ph ph-table"></i> Matriks Rekap</button>
+                <button @click="adminTab = 'users'" :class="adminTab === 'users' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'" class="px-6 py-3 rounded-full text-xs md:text-sm font-bold transition flex items-center justify-center gap-2 whitespace-nowrap"><i class="ph ph-users"></i> Kelola Tim</button>
+                <button @click="adminTab = 'items'" :class="adminTab === 'items' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'" class="px-6 py-3 rounded-full text-xs md:text-sm font-bold transition flex items-center justify-center gap-2 whitespace-nowrap"><i class="ph ph-list-checks"></i> Kelola Tugas</button>
             </div>
 
             <!-- Tab Rekap Matriks -->
             <div x-show="adminTab === 'matrix' || userRole === 'visitor'" class="space-y-6">
-                <div class="bg-white p-8 rounded-3xl shadow-xl border border-slate-100">
+                <div class="bg-white p-5 md:p-8 rounded-3xl shadow-xl shadow-slate-200/40 border border-slate-100">
                     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-5 mb-8">
                         <div>
-                            <div class="flex gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200 w-fit mb-3">
-                                <button @click="activeModule = '5r'" :class="activeModule === '5r' ? 'bg-white text-indigo-600 shadow-sm border-slate-200' : 'text-slate-500 hover:text-slate-700'" class="px-4 py-1.5 text-xs font-bold rounded-md border border-transparent transition">Laporan 5R</button>
-                                <button @click="activeModule = 'p3k'" :class="activeModule === 'p3k' ? 'bg-white text-indigo-600 shadow-sm border-slate-200' : 'text-slate-500 hover:text-slate-700'" class="px-4 py-1.5 text-xs font-bold rounded-md border border-transparent transition">Laporan P3K</button>
-                            </div>
-                            <h3 class="text-2xl font-black text-slate-800 flex items-center gap-3">
+                            <span x-show="userRole === 'visitor'" class="text-[10px] font-black text-blue-600 uppercase tracking-wider bg-blue-50 px-3 py-1 rounded-lg border border-blue-100 mb-3 inline-block">Mode Peninjau</span>
+                            <h3 class="text-xl md:text-2xl font-black text-slate-800 flex items-center gap-3">
                                 <i class="ph ph-chart-bar text-indigo-600 bg-indigo-50 p-2 rounded-xl"></i>
-                                <span x-text="activeModule === '5r' ? 'Laporan Matriks 5R' : 'Laporan Inspeksi Kotak P3K'"></span>
+                                Laporan Matriks 5R
                             </h3>
+                            <p class="text-xs md:text-sm text-slate-500 mt-2 font-medium">Gabungan seluruh laporan harian tim. <span x-show="userRole === 'admin'" class="text-indigo-600 font-bold">Admin dapat mengklik tabel untuk langsung mengedit nilai ceklis.</span></p>
                         </div>
-                        <div class="flex flex-wrap items-center gap-3">
-                            <button x-show="userRole === 'admin' && activeModule === '5r'" @click="openAuditModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-2xl text-sm font-bold shadow-sm flex items-center gap-2 transition">
-                                <i class="ph ph-clipboard-text text-lg"></i> <span>Input 5R</span>
+                        <div class="flex flex-wrap gap-3 w-full md:w-auto">
+                            <button @click="printReport()" class="flex-1 md:flex-none bg-white border-2 border-slate-200 hover:border-slate-800 hover:bg-slate-50 text-slate-800 px-5 py-3 rounded-2xl text-xs md:text-sm font-bold shadow-sm flex items-center justify-center gap-2 transition">
+                                <i class="ph ph-printer text-lg"></i> <span>Cetak</span>
                             </button>
-                            <button x-show="userRole === 'admin' && activeModule === 'p3k'" @click="openP3kModal()" class="bg-rose-600 hover:bg-rose-700 text-white px-5 py-3 rounded-2xl text-sm font-bold shadow-sm flex items-center gap-2 transition">
-                                <i class="ph ph-first-aid text-lg"></i> <span>Input P3K</span>
-                            </button>
-                            <button @click="printReport()" class="bg-white border-2 border-slate-200 hover:border-slate-800 hover:bg-slate-50 text-slate-800 px-5 py-3 rounded-2xl text-sm font-bold shadow-sm flex items-center gap-2 transition">
-                                <i class="ph ph-printer text-lg"></i> <span>Cetak Laporan</span>
+                            <button @click="exportCSV()" class="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-2xl text-xs md:text-sm font-bold shadow-lg shadow-emerald-200 flex items-center justify-center gap-2 transition">
+                                <i class="ph ph-file-csv text-lg"></i> <span>Download CSV</span>
                             </button>
                         </div>
                     </div>
 
-                    <!-- Filter Area -->
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 p-5 bg-slate-50 rounded-2xl mb-8 border border-slate-100">
-                        <div x-show="activeModule === '5r'">
-                            <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Bulan</label>
-                            <select x-model="selectedMonth" class="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm font-medium focus:ring-2 outline-none">
-                                <option value="0">Jan</option><option value="1">Feb</option><option value="2">Mar</option><option value="3">Apr</option><option value="4">Mei</option><option value="5">Jun</option><option value="6">Jul</option><option value="7">Agu</option><option value="8">Sep</option><option value="9">Okt</option><option value="10">Nov</option><option value="11">Des</option>
-                            </select>
-                        </div>
-                        <div x-show="activeModule === 'p3k'">
-                            <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Semester Laporan</label>
-                            <select x-model="selectedSemester" class="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm font-medium focus:ring-2 outline-none">
-                                <option value="1">Semester 1 (Jan - Jun)</option>
-                                <option value="2">Semester 2 (Jul - Des)</option>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 p-5 bg-slate-50 rounded-2xl mb-8 border border-slate-100">
+                        <div>
+                            <label class="block text-[10px] md:text-xs font-bold text-slate-400 uppercase mb-2">Bulan</label>
+                            <select x-model="selectedMonth" class="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none">
+                                <option value="0">Januari</option> <option value="1">Februari</option> <option value="2">Maret</option>
+                                <option value="3">April</option> <option value="4">Mei</option> <option value="5">Juni</option>
+                                <option value="6">Juli</option> <option value="7">Agustus</option> <option value="8">September</option>
+                                <option value="9">Oktober</option> <option value="10">November</option> <option value="11">Desember</option>
                             </select>
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Tahun</label>
-                            <select x-model="selectedYear" class="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm font-medium focus:ring-2 outline-none">
+                            <label class="block text-[10px] md:text-xs font-bold text-slate-400 uppercase mb-2">Tahun</label>
+                            <select x-model="selectedYear" class="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none">
                                 <option value="2026">2026</option> <option value="2027">2027</option> <option value="2028">2028</option>
+                                <option value="2029">2029</option> <option value="2030">2030</option>
                             </select>
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Filter Lokasi HUB</label>
-                            <select x-model="selectedHub" class="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm font-medium focus:ring-2 outline-none">
-                                <template x-for="hub in getUniqueHubs()" :key="hub"><option :value="hub" x-text="hub"></option></template>
+                            <label class="block text-[10px] md:text-xs font-bold text-slate-400 uppercase mb-2">Filter Lokasi HUB</label>
+                            <select x-model="selectedHub" class="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <option value="all">Semua HUB Gabungan</option>
+                                <template x-for="hub in getUniqueHubs()" :key="hub">
+                                    <option :value="hub" x-text="hub"></option>
+                                </template>
                             </select>
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Filter Personil</label>
-                            <select x-model="selectedPicId" class="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm font-medium focus:ring-2 outline-none">
+                            <label class="block text-[10px] md:text-xs font-bold text-slate-400 uppercase mb-2">Filter Personil (Opsional)</label>
+                            <select x-model="selectedPicId" class="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none">
                                 <option value="all">Semua Personil</option>
-                                <template x-for="usr in users.filter(u => u.level === 'pic' && (selectedHub === 'all' || u.hub === selectedHub))" :key="usr.userId"><option :value="usr.userId" x-text="usr.nama"></option></template>
+                                <template x-for="usr in users.filter(u => u.level === 'pic' && (selectedHub === 'all' || u.hub === selectedHub))" :key="usr.userId">
+                                    <option :value="usr.userId" x-text="usr.nama"></option>
+                                </template>
                             </select>
                         </div>
                     </div>
 
-                    <!-- View Tabel Admin 5R -->
-                    <div x-show="activeModule === '5r'" class="overflow-x-auto custom-scrollbar border border-slate-200 rounded-2xl">
-                        <table class="w-full text-left border-collapse min-w-[1000px]">
+                    <div class="overflow-x-auto custom-scrollbar border border-slate-200 rounded-2xl relative">
+                        <table class="w-full text-left border-collapse min-w-[800px] md:min-w-[1000px]">
                             <thead>
                                 <tr class="bg-slate-50 border-b border-slate-200">
-                                    <th rowspan="2" class="p-3 text-xs font-bold text-slate-600 uppercase min-w-[200px] border-r align-middle sticky left-0 z-20 bg-slate-50 shadow-[1px_0_0_#e2e8f0]">ITEM TUGAS 5R</th>
-                                    <template x-for="day in daysInMonthArray"><th :class="day.isSunday ? 'bg-rose-50 text-rose-500' : 'text-slate-500'" class="py-1.5 text-[9px] font-bold text-center border-l w-8 border-b"><span x-text="day.dayName"></span></th></template>
+                                    <th rowspan="2" class="p-3 text-[10px] md:text-xs font-bold text-slate-600 uppercase w-10 min-w-[40px] text-center border-r border-slate-200 align-middle sticky left-0 z-20 bg-slate-50 shadow-[1px_0_0_#e2e8f0]">No</th>
+                                    <th rowspan="2" class="p-3 text-[10px] md:text-xs font-bold text-slate-600 uppercase min-w-[200px] border-r border-slate-200 align-middle sticky left-[40px] md:left-[48px] z-20 bg-slate-50 shadow-[1px_0_0_#e2e8f0]">ITEM TUGAS 5R</th>
+                                    <template x-for="day in daysInMonthArray">
+                                        <th :class="day.isSunday ? 'bg-rose-50 text-rose-500' : 'text-slate-500'" class="py-1.5 text-[9px] font-bold text-center border-l border-slate-200 w-10 md:w-8 border-b">
+                                            <span x-text="day.dayName"></span>
+                                        </th>
+                                    </template>
                                 </tr>
                                 <tr class="bg-slate-50 border-b border-slate-200">
-                                    <template x-for="day in daysInMonthArray"><th :class="day.isSunday ? 'bg-rose-50 text-rose-600' : 'text-slate-700'" class="py-1.5 text-[10px] font-black text-center border-l w-8"><span x-text="day.dayNum"></span></th></template>
+                                    <template x-for="day in daysInMonthArray">
+                                        <th :class="day.isSunday ? 'bg-rose-50 text-rose-600' : 'text-slate-700'" class="py-1.5 text-[10px] font-black text-center border-l border-slate-200 w-10 md:w-8">
+                                            <span x-text="day.dayNum"></span>
+                                        </th>
+                                    </template>
                                 </tr>
                             </thead>
                             <template x-for="areaName in Object.keys(groupedChecklist)" :key="areaName">
                                 <tbody>
-                                    <tr class="bg-indigo-50/50 border-b border-slate-200"><td colspan="40" class="p-3 text-xs font-black text-indigo-900 uppercase tracking-wider sticky left-0 z-10 bg-indigo-50/50" x-text="areaName"></td></tr>
+                                    <tr class="bg-indigo-50/50 border-b border-slate-200">
+                                        <td colspan="40" class="p-3 text-[10px] md:text-xs font-black text-indigo-900 uppercase tracking-wider sticky left-0 z-10 bg-indigo-50/50" x-text="areaName"></td>
+                                    </tr>
                                     <template x-for="item in groupedChecklist[areaName]" :key="item.id">
-                                        <tr class="border-b hover:bg-slate-50 transition">
-                                            <td class="p-3 border-r sticky left-0 z-10 bg-white shadow-[1px_0_0_#e2e8f0]"><p class="text-[11px] font-semibold text-slate-700" x-text="item.deskripsi"></p></td>
+                                        <tr class="border-b border-slate-100 hover:bg-slate-50 transition">
+                                            <td class="p-3 text-[10px] md:text-xs text-slate-400 text-center font-bold border-r border-slate-200 sticky left-0 z-10 bg-white shadow-[1px_0_0_#e2e8f0]" x-text="item.globalIndex"></td>
+                                            <td class="p-3 border-r border-slate-200 sticky left-[40px] md:left-[48px] z-10 bg-white shadow-[1px_0_0_#e2e8f0]">
+                                                <p class="text-[11px] md:text-xs font-semibold text-slate-700 leading-snug" x-text="item.deskripsi"></p>
+                                            </td>
                                             <template x-for="day in daysInMonthArray">
-                                                <td :class="[day.isSunday ? 'bg-rose-50/30' : '']" class="p-0 border-l text-center align-middle h-8 group relative">
+                                                <td :class="[day.isSunday ? 'bg-rose-50/30' : '', userRole === 'admin' ? 'cursor-pointer hover:bg-emerald-100/60 transition-colors' : '']" 
+                                                    class="p-0 border-l border-slate-200 text-center align-middle h-8 group relative"
+                                                    @click="userRole === 'admin' ? toggleAdminCheck(item.id, day.dateString) : null"
+                                                    :title="userRole === 'admin' ? 'Klik untuk merubah (Admin Only)' : ''">
+                                                    
                                                     <span x-html="getCombinedAuditStatus(item.id, day.dateString)"></span>
+                                                    
+                                                    <!-- Icon Hover Admin (Helper visual inline edit) -->
+                                                    <template x-if="userRole === 'admin'">
+                                                        <span class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                                                            <i class="ph ph-arrows-down-up text-emerald-600/50 text-xl"></i>
+                                                        </span>
+                                                    </template>
                                                 </td>
                                             </template>
                                         </tr>
@@ -847,184 +792,251 @@
                             </template>
                         </table>
                     </div>
+                </div>
+            </div>
 
-                    <!-- View Tabel Admin P3K -->
-                    <div x-show="activeModule === 'p3k'" class="overflow-x-auto custom-scrollbar border border-slate-200 rounded-2xl">
-                        <table class="w-full text-left border-collapse min-w-[1500px]">
+            <div x-show="adminTab === 'users' && userRole === 'admin'" class="grid grid-cols-1 lg:grid-cols-3 gap-6" x-transition>
+                <div class="bg-white p-6 md:p-8 rounded-3xl shadow-xl shadow-slate-200/40 border border-slate-100 h-fit lg:sticky lg:top-24">
+                    <h3 class="text-lg md:text-xl font-black text-slate-800 mb-6 flex items-center gap-3" x-text="isEditingUser ? 'Edit Data Profil' : 'Tambah Anggota Baru'"></h3>
+                    <form @submit.prevent="saveUser()">
+                        <div class="space-y-5">
+                            <div>
+                                <label class="block text-[10px] md:text-xs font-bold text-slate-500 uppercase mb-2">ID Login (Angka)</label>
+                                <input type="text" x-model="userForm.userId" :disabled="isEditingUser" class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white disabled:bg-slate-100 disabled:text-slate-400 transition" placeholder="Contoh: 1002" required>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] md:text-xs font-bold text-slate-500 uppercase mb-2">Nama Pekerja</label>
+                                <input type="text" x-model="userForm.nama" class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition" placeholder="Cth: Budi (OB)" required>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] md:text-xs font-bold text-slate-500 uppercase mb-2">Kata Sandi</label>
+                                <input type="text" x-model="userForm.password" class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition" placeholder="Masukkan sandi" required>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] md:text-xs font-bold text-slate-500 uppercase mb-2">Tingkat Akses</label>
+                                <div class="relative">
+                                    <select x-model="userForm.level" class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition appearance-none">
+                                        <option value="pic">PIC (Input Ceklis)</option>
+                                        <option value="admin">Admin (Akses Penuh)</option>
+                                        <option value="visitor">Visitor (Hanya Lihat)</option>
+                                    </select>
+                                    <i class="ph ph-caret-down absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400 pointer-events-none"></i>
+                                </div>
+                            </div>
+                            
+                            <div x-show="userForm.level === 'pic'" class="space-y-5">
+                                <div>
+                                    <label class="block text-[10px] md:text-xs font-bold text-slate-500 uppercase mb-2">Lokasi HUB</label>
+                                    <input type="text" x-model="userForm.hub" class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition" placeholder="Cth: HUB MKS" :required="userForm.level === 'pic'">
+                                </div>
+
+                                <div class="p-5 bg-indigo-50/50 border border-indigo-100 rounded-2xl">
+                                    <label class="block text-[10px] md:text-xs font-black text-indigo-900 uppercase mb-3 border-b border-indigo-200 pb-2 flex items-center gap-2"><i class="ph ph-shield-check text-lg"></i> Hak Akses Area</label>
+                                    <div class="space-y-3 max-h-40 overflow-y-auto custom-scrollbar pt-1">
+                                        <label class="flex items-center space-x-3 cursor-pointer group">
+                                            <input type="checkbox" value="ALL" x-model="userForm.assignedAreas" class="w-5 h-5 text-indigo-600 rounded-md border-slate-300 focus:ring-indigo-500">
+                                            <span class="text-sm font-black text-slate-800 group-hover:text-indigo-600 transition">Berikan Akses Penuh</span>
+                                        </label>
+                                        <template x-for="area in getUniqueAreas()" :key="area">
+                                            <label class="flex items-center space-x-3 cursor-pointer group" :class="userForm.assignedAreas.includes('ALL') ? 'opacity-40 grayscale' : ''">
+                                                <input type="checkbox" :value="area" x-model="userForm.assignedAreas" :disabled="userForm.assignedAreas.includes('ALL')" class="w-5 h-5 text-emerald-600 rounded-md border-slate-300 focus:ring-emerald-500">
+                                                <span class="text-sm font-semibold text-slate-700 group-hover:text-emerald-700 transition" x-text="area"></span>
+                                            </label>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3 pt-4 border-t border-slate-100">
+                                <button type="button" x-show="isEditingUser" @click="cancelEditUser()" class="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-3.5 px-6 rounded-2xl transition text-sm flex items-center justify-center gap-2"><i class="ph ph-x"></i> Batal</button>
+                                <button type="submit" class="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-bold py-3.5 rounded-2xl shadow-lg transition text-sm flex items-center justify-center gap-2">
+                                    <i class="ph" :class="isEditingUser ? 'ph-check' : 'ph-plus'"></i> <span x-text="isEditingUser ? 'Simpan' : 'Tambah'"></span>
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="bg-white p-6 md:p-8 rounded-3xl shadow-xl shadow-slate-200/40 border border-slate-100 lg:col-span-2">
+                    <h3 class="text-lg md:text-xl font-black text-slate-800 mb-6 flex items-center gap-3"><i class="ph ph-users text-indigo-600 bg-indigo-50 p-2 rounded-xl"></i> Daftar Tim Aktif</h3>
+                    <div class="overflow-x-auto custom-scrollbar rounded-xl border border-slate-100">
+                        <table class="w-full text-left border-collapse min-w-[700px]">
                             <thead>
                                 <tr class="bg-slate-50 border-b border-slate-200">
-                                    <th rowspan="2" class="p-3 text-xs font-bold text-slate-600 uppercase min-w-[200px] border-r align-middle sticky left-0 z-20 bg-slate-50 shadow-[1px_0_0_#e2e8f0]">ISI KOTAK P3K</th>
-                                    <template x-for="m in monthsInSemester">
-                                        <th colspan="5" class="py-2 text-[11px] font-bold text-center border-l border-slate-300 text-slate-700 bg-slate-100 uppercase" x-text="getMonthName(m)"></th>
-                                    </template>
-                                </tr>
-                                <tr class="bg-slate-50 border-b border-slate-200">
-                                    <template x-for="m in monthsInSemester">
-                                        <template x-for="w in [1, 2, 3, 4, 5]">
-                                            <th class="py-1.5 text-[9px] font-bold text-center border-l border-slate-200 text-slate-600 w-10" x-text="'M'+w"></th>
-                                        </template>
-                                    </template>
+                                    <th class="p-4 text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-wider">Profil User</th>
+                                    <th class="p-4 text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-wider">HUB</th>
+                                    <th class="p-4 text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-wider">Area Tugas</th>
+                                    <th class="p-4 text-[10px] md:text-xs font-bold text-slate-400 uppercase text-center tracking-wider w-24">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <template x-for="item in p3kItems" :key="item.id">
-                                    <tr class="border-b hover:bg-slate-50 transition">
-                                        <td class="p-3 border-r sticky left-0 z-10 bg-white shadow-[1px_0_0_#e2e8f0]">
-                                            <p class="text-xs font-bold text-slate-800" x-text="item.name"></p>
+                                <template x-for="usr in users" :key="usr.userId">
+                                    <tr class="border-b border-slate-100 hover:bg-slate-50 transition">
+                                        <td class="p-4">
+                                            <p class="text-sm font-bold text-slate-800" x-text="usr.nama"></p>
+                                            <div class="flex items-center gap-2 mt-1">
+                                                <span class="text-xs font-mono text-slate-500" x-text="'ID: ' + usr.userId"></span>
+                                                <span :class="getRoleBadgeClass(usr.level)" class="border text-[9px] font-bold px-2 py-0.5 rounded-md uppercase" x-text="usr.level"></span>
+                                            </div>
+                                            <!-- Menampilkan Kata Sandi -->
+                                            <div class="mt-2 flex items-center gap-1.5 text-[10px] bg-slate-100 w-fit px-2 py-1 rounded text-slate-500 border border-slate-200">
+                                                <i class="ph ph-key"></i> Pass: <span class="font-mono font-medium" x-text="usr.password"></span>
+                                            </div>
                                         </td>
-                                        <template x-for="m in monthsInSemester">
-                                            <template x-for="w in [1, 2, 3, 4, 5]">
-                                                <td class="p-1 border-l border-slate-200 text-center align-middle" :class="w % 2 === 0 ? 'bg-slate-50/50' : ''" x-html="getP3kStatus(item.id, m, w)"></td>
+                                        <td class="p-4 text-xs md:text-sm text-slate-800 font-bold align-top pt-5" x-text="usr.hub || '-'"></td>
+                                        <td class="p-4 text-[10px] md:text-xs text-slate-600 align-top pt-5">
+                                            <template x-if="usr.assignedAreas && usr.assignedAreas.includes('ALL')">
+                                                <span class="font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-md border border-indigo-100"><i class="ph ph-star"></i> Full Area</span>
                                             </template>
-                                        </template>
+                                            <template x-if="usr.assignedAreas && !usr.assignedAreas.includes('ALL')">
+                                                <div class="flex flex-wrap gap-1">
+                                                    <template x-for="area in usr.assignedAreas" :key="area">
+                                                        <span class="bg-slate-100 border border-slate-200 px-2 py-1 rounded-md font-medium text-slate-700" x-text="area"></span>
+                                                    </template>
+                                                </div>
+                                            </template>
+                                        </td>
+                                        <td class="p-4 text-center align-top pt-4">
+                                            <div class="flex justify-center items-center gap-2">
+                                                <button @click="startEditUser(usr)" class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white flex items-center justify-center transition" title="Edit Profil">
+                                                    <i class="ph ph-pencil-simple text-base"></i>
+                                                </button>
+                                                <button @click="triggerConfirm('Hapus Anggota', 'Apakah Kamu yakin ingin menghapus data anggota ini secara permanen?', 'deleteUser', usr.userId)" class="w-8 h-8 rounded-lg bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white flex items-center justify-center transition disabled:opacity-50 disabled:cursor-not-allowed" :disabled="usr.userId === 'admin'" title="Hapus Data">
+                                                    <i class="ph ph-trash text-base"></i>
+                                                </button>
+                                            </div>
+                                        </td>
                                     </tr>
                                 </template>
-                                <!-- Metadata Rows -->
-                                <tr class="border-t-2 border-slate-200 bg-rose-50/30">
-                                    <td class="p-3 border-r sticky left-0 z-10 bg-rose-50 shadow-[1px_0_0_#e2e8f0] text-right text-[10px] font-bold text-slate-600 uppercase tracking-wider">Tanggal Inspeksi</td>
-                                    <template x-for="m in monthsInSemester">
-                                        <template x-for="w in [1, 2, 3, 4, 5]">
-                                            <td class="p-1 border-l border-slate-200 text-center align-middle text-[9px] font-semibold text-slate-600" x-text="getP3kMeta(m, w, 'dateFilled')"></td>
-                                        </template>
-                                    </template>
-                                </tr>
-                                <tr class="border-b bg-rose-50/30">
-                                    <td class="p-3 border-r sticky left-0 z-10 bg-rose-50 shadow-[1px_0_0_#e2e8f0] text-right text-[10px] font-bold text-slate-600 uppercase tracking-wider">Nama Inspektur</td>
-                                    <template x-for="m in monthsInSemester">
-                                        <template x-for="w in [1, 2, 3, 4, 5]">
-                                            <td class="p-1 border-l border-slate-200 text-center align-middle text-[9px] font-black text-rose-700" x-text="getP3kMeta(m, w, 'picName')"></td>
-                                        </template>
-                                    </template>
-                                </tr>
                             </tbody>
                         </table>
-                        <p class="text-[10px] text-slate-400 mt-2 p-2">* Angka merah mengindikasikan qty aktual dibawah standar tipe kotak.</p>
                     </div>
-
                 </div>
             </div>
 
-            <!-- Tab Kelola Tim (Manajemen User & P3K Config) -->
-            <div x-show="adminTab === 'users'" class="bg-white p-6 md:p-8 rounded-3xl shadow-xl border border-slate-100">
-                <div class="flex justify-between items-center mb-6">
-                    <h3 class="text-2xl font-black text-slate-800 flex items-center gap-3"><i class="ph ph-users text-indigo-600 bg-indigo-50 p-2 rounded-xl"></i>Kelola Tim & Hak Akses</h3>
-                    <button @click="openAddUserModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-sm flex items-center gap-2 transition"><i class="ph ph-plus-circle"></i> Tambah User</button>
+            <div x-show="adminTab === 'items' && userRole === 'admin'" class="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6" x-transition>
+                <div class="bg-white p-6 md:p-8 rounded-3xl shadow-xl shadow-slate-200/40 border border-slate-100 h-fit lg:sticky lg:top-24">
+                    <h3 class="text-lg md:text-xl font-black text-slate-800 mb-6 flex items-center gap-3" x-text="isEditingItem ? 'Perbarui Data Tugas' : 'Tambah Parameter Tugas'"></h3>
+                    <form @submit.prevent="saveItem()">
+                        <div class="space-y-5">
+                            <div>
+                                <label class="block text-[10px] md:text-xs font-bold text-slate-500 uppercase mb-2">Area / Zona</label>
+                                <input type="text" x-model="itemForm.area" class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition font-medium" placeholder="Contoh: Office, Toilet, Sortir" required>
+                                <p class="text-[10px] text-indigo-500 mt-2 font-medium bg-indigo-50 p-2 rounded-lg"><i class="ph ph-info"></i> Gunakan teks area yang identik agar sistem otomatis melakukan pengelompokan.</p>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] md:text-xs font-bold text-slate-500 uppercase mb-2">Pekerjaan yang dicek</label>
+                                <textarea x-model="itemForm.deskripsi" class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition resize-none custom-scrollbar" rows="4" placeholder="Cth: Lantai harus bebas dari sisa sampah solatip." required></textarea>
+                            </div>
+                            <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3 pt-4 border-t border-slate-100">
+                                <button type="button" x-show="isEditingItem" @click="cancelEditItem()" class="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-3.5 px-6 rounded-2xl transition text-sm flex items-center justify-center gap-2"><i class="ph ph-x"></i> Batal</button>
+                                <button type="submit" class="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-bold py-3.5 rounded-2xl shadow-lg transition text-sm flex items-center justify-center gap-2">
+                                    <i class="ph" :class="isEditingItem ? 'ph-check' : 'ph-floppy-disk'"></i> <span x-text="isEditingItem ? 'Simpan' : 'Tambahkan'"></span>
+                                </button>
+                            </div>
+                        </div>
+                    </form>
                 </div>
-                
-                <div class="overflow-x-auto rounded-2xl border border-slate-200">
-                    <table class="w-full text-left">
-                        <thead class="bg-slate-50 border-b border-slate-200 text-xs text-slate-500 uppercase">
-                            <tr>
-                                <th class="p-4 font-bold">ID User</th>
-                                <th class="p-4 font-bold">Nama Personil</th>
-                                <th class="p-4 font-bold">Lokasi Hub</th>
-                                <th class="p-4 font-bold">Role</th>
-                                <th class="p-4 font-bold text-center">Hak Akses P3K</th>
-                                <th class="p-4 font-bold text-center">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100 text-sm">
-                            <template x-for="usr in users" :key="usr.userId">
-                                <tr class="hover:bg-slate-50">
-                                    <td class="p-4 font-black text-indigo-700" x-text="usr.userId"></td>
-                                    <td class="p-4 font-bold text-slate-700" x-text="usr.nama"></td>
-                                    <td class="p-4 text-slate-500 font-medium" x-text="usr.hub || '-'"></td>
-                                    <td class="p-4">
-                                        <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider" :class="usr.level === 'admin' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'" x-text="usr.level"></span>
-                                    </td>
-                                    <td class="p-4 text-center">
-                                        <template x-if="usr.isP3kInspector">
-                                            <span class="inline-flex items-center gap-1 bg-rose-50 text-rose-600 px-2 py-1 rounded-md text-[10px] font-bold border border-rose-200">
-                                                <i class="ph ph-check-circle"></i> Tipe <span x-text="usr.p3kType"></span>
-                                            </span>
-                                        </template>
-                                        <template x-if="!usr.isP3kInspector"><span class="text-slate-300">-</span></template>
-                                    </td>
-                                    <td class="p-4 text-center space-x-2">
-                                        <button @click="openEditUserModal(usr)" class="text-blue-500 hover:text-blue-700 p-1"><i class="ph ph-pencil-simple text-lg"></i></button>
-                                        <button x-show="usr.userId !== 'admin'" @click="triggerConfirm('Hapus User?', 'User yang dihapus tidak bisa login kembali.', 'deleteUser', usr.userId)" class="text-rose-500 hover:text-rose-700 p-1"><i class="ph ph-trash text-lg"></i></button>
-                                    </td>
-                                </tr>
-                            </template>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
 
-            <!-- Tab Kelola Tugas 5R -->
-            <div x-show="adminTab === 'items'" class="bg-white p-6 md:p-8 rounded-3xl shadow-xl border border-slate-100">
-                <div class="flex justify-between items-center mb-6">
-                    <h3 class="text-xl md:text-2xl font-black text-slate-800 flex items-center gap-3"><i class="ph ph-list-checks text-indigo-600 bg-indigo-50 p-2 rounded-xl"></i>Kelola Tugas 5R</h3>
-                    <button @click="openAddItemModal()" class="w-10 h-10 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-md flex items-center justify-center transition" title="Tambah Tugas">
-                        <i class="ph ph-plus text-xl"></i>
-                    </button>
-                </div>
-                
-                <div class="overflow-x-auto rounded-2xl border border-slate-200 custom-scrollbar">
-                    <table class="w-full text-left">
-                        <thead class="bg-slate-50 border-b border-slate-200 text-xs text-slate-500 uppercase">
-                            <tr>
-                                <th class="p-4 font-bold">Area</th>
-                                <th class="p-4 font-bold">Deskripsi Tugas</th>
-                                <th class="p-4 font-bold text-center">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100 text-sm">
-                            <template x-for="item in activeChecklistItems" :key="item.id">
-                                <tr class="hover:bg-slate-50 transition">
-                                    <td class="p-4 font-black text-indigo-700" x-text="item.area"></td>
-                                    <td class="p-4 font-medium text-slate-700" x-text="item.deskripsi"></td>
-                                    <td class="p-4 text-center">
-                                        <div class="flex items-center justify-center gap-2">
-                                            <button @click="openEditItemModal(item)" class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white flex items-center justify-center transition" title="Edit">
-                                                <i class="ph ph-pencil-simple text-base"></i>
-                                            </button>
-                                            <button @click="triggerConfirm('Hapus Tugas', 'Apakah Kamu yakin ingin menghapus tugas ini?', 'deleteItem', item.id)" class="w-8 h-8 rounded-lg bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white flex items-center justify-center transition" title="Hapus">
-                                                <i class="ph ph-trash text-base"></i>
-                                            </button>
-                                        </div>
-                                    </td>
+                <div class="bg-white p-6 md:p-8 rounded-3xl shadow-xl shadow-slate-200/40 border border-slate-100 lg:col-span-2">
+                    <h3 class="text-lg md:text-xl font-black text-slate-800 mb-6 flex items-center gap-3"><i class="ph ph-list-checks text-indigo-600 bg-indigo-50 p-2 rounded-xl"></i> Daftar Parameter Kerja 5R</h3>
+                    <div class="overflow-x-auto custom-scrollbar rounded-xl border border-slate-100">
+                        <table class="w-full text-left border-collapse min-w-[500px]">
+                            <thead>
+                                <tr class="bg-slate-50 border-b border-slate-200">
+                                    <th class="p-4 text-[10px] md:text-xs font-bold text-slate-400 uppercase w-32 md:w-48 tracking-wider">Area Tugas</th>
+                                    <th class="p-4 text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-wider">Spesifikasi Pekerjaan</th>
+                                    <th class="p-4 text-[10px] md:text-xs font-bold text-slate-400 uppercase text-center w-24 tracking-wider">Aksi</th>
                                 </tr>
-                            </template>
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                <template x-for="item in activeChecklistItems" :key="item.id">
+                                    <tr class="border-b border-slate-100 hover:bg-slate-50 transition">
+                                        <td class="p-4 align-top">
+                                            <span class="bg-indigo-50 border border-indigo-100 text-indigo-700 text-[10px] font-bold px-2.5 py-1 rounded-lg uppercase whitespace-nowrap" x-text="item.area"></span>
+                                        </td>
+                                        <td class="p-4 text-xs md:text-sm text-slate-700 font-semibold leading-relaxed" x-text="item.deskripsi"></td>
+                                        <td class="p-4 text-center align-top">
+                                            <div class="flex justify-center items-center gap-2">
+                                                <button @click="startEditItem(item)" class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white flex items-center justify-center transition" title="Edit">
+                                                    <i class="ph ph-pencil-simple text-base"></i>
+                                                </button>
+                                                <button @click="triggerConfirm('Hapus Tugas', 'Apakah Kamu yakin ingin menghapus data ceklis ini?', 'deleteItem', item.id)" class="w-8 h-8 rounded-lg bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white flex items-center justify-center transition" title="Hapus">
+                                                    <i class="ph ph-trash text-base"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- PRINT LAYOUTS -->
         <div class="hidden print:block w-full">
             <div class="flex justify-between items-center border-b-2 border-slate-950 pb-3 mb-4">
                 <div>
-                    <h1 class="text-xl font-black uppercase tracking-wide text-slate-900" x-text="activeModule === '5r' ? 'Rekapitulasi Audit 5R' : 'Inspeksi Kotak P3K (QMS_075)'"></h1>
-                    <p class="text-xs text-slate-500" x-text="activeModule === '5r' ? 'Monitoring Kendali Harian' : 'Monitoring Kendali Mingguan P3K'"></p>
+                    <h1 class="text-xl font-black uppercase tracking-wide text-slate-900">Lembar Rekapitulasi Audit 5R</h1>
+                    <p class="text-xs text-slate-500">Lembar Monitoring Kendali Harian Standar Kebersihan dan Kerapian Area</p>
                 </div>
                 <div class="text-right text-xs">
-                    <p class="font-bold">Dokumen Fisik</p>
+                    <p class="font-bold">Dokumen Fisik Kontrol</p>
                     <p x-text="'Dicetak: ' + new Date().toLocaleDateString('id-ID')"></p>
                 </div>
             </div>
 
-            <!-- Print Tabel (Tergantung Module Aktif) -->
-            <div x-show="activeModule === '5r'" class="border rounded border-slate-900 w-full overflow-hidden">
+            <div class="grid grid-cols-3 gap-4 mb-4 border border-slate-400 p-2 text-xs">
+                <div>
+                    <p class="uppercase font-bold text-slate-500 text-[9px]">Periode Laporan</p>
+                    <p class="font-bold text-slate-800" x-text="getMonthName(selectedMonth) + ' ' + selectedYear"></p>
+                </div>
+                <div>
+                    <p class="uppercase font-bold text-slate-500 text-[9px]">Kode HUB Terkait</p>
+                    <p class="font-bold text-slate-800" x-text="userRole === 'pic' ? currentUser?.hub : (selectedHub === 'all' ? 'Semua Hub Wilayah' : selectedHub)"></p>
+                </div>
+                <div>
+                    <p class="uppercase font-bold text-slate-500 text-[9px]">Filter Pekerja (PIC)</p>
+                    <p class="font-bold text-slate-800" x-text="selectedPicId === 'all' ? 'Seluruh Anggota Tim (Gabungan)' : getUserName(selectedPicId)"></p>
+                </div>
+            </div>
+
+            <div class="border rounded border-slate-900 overflow-hidden w-full">
+                <!-- Memaksa table-layout agar tabel memenuhi 100% dan kolom lebih proporsional -->
                 <table class="w-full text-left border-collapse border border-slate-900 table-fixed">
-                    <!-- Head & Body Print 5R (Sama dengan aslinya) -->
                     <thead>
                         <tr class="bg-slate-100 border-b border-slate-500">
-                            <th rowspan="2" class="p-1 font-bold border-r border-slate-500 w-[38%]">ITEM CEK</th>
-                            <template x-for="day in daysInMonthArray"><th class="p-0.5 text-[7px] text-center border-l border-b border-slate-500 w-[2%]"><span x-text="day.dayName"></span></th></template>
+                            <th rowspan="2" class="p-1 text-center font-bold border-r border-slate-500 w-[3%] align-middle">NO</th>
+                            <th rowspan="2" class="p-1 font-bold border-r border-slate-500 align-middle w-[35%]">ITEM CEK PEKERJAAN</th>
+                            <template x-for="day in daysInMonthArray">
+                                <th :class="day.isSunday ? 'bg-rose-100 text-rose-600' : ''" class="p-0.5 text-[7px] text-center border-l border-b border-slate-500 w-[2%]">
+                                    <span x-text="day.dayName"></span>
+                                </th>
+                            </template>
                         </tr>
                         <tr class="bg-slate-100 border-b border-slate-500">
-                            <template x-for="day in daysInMonthArray"><th class="p-0.5 text-[8px] font-black text-center border-l border-slate-500"><span x-text="day.dayNum"></span></th></template>
+                            <template x-for="day in daysInMonthArray">
+                                <th :class="day.isSunday ? 'bg-rose-100 text-rose-600' : ''" class="p-0.5 text-[8px] font-black text-center border-l border-slate-500">
+                                    <span x-text="day.dayNum"></span>
+                                </th>
+                            </template>
                         </tr>
                     </thead>
                     <template x-for="areaName in Object.keys(groupedChecklist)" :key="areaName">
                         <tbody>
-                            <tr class="bg-slate-200 border-b border-slate-500"><td colspan="40" class="p-1 text-[8px] font-black uppercase border-slate-500" x-text="areaName"></td></tr>
+                            <tr class="bg-slate-200 border-b border-slate-500">
+                                <td colspan="40" class="p-1 text-[8px] font-black text-slate-900 uppercase tracking-wider border-slate-500" x-text="areaName"></td>
+                            </tr>
                             <template x-for="item in groupedChecklist[areaName]" :key="item.id">
                                 <tr class="border-b border-slate-400">
-                                    <td class="p-1 border-r border-slate-500 text-[8px] font-medium" x-text="item.deskripsi"></td>
-                                    <template x-for="day in daysInMonthArray"><td class="p-0 border-l border-slate-500 text-center align-middle h-4"><span x-html="getCombinedAuditStatus(item.id, day.dateString)"></span></td></template>
+                                    <td class="p-1 text-center border-r border-slate-500 text-[8px] font-bold" x-text="item.globalIndex"></td>
+                                    <td class="p-1 border-r border-slate-500 text-[8px] leading-tight font-medium text-slate-900 break-words" x-text="item.deskripsi"></td>
+                                    <template x-for="day in daysInMonthArray">
+                                        <td :class="day.isSunday ? 'bg-rose-50' : ''" class="p-0 border-l border-slate-500 text-center align-middle h-4">
+                                            <span x-html="getCombinedAuditStatus(item.id, day.dateString)"></span>
+                                        </td>
+                                    </template>
                                 </tr>
                             </template>
                         </tbody>
@@ -1032,275 +1044,106 @@
                 </table>
             </div>
 
-            <!-- Print P3K -->
-            <div x-show="activeModule === 'p3k'" class="border rounded border-slate-900 w-full overflow-hidden">
-                <table class="w-full text-left border-collapse border border-slate-900">
-                    <thead>
-                        <tr class="bg-slate-100 border-b border-slate-500">
-                            <th rowspan="2" class="p-1 font-bold border-r border-slate-500 w-[15%] align-middle text-[8px]">ISI KOTAK P3K</th>
-                            <template x-for="m in monthsInSemester">
-                                <th colspan="5" class="p-1 text-[7px] text-center font-bold border-l border-slate-500 uppercase" x-text="getMonthName(m)"></th>
-                            </template>
-                        </tr>
-                        <tr class="bg-slate-100 border-b border-slate-500">
-                            <template x-for="m in monthsInSemester">
-                                <template x-for="w in [1, 2, 3, 4, 5]">
-                                    <th class="p-0.5 text-[6px] text-center border-l border-slate-500 font-bold w-[2.8%]" x-text="'M'+w"></th>
-                                </template>
-                            </template>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <template x-for="item in p3kItems" :key="item.id">
-                            <tr class="border-b border-slate-400">
-                                <td class="p-1 border-r border-slate-500 text-[7px] font-bold" x-text="item.name"></td>
-                                <template x-for="m in monthsInSemester">
-                                    <template x-for="w in [1, 2, 3, 4, 5]">
-                                        <td class="p-0.5 border-l border-slate-500 text-center text-[7px] font-bold" x-html="getP3kStatus(item.id, m, w)"></td>
-                                    </template>
-                                </template>
-                            </tr>
-                        </template>
-                        <tr class="border-t-2 border-slate-500 bg-slate-50">
-                            <td class="p-1 border-r border-slate-500 text-[6px] font-bold text-right uppercase">Tanggal Inspeksi</td>
-                            <template x-for="m in monthsInSemester">
-                                <template x-for="w in [1, 2, 3, 4, 5]">
-                                    <td class="p-0.5 border-l border-slate-500 text-center text-[5px]" x-text="getP3kMeta(m, w, 'dateFilled')"></td>
-                                </template>
-                            </template>
-                        </tr>
-                        <tr class="bg-slate-50">
-                            <td class="p-1 border-r border-slate-500 text-[6px] font-bold text-right uppercase">Inspektur</td>
-                            <template x-for="m in monthsInSemester">
-                                <template x-for="w in [1, 2, 3, 4, 5]">
-                                    <td class="p-0.5 border-l border-slate-500 text-center text-[5px] font-bold" x-text="getP3kMeta(m, w, 'picName')"></td>
-                                </template>
-                            </template>
-                        </tr>
-                    </tbody>
-                </table>
+            <div class="mt-8 grid grid-cols-2 text-center text-xs">
+                <div>
+                    <p class="font-bold text-slate-700">DILAPORKAN OLEH,</p>
+                    <div class="h-16"></div>
+                    <p class="font-bold underline text-slate-900" x-text="selectedPicId === 'all' ? '(Semua Tim PIC Terkait)' : getUserName(selectedPicId)"></p>
+                    <p class="text-[10px] text-slate-500">Penanggung Jawab Harian</p>
+                </div>
+                <div>
+                    <p class="font-bold text-slate-700">DIKETAHUI OLEH,</p>
+                    <div class="h-16"></div>
+                    <p class="font-bold underline text-slate-900">Supervisor / Manager</p>
+                    <p class="text-[10px] text-slate-500">Kepala Bagian Operasional</p>
+                </div>
             </div>
-            <!-- End Print -->
         </div>
     </main>
 
-    <!-- Modal Kelola User (Admin) -->
-    <div x-show="userModal.show" class="fixed inset-0 z-50 overflow-y-auto no-print flex items-center justify-center p-4" x-transition x-cloak>
-        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" @click="userModal.show = false"></div>
-        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg z-10 flex flex-col relative overflow-hidden">
-            <div class="bg-indigo-600 text-white p-5 flex justify-between items-center">
-                <h3 class="font-black text-lg" x-text="userModal.isEdit ? 'Edit Pengguna' : 'Tambah Pengguna Baru'"></h3>
-                <button @click="userModal.show = false" class="text-indigo-200 hover:text-white"><i class="ph ph-x text-xl"></i></button>
-            </div>
-            <form @submit.prevent="saveUser()" class="p-6 space-y-4">
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">ID Login</label>
-                        <input type="text" x-model="userForm.userId" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 font-bold outline-none focus:border-indigo-500" :readonly="userModal.isEdit" required>
+    <div x-show="auditModal.show" class="fixed inset-0 z-50 overflow-y-auto no-print flex items-end sm:items-center justify-center p-0 md:p-4" x-transition x-cloak>
+        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" @click="auditModal.show = false"></div>
+
+        <div class="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden w-full max-w-2xl z-10 mt-20 sm:mt-0 transform transition-all border border-white/20 relative flex flex-col max-h-[90vh]">
+            <div class="bg-slate-900 text-white p-5 md:p-6 flex justify-between items-center shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center">
+                        <i class="ph ph-clipboard-text text-xl"></i>
                     </div>
                     <div>
-                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Kata Sandi</label>
-                        <input type="text" x-model="userForm.password" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 font-bold outline-none focus:border-indigo-500" required>
+                        <h3 class="text-base md:text-lg font-black tracking-wide">Pengecekan Harian</h3>
+                        <p class="text-[10px] md:text-xs text-emerald-400 font-bold mt-0.5 uppercase" x-text="currentUser?.assignedAreas?.includes('ALL') ? 'Semua Area' : currentUser?.assignedAreas?.join(', ')"></p>
                     </div>
                 </div>
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Nama Personil / Keterangan</label>
-                    <input type="text" x-model="userForm.nama" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 font-bold outline-none focus:border-indigo-500" required>
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Role Akses</label>
-                        <select x-model="userForm.level" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 font-bold outline-none focus:border-indigo-500">
-                            <option value="pic">Personil (PIC)</option>
-                            <option value="admin">Administrator</option>
-                            <option value="visitor">Visitor (Hanya Lihat)</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Lokasi Hub</label>
-                        <input type="text" x-model="userForm.hub" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 font-bold outline-none focus:border-indigo-500" placeholder="Contoh: HUB JKT">
-                    </div>
-                </div>
-                
-                <!-- Konfigurasi P3K Khusus Role PIC -->
-                <div x-show="userForm.level === 'pic'" class="bg-rose-50 p-4 rounded-xl border border-rose-100 mt-4">
-                    <label class="flex items-center gap-2 cursor-pointer mb-3">
-                        <input type="checkbox" x-model="userForm.isP3kInspector" class="w-5 h-5 rounded text-rose-600 focus:ring-rose-500 cursor-pointer">
-                        <span class="font-bold text-rose-900 text-sm">Jadikan Inspektur Kotak P3K?</span>
-                    </label>
-                    <div x-show="userForm.isP3kInspector" x-transition>
-                        <label class="block text-[10px] font-bold text-rose-500 uppercase mb-1">Tipe Kotak yang Ditugaskan</label>
-                        <select x-model="userForm.p3kType" class="w-full bg-white border border-rose-200 rounded-lg p-2.5 font-bold outline-none focus:border-rose-500 text-rose-700">
-                            <option value="A">Kotak Tipe A (Kecil - s/d 25 Pekerja)</option>
-                            <option value="B">Kotak Tipe B (Sedang - s/d 50 Pekerja)</option>
-                            <option value="C">Kotak Tipe C (Besar - s/d 100 Pekerja)</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100">
-                    <button type="button" @click="userModal.show = false" class="px-5 py-2 font-bold bg-slate-100 rounded-lg text-slate-600">Batal</button>
-                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-2 rounded-lg shadow-md">Simpan User</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Modal Kelola Tugas (Admin) -->
-    <div x-show="itemModal.show" class="fixed inset-0 z-[55] overflow-y-auto no-print flex items-center justify-center p-4" x-transition x-cloak>
-        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" @click="itemModal.show = false"></div>
-        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg z-10 flex flex-col relative overflow-hidden">
-            <div class="bg-indigo-600 text-white p-5 flex justify-between items-center">
-                <h3 class="font-black text-lg" x-text="itemModal.isEdit ? 'Edit Tugas 5R' : 'Tambah Tugas 5R'"></h3>
-                <button @click="itemModal.show = false" class="text-indigo-200 hover:text-white"><i class="ph ph-x text-xl"></i></button>
-            </div>
-            <form @submit.prevent="saveItem()" class="p-6 space-y-4">
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Nama Area Tanggung Jawab</label>
-                    <input type="text" x-model="itemForm.area" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 font-bold outline-none focus:border-indigo-500" placeholder="Contoh: Area Office" required>
-                    <p class="text-[10px] text-slate-400 mt-1">Gunakan nama area yang identik agar sistem dapat mengelompokkannya secara otomatis.</p>
-                </div>
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Deskripsi Tugas / Ceklis</label>
-                    <textarea x-model="itemForm.deskripsi" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 font-bold outline-none focus:border-indigo-500" placeholder="Contoh: Membersihkan meja kerja" rows="3" required></textarea>
-                </div>
-                <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100">
-                    <button type="button" @click="itemModal.show = false" class="px-5 py-2 font-bold bg-slate-100 rounded-lg text-slate-600 transition hover:bg-slate-200">Batal</button>
-                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-2 rounded-lg shadow-md transition">Simpan Tugas</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- MODAL 5R -->
-    <div x-show="auditModal.show" class="fixed inset-0 z-50 overflow-y-auto no-print flex items-center justify-center p-4" x-transition x-cloak>
-        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" @click="auditModal.show = false"></div>
-        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-2xl z-10 flex flex-col max-h-[90vh] relative">
-            <div class="bg-slate-900 text-white p-5 flex justify-between rounded-t-3xl items-center shrink-0">
-                <h3 class="font-black tracking-wide text-lg"><i class="ph ph-clipboard-text mr-2"></i>Ceklis 5R Harian</h3>
-                <button @click="auditModal.show = false" class="text-slate-400 hover:text-white"><i class="ph ph-x text-lg"></i></button>
-            </div>
-            <form @submit.prevent="triggerConfirm('Kirim Laporan 5R', 'Pastikan data ceklis valid.', 'submitAudit')" class="flex flex-col flex-1 overflow-hidden">
-                <div class="p-6 space-y-5 flex-1 overflow-y-auto custom-scrollbar bg-slate-50">
-                    <input type="date" x-model="auditModal.date" class="w-full bg-white p-3 rounded-xl border border-slate-200 font-bold text-slate-800" readonly>
-                    <template x-for="areaName in Object.keys(allowedChecklistGroups)" :key="areaName">
-                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
-                            <h4 class="font-bold text-indigo-900 mb-3 border-b border-slate-100 pb-2" x-text="areaName"></h4>
-                            <div class="space-y-2">
-                                <template x-for="item in allowedChecklistGroups[areaName]" :key="item.id">
-                                    <label class="flex items-center justify-between p-3 rounded-lg border cursor-pointer group" :class="auditModal.responses[item.id] ? 'bg-emerald-50 border-emerald-300' : 'bg-slate-50 border-slate-100'">
-                                        <span class="text-sm font-bold w-[85%]" :class="auditModal.responses[item.id] ? 'text-emerald-900' : 'text-slate-600'" x-text="item.deskripsi"></span>
-                                        <input type="checkbox" x-model="auditModal.responses[item.id]" class="w-6 h-6 rounded-md border-slate-300 text-emerald-600 focus:ring-emerald-500">
-                                    </label>
-                                </template>
-                            </div>
-                        </div>
-                    </template>
-                </div>
-                <div class="bg-white p-4 flex justify-end gap-3 border-t rounded-b-3xl shrink-0">
-                    <button type="button" @click="auditModal.show = false" class="px-6 py-3 font-bold bg-slate-100 rounded-xl">Batal</button>
-                    <button type="submit" class="bg-indigo-600 text-white font-bold px-8 py-3 rounded-xl">Kirim</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- MODAL P3K (OTOMATIS TANGGAL & TIPE) -->
-    <div x-show="p3kModal.show" class="fixed inset-0 z-50 overflow-y-auto no-print flex items-center justify-center p-4" x-transition x-cloak>
-        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" @click="p3kModal.show = false"></div>
-        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-2xl z-10 flex flex-col max-h-[90vh] relative">
-            <div class="bg-rose-600 text-white p-5 flex justify-between rounded-t-3xl items-center shrink-0">
-                <h3 class="font-black tracking-wide text-lg"><i class="ph ph-first-aid mr-2 text-2xl"></i>Inspeksi Kotak P3K</h3>
-                <button @click="p3kModal.show = false" class="text-rose-200 hover:text-white"><i class="ph ph-x text-xl"></i></button>
+                <button @click="auditModal.show = false" class="text-slate-400 hover:text-white bg-white/10 hover:bg-white/20 rounded-full p-2.5 transition">
+                    <i class="ph ph-x text-lg"></i>
+                </button>
             </div>
 
-            <form @submit.prevent="triggerConfirm('Kirim Inspeksi P3K', 'Pastikan jumlah aktual barang telah diinput dengan benar sesuai form.', 'submitP3k')" class="flex flex-col flex-1 overflow-hidden">
-                <div class="p-6 space-y-5 flex-1 overflow-y-auto custom-scrollbar bg-slate-50">
+            <form @submit.prevent="triggerConfirm('Kirim Laporan', 'Pastikan data ceklis valid. Laporan akan disimpan.', 'submitAudit')" class="flex flex-col flex-1 overflow-hidden">
+                <div class="p-4 md:p-6 space-y-5 flex-1 overflow-y-auto custom-scrollbar bg-slate-50">
                     
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="bg-rose-50 p-3 rounded-xl border border-rose-100 flex flex-col justify-center">
-                            <label class="block text-[10px] font-bold text-rose-500 uppercase mb-0.5">Jadwal Inspeksi</label>
-                            
-                            <template x-if="userRole === 'admin'">
-                                <div class="space-y-2 mt-1">
-                                    <select x-model="p3kModal.month" @change="loadP3kExistingLog()" class="w-full text-xs font-bold p-1 rounded border border-rose-200 text-rose-700 bg-white outline-none">
-                                        <option value="0">Januari</option><option value="1">Februari</option><option value="2">Maret</option><option value="3">April</option><option value="4">Mei</option><option value="5">Juni</option><option value="6">Juli</option><option value="7">Agustus</option><option value="8">September</option><option value="9">Oktober</option><option value="10">November</option><option value="11">Desember</option>
-                                    </select>
-                                    <select x-model="p3kModal.week" @change="loadP3kExistingLog()" class="w-full text-xs font-bold p-1 rounded border border-rose-200 text-rose-700 bg-white outline-none">
-                                        <option value="1">Minggu 1</option><option value="2">Minggu 2</option><option value="3">Minggu 3</option><option value="4">Minggu 4</option><option value="5">Minggu 5</option>
-                                    </select>
-                                    <input type="text" x-model="p3kModal.dateFilled" class="w-full text-xs font-bold p-1 rounded border border-rose-200 text-rose-700 bg-white outline-none" placeholder="Tgl Cth: 20/06/2026">
-                                </div>
-                            </template>
-                            
-                            <template x-if="userRole !== 'admin'">
-                                <div>
-                                    <div class="font-black text-rose-800 text-lg">Minggu ke-<span x-text="p3kModal.week"></span></div>
-                                    <div class="text-xs font-bold text-rose-600">Tgl: <span x-text="p3kModal.dateFilled"></span></div>
-                                </div>
-                            </template>
-                        </div>
-                        <div class="bg-slate-100 p-3 rounded-xl border border-slate-200 flex flex-col justify-center">
-                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Tipe Kotak</label>
-                            
-                            <template x-if="userRole === 'admin'">
-                                <select x-model="p3kModal.tipe" @change="loadP3kExistingLog()" class="w-full text-xs font-bold p-1.5 mt-1 rounded border border-slate-300 text-slate-700 bg-white outline-none">
-                                    <option value="A">TIPE A</option>
-                                    <option value="B">TIPE B</option>
-                                    <option value="C">TIPE C</option>
-                                </select>
-                            </template>
-                            
-                            <template x-if="userRole !== 'admin'">
-                                <div class="font-black text-slate-800 text-lg">TIPE <span x-text="p3kModal.tipe"></span></div>
-                            </template>
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4">
+                        <div class="p-3 bg-blue-50 text-blue-600 rounded-xl hidden sm:block"><i class="ph ph-calendar text-2xl"></i></div>
+                        <div class="w-full">
+                            <label class="block text-[10px] md:text-xs font-bold text-slate-400 uppercase mb-1">Tanggal Kontrol Harian</label>
+                            <!-- Tanggal Locked -->
+                            <input type="date" x-model="auditModal.date" class="w-full border-none bg-transparent text-slate-800 cursor-not-allowed outline-none font-black text-sm p-0 m-0 pointer-events-none" readonly>
                         </div>
                     </div>
 
-                    <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
-                        <div class="flex justify-between items-end border-b border-slate-100 pb-2 mb-3">
-                            <h4 class="font-black text-rose-900 uppercase">Daftar Isi Kotak</h4>
-                            <span class="text-[10px] font-bold bg-rose-50 text-rose-600 px-2 py-1 rounded">Target Standar (<span x-text="p3kModal.tipe"></span>)</span>
-                        </div>
-                        <div class="space-y-3">
-                            <template x-for="(item, index) in p3kItems" :key="item.id">
-                                <div class="flex items-center justify-between p-3 rounded-lg border bg-slate-50 border-slate-100 hover:border-rose-300 transition group">
-                                    <div class="w-[70%]">
-                                        <p class="text-xs font-bold text-slate-800 leading-tight"><span x-text="(index+1)+'. '"></span><span x-text="item.name"></span></p>
-                                    </div>
-                                    <div class="flex items-center gap-2">
-                                        <input type="number" x-model="p3kModal.responses[item.id]" min="0" placeholder="0" class="w-14 bg-white border border-slate-300 rounded-lg text-center py-1.5 font-bold text-slate-800 focus:ring-2 focus:ring-rose-500 outline-none">
-                                        <span class="text-slate-400 font-bold text-sm">/</span>
-                                        <div class="w-8 text-center bg-rose-100 text-rose-700 font-black rounded-lg py-1.5 text-xs" x-text="item[p3kModal.tipe.toLowerCase()]"></div>
-                                    </div>
+                    <div class="space-y-5">
+                        <template x-for="areaName in Object.keys(allowedChecklistGroups)" :key="areaName">
+                            <div class="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-slate-100">
+                                <h4 class="font-black text-indigo-900 text-sm md:text-base uppercase mb-4 flex items-center gap-2 border-b border-slate-100 pb-3">
+                                    <i class="ph ph-map-pin text-indigo-500"></i> <span x-text="areaName"></span>
+                                </h4>
+                                
+                                <div class="space-y-3">
+                                    <template x-for="item in allowedChecklistGroups[areaName]" :key="item.id">
+                                        <template x-if="auditModal.responses[item.id] !== undefined">
+                                            <!-- Checkbox Item -->
+                                            <label class="flex items-center justify-between p-3 md:p-4 rounded-xl border cursor-pointer transition group" :class="auditModal.responses[item.id] ? 'bg-emerald-50/50 border-emerald-300 shadow-sm' : 'bg-slate-50 border-slate-100 hover:border-slate-300'">
+                                                <span class="text-xs md:text-sm font-bold w-[85%] leading-relaxed transition" :class="auditModal.responses[item.id] ? 'text-emerald-900' : 'text-slate-600'" x-text="item.deskripsi"></span>
+                                                <div class="relative flex items-center justify-center">
+                                                    <input type="checkbox" x-model="auditModal.responses[item.id]" class="w-6 h-6 text-emerald-600 bg-white border-2 border-slate-300 rounded-lg focus:ring-emerald-500 cursor-pointer peer transition appearance-none checked:bg-emerald-500 checked:border-emerald-500">
+                                                    <i x-show="auditModal.responses[item.id]" class="ph ph-check absolute text-white pointer-events-none font-black text-sm"></i>
+                                                </div>
+                                            </label>
+                                        </template>
+                                    </template>
                                 </div>
-                            </template>
-                        </div>
+                            </div>
+                        </template>
                     </div>
                 </div>
 
-                <div class="bg-white p-4 flex justify-end gap-3 border-t rounded-b-3xl shrink-0">
-                    <button type="button" @click="p3kModal.show = false" class="px-6 py-3 font-bold bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200">Batal</button>
-                    <button type="submit" class="bg-rose-600 text-white font-bold px-8 py-3 rounded-xl shadow-lg hover:bg-rose-700 flex items-center gap-2">
-                        <i class="ph ph-floppy-disk text-lg"></i> Simpan Data
-                    </button>
+                <div class="bg-white p-4 md:p-6 flex flex-col sm:flex-row justify-between items-center border-t border-slate-200 gap-4 sm:gap-0 shrink-0">
+                    <p class="text-[10px] text-slate-400 font-bold text-center sm:text-left w-full sm:w-auto flex items-center justify-center sm:justify-start gap-1">
+                        <i class="ph ph-info"></i> Centang tugas yang telah diselesaikan.
+                    </p>
+                    <div class="flex space-x-3 w-full sm:w-auto justify-end">
+                        <button type="button" @click="auditModal.show = false" class="flex-1 sm:flex-none px-6 py-3 text-xs md:text-sm font-bold text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-xl transition">Batal</button>
+                        <button type="submit" class="flex-1 sm:flex-none bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-8 py-3 rounded-xl text-xs md:text-sm transition shadow-lg shadow-indigo-200 flex items-center justify-center gap-2">
+                            <i class="ph ph-paper-plane-tilt"></i> Kirim
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Confirm Modal -->
     <div x-show="confirmModal.show" class="fixed inset-0 z-[60] flex items-center justify-center p-4 no-print" x-transition x-cloak>
-        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" @click="confirmModal.show = false"></div>
-        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm z-10 p-8 text-center border border-white">
+        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" @click="confirmModal.show = false"></div>
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm z-10 p-6 md:p-8 transform transition-all text-center border border-white">
             <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" :class="confirmModal.actionType.includes('delete') ? 'bg-rose-50 text-rose-500' : 'bg-indigo-50 text-indigo-500'">
                 <i class="ph text-3xl" :class="confirmModal.actionType.includes('delete') ? 'ph-trash' : 'ph-question'"></i>
             </div>
-            <h3 class="text-lg font-black text-slate-800 mb-2" x-text="confirmModal.title"></h3>
-            <p class="text-sm text-slate-500 font-medium mb-8 leading-relaxed" x-text="confirmModal.message"></p>
+            <h3 class="text-lg md:text-xl font-black text-slate-800 mb-2" x-text="confirmModal.title"></h3>
+            <p class="text-xs md:text-sm text-slate-500 font-medium mb-8 leading-relaxed" x-text="confirmModal.message"></p>
             <div class="flex space-x-3 w-full">
                 <button @click="confirmModal.show = false" class="flex-1 px-4 py-3.5 text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-2xl transition">Batal</button>
-                <button @click="executeConfirm()" class="flex-1 px-4 py-3.5 text-sm font-bold text-white rounded-2xl transition shadow-lg" :class="confirmModal.actionType.includes('delete') ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-200' : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200'" x-text="confirmModal.actionType.includes('delete') ? 'Ya, Hapus' : 'Ya, Lanjutkan'"></button>
+                <button @click="executeConfirm()" class="flex-1 px-4 py-3.5 text-sm font-bold text-white rounded-2xl shadow-lg transition" :class="confirmModal.actionType.includes('delete') ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-200' : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200'" x-text="confirmModal.actionType.includes('delete') ? 'Ya, Hapus' : 'Ya, Lanjutkan'"></button>
             </div>
         </div>
     </div>
