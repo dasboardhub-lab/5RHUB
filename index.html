@@ -695,32 +695,61 @@
 
     <!-- Header -->
     <header class="bg-white border-b border-slate-200 shadow-sm no-print sticky top-0 z-40">
-        <div class="max-w-7xl mx-auto px-4 md:px-5 py-3 md:py-4 flex flex-row justify-between items-center gap-3">
-            <div class="flex items-center space-x-3">
-                <div class="bg-indigo-600 text-white p-2.5 rounded-xl font-black text-xl tracking-wider shadow-md hidden sm:block">QMS</div>
+        <div class="max-w-7xl mx-auto px-4 md:px-5 py-3 grid grid-cols-2 gap-4 md:flex md:flex-row md:items-center md:justify-between">
+            
+            <!-- 1. LOGO -->
+            <div class="flex items-center space-x-3 col-span-1 order-1 md:w-auto shrink-0">
+                <div class="bg-indigo-600 text-white p-2 md:p-2.5 rounded-xl font-black text-sm md:text-xl tracking-wider shadow-md">QMS</div>
                 <div>
                     <h1 class="text-sm md:text-lg font-bold tracking-tight text-slate-900 flex items-center gap-2">
                         Audit System
-                        <span x-show="isSupabaseReady" class="bg-emerald-100 text-emerald-700 border border-emerald-200 text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Online</span>
-                        <span x-show="!isSupabaseReady" class="bg-amber-100 text-amber-700 border border-amber-200 text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Lokal</span>
                     </h1>
                 </div>
             </div>
-            <div class="flex items-center">
+
+            <!-- 2. TABS NAVIGATION -->
+            <div x-show="userRole !== 'guest'" class="col-span-2 order-3 md:order-2 flex md:flex-1 md:justify-center items-center gap-3 overflow-x-auto custom-scrollbar pb-1 md:pb-0" x-transition x-cloak>
+                
+                <!-- TABS PIC -->
+                <div x-show="userRole === 'pic'" class="flex gap-1 bg-slate-100 p-1.5 rounded-xl border border-slate-200 shrink-0 w-max mx-auto">
+                    <button @click="activeModule = '5r'" :class="activeModule === '5r' ? 'bg-white text-indigo-600 shadow-sm border-slate-200' : 'text-slate-500 hover:text-slate-700'" class="px-5 py-2 text-xs font-bold rounded-lg border border-transparent transition whitespace-nowrap"><i class="ph ph-calendar-check mr-1"></i> Ceklis 5R</button>
+                    <button @click="activeModule = 'p3k'" :class="activeModule === 'p3k' ? 'bg-white text-rose-600 shadow-sm border-slate-200' : 'text-slate-500 hover:text-slate-700'" class="px-5 py-2 text-xs font-bold rounded-lg border border-transparent transition whitespace-nowrap"><i class="ph ph-first-aid mr-1"></i> Inspeksi P3K</button>
+                </div>
+
+                <!-- TABS ADMIN / VISITOR -->
+                <div x-show="userRole === 'admin' || userRole === 'visitor'" class="flex items-center gap-2 shrink-0 w-max mx-auto">
+                    <!-- Admin Menu Tabs -->
+                    <div x-show="userRole === 'admin'" class="flex gap-1 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
+                        <button @click="adminTab = 'matrix'" :class="adminTab === 'matrix' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200'" class="px-4 py-2 text-xs font-bold rounded-lg transition whitespace-nowrap flex items-center gap-1.5"><i class="ph ph-table text-sm"></i> Matriks</button>
+                        <button @click="adminTab = 'users'" :class="adminTab === 'users' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200'" class="px-4 py-2 text-xs font-bold rounded-lg transition whitespace-nowrap flex items-center gap-1.5"><i class="ph ph-users text-sm"></i> Tim</button>
+                        <button @click="adminTab = 'items'" :class="adminTab === 'items' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200'" class="px-4 py-2 text-xs font-bold rounded-lg transition whitespace-nowrap flex items-center gap-1.5"><i class="ph ph-list-checks text-sm"></i> Tugas</button>
+                    </div>
+
+                    <!-- Sub Menu Matrix (5R/P3K) -->
+                    <div x-show="adminTab === 'matrix' || userRole === 'visitor'" class="flex gap-1 bg-indigo-50 p-1.5 rounded-xl border border-indigo-100">
+                        <button @click="activeModule = '5r'" :class="activeModule === '5r' ? 'bg-indigo-600 text-white shadow-sm' : 'text-indigo-600 hover:bg-indigo-100'" class="px-4 py-2 text-xs font-bold rounded-lg transition whitespace-nowrap flex items-center gap-1"><i class="ph ph-files text-sm"></i> Lap. 5R</button>
+                        <button @click="activeModule = 'p3k'" :class="activeModule === 'p3k' ? 'bg-rose-600 text-white shadow-sm' : 'text-rose-600 hover:bg-rose-100'" class="px-4 py-2 text-xs font-bold rounded-lg transition whitespace-nowrap flex items-center gap-1"><i class="ph ph-first-aid text-sm"></i> Lap. P3K</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. USER INFO / LOGOUT -->
+            <div class="flex items-center justify-end col-span-1 order-2 md:order-3 md:w-auto shrink-0 ml-auto">
                 <template x-if="userRole === 'guest'">
                     <span class="text-xs bg-slate-100 px-4 py-2 rounded-full text-slate-500 font-semibold border border-slate-200">Silakan Masuk</span>
                 </template>
                 <template x-if="userRole !== 'guest'">
-                    <div class="flex items-center gap-4 bg-slate-50 pl-5 pr-1.5 py-1.5 rounded-full border border-slate-200 shadow-sm">
+                    <div class="flex items-center gap-3 bg-slate-50 pl-4 pr-1.5 py-1.5 rounded-full border border-slate-200 shadow-sm w-fit">
                         <div class="text-right hidden md:block">
                             <p class="text-xs font-bold text-slate-800" x-text="currentUser?.nama"></p>
                         </div>
-                        <button @click="logout()" class="text-xs bg-white border border-slate-200 text-slate-600 hover:text-rose-600 hover:border-rose-200 p-2 rounded-full transition flex items-center justify-center shadow-sm">
+                        <button @click="logout()" class="text-xs bg-white border border-slate-200 text-slate-600 hover:text-rose-600 hover:border-rose-200 p-2 rounded-full transition flex items-center justify-center shadow-sm" title="Keluar">
                             <i class="ph ph-sign-out text-base"></i>
                         </button>
                     </div>
                 </template>
             </div>
+
         </div>
     </header>
 
@@ -756,11 +785,7 @@
             <div class="bg-gradient-to-r from-indigo-600 to-blue-600 p-8 rounded-3xl shadow-xl text-white flex flex-col md:flex-row justify-between items-center gap-6">
                 <div class="w-full md:w-auto text-left">
                     <div class="flex items-center gap-2 mb-3">
-                        <span class="text-[10px] font-bold text-indigo-100 uppercase bg-white/20 px-2 py-1.5 rounded-md border border-white/20">Panel PIC</span>
-                        <div class="flex gap-1 bg-white/10 p-1 rounded-lg border border-white/20">
-                            <button @click="activeModule = '5r'" :class="activeModule === '5r' ? 'bg-white text-indigo-600 shadow-sm' : 'text-indigo-100 hover:text-white'" class="px-3 py-1 text-[10px] font-bold rounded-md transition">5R Harian</button>
-                            <button @click="activeModule = 'p3k'" :class="activeModule === 'p3k' ? 'bg-white text-indigo-600 shadow-sm' : 'text-indigo-100 hover:text-white'" class="px-3 py-1 text-[10px] font-bold rounded-md transition">Kotak P3K</button>
-                        </div>
+                        <span class="text-[10px] font-bold text-indigo-100 uppercase bg-white/20 px-3 py-1 rounded-md border border-white/20"><i class="ph ph-user mr-1"></i>Panel PIC</span>
                     </div>
                     <h2 class="text-3xl font-black" x-text="'Halo, ' + currentUser?.nama"></h2>
                     <p class="text-indigo-100 text-sm mt-2 flex items-center gap-2"><i class="ph ph-map-pin"></i> <span class="font-bold" x-text="currentUser?.hub"></span></p>
@@ -882,35 +907,25 @@
         <!-- Dashboard Admin / Visitor -->
         <div x-show="userRole === 'visitor' || userRole === 'admin'" class="space-y-8 no-print" x-transition x-cloak>
             
-            <div x-show="userRole === 'admin'" class="bg-white p-2 rounded-full shadow-lg border border-slate-100 flex flex-row gap-2 overflow-x-auto w-fit mx-auto">
-                <button @click="adminTab = 'matrix'" :class="adminTab === 'matrix' ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-50'" class="px-6 py-3 rounded-full text-sm font-bold transition flex items-center gap-2"><i class="ph ph-table"></i> Matriks Rekap</button>
-                <button @click="adminTab = 'users'" :class="adminTab === 'users' ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-50'" class="px-6 py-3 rounded-full text-sm font-bold transition flex items-center gap-2"><i class="ph ph-users"></i> Kelola Tim</button>
-                <button @click="adminTab = 'items'" :class="adminTab === 'items' ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-50'" class="px-6 py-3 rounded-full text-sm font-bold transition flex items-center gap-2"><i class="ph ph-list-checks"></i> Kelola Tugas</button>
-            </div>
-
             <!-- Tab Rekap Matriks -->
             <div x-show="adminTab === 'matrix' || userRole === 'visitor'" class="space-y-6">
-                <div class="bg-white p-8 rounded-3xl shadow-xl border border-slate-100">
+                <div class="bg-white p-8 rounded-3xl shadow-xl border border-slate-100 mt-2">
                     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-5 mb-8">
                         <div>
-                            <div class="flex gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200 w-fit mb-3">
-                                <button @click="activeModule = '5r'" :class="activeModule === '5r' ? 'bg-white text-indigo-600 shadow-sm border-slate-200' : 'text-slate-500 hover:text-slate-700'" class="px-4 py-1.5 text-xs font-bold rounded-md border border-transparent transition">Laporan 5R</button>
-                                <button @click="activeModule = 'p3k'" :class="activeModule === 'p3k' ? 'bg-white text-indigo-600 shadow-sm border-slate-200' : 'text-slate-500 hover:text-slate-700'" class="px-4 py-1.5 text-xs font-bold rounded-md border border-transparent transition">Laporan P3K</button>
-                            </div>
                             <h3 class="text-2xl font-black text-slate-800 flex items-center gap-3">
                                 <i class="ph ph-chart-bar text-indigo-600 bg-indigo-50 p-2 rounded-xl"></i>
                                 <span x-text="activeModule === '5r' ? 'Laporan Matriks 5R' : 'Laporan Inspeksi Kotak P3K'"></span>
                             </h3>
                         </div>
-                        <div class="flex flex-wrap items-center gap-3">
-                            <button x-show="userRole === 'admin' && activeModule === '5r'" @click="openAuditModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-2xl text-sm font-bold shadow-sm flex items-center gap-2 transition">
+                        <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                            <button x-show="userRole === 'admin' && activeModule === '5r'" @click="openAuditModal()" class="flex-1 md:flex-none bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-2xl text-sm font-bold shadow-sm flex items-center justify-center gap-2 transition">
                                 <i class="ph ph-clipboard-text text-lg"></i> <span>Input 5R</span>
                             </button>
-                            <button x-show="userRole === 'admin' && activeModule === 'p3k'" @click="openP3kModal()" class="bg-rose-600 hover:bg-rose-700 text-white px-5 py-3 rounded-2xl text-sm font-bold shadow-sm flex items-center gap-2 transition">
+                            <button x-show="userRole === 'admin' && activeModule === 'p3k'" @click="openP3kModal()" class="flex-1 md:flex-none bg-rose-600 hover:bg-rose-700 text-white px-5 py-3 rounded-2xl text-sm font-bold shadow-sm flex items-center justify-center gap-2 transition">
                                 <i class="ph ph-first-aid text-lg"></i> <span>Input P3K</span>
                             </button>
-                            <button @click="printReport()" class="bg-white border-2 border-slate-200 hover:border-slate-800 hover:bg-slate-50 text-slate-800 px-5 py-3 rounded-2xl text-sm font-bold shadow-sm flex items-center gap-2 transition">
-                                <i class="ph ph-printer text-lg"></i> <span>Cetak Laporan</span>
+                            <button @click="printReport()" class="flex-1 md:flex-none bg-white border-2 border-slate-200 hover:border-slate-800 hover:bg-slate-50 text-slate-800 px-5 py-3 rounded-2xl text-sm font-bold shadow-sm flex items-center justify-center gap-2 transition">
+                                <i class="ph ph-printer text-lg"></i> <span>Cetak</span>
                             </button>
                         </div>
                     </div>
@@ -1093,7 +1108,7 @@
             </div>
 
             <!-- Tab Kelola Tim (Manajemen User & P3K Config) -->
-            <div x-show="adminTab === 'users'" class="bg-white p-6 md:p-8 rounded-3xl shadow-xl border border-slate-100">
+            <div x-show="adminTab === 'users'" class="bg-white p-6 md:p-8 rounded-3xl shadow-xl border border-slate-100 mt-2">
                 <div class="flex justify-between items-center mb-6">
                     <h3 class="text-2xl font-black text-slate-800 flex items-center gap-3"><i class="ph ph-users text-indigo-600 bg-indigo-50 p-2 rounded-xl"></i>Kelola Tim & Hak Akses</h3>
                     <button @click="openAddUserModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-sm flex items-center gap-2 transition"><i class="ph ph-plus-circle"></i> Tambah User</button>
@@ -1144,7 +1159,7 @@
             </div>
 
             <!-- Tab Kelola Tugas 5R -->
-            <div x-show="adminTab === 'items'" class="bg-white p-6 md:p-8 rounded-3xl shadow-xl border border-slate-100">
+            <div x-show="adminTab === 'items'" class="bg-white p-6 md:p-8 rounded-3xl shadow-xl border border-slate-100 mt-2">
                 <div class="flex justify-between items-center mb-6">
                     <h3 class="text-xl md:text-2xl font-black text-slate-800 flex items-center gap-3"><i class="ph ph-list-checks text-indigo-600 bg-indigo-50 p-2 rounded-xl"></i>Kelola Tugas 5R</h3>
                     <button @click="openAddItemModal()" class="w-10 h-10 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-md flex items-center justify-center transition" title="Tambah Tugas">
