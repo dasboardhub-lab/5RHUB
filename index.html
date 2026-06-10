@@ -27,7 +27,7 @@
                 // Module Navigation
                 activeModule: '5r', 
                 adminTab: 'matrix',
-                selectedSemester: 1, // Sekarang berfungsi sebagai Periode (1, 2, atau 3)
+                selectedSemester: 1, 
                 
                 selectedMonth: new Date().getMonth(), 
                 selectedYear: new Date().getFullYear(), 
@@ -84,7 +84,6 @@
                     this.watcher();
                 },
 
-                // Pembagian 4 Bulan Per Periode Laporan P3K agar tabel tidak terlalu padat
                 get monthsInSemester() {
                     if (this.selectedSemester == 1) return [0, 1, 2, 3]; // Jan - Apr
                     if (this.selectedSemester == 2) return [4, 5, 6, 7]; // Mei - Agu
@@ -683,7 +682,7 @@
         input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
     </style>
 </head>
-<body class="bg-slate-50 font-sans text-slate-800 min-h-screen flex flex-col" x-data="auditApp" x-cloak>
+<body class="bg-slate-50 font-sans text-slate-800 min-h-screen flex flex-col md:pb-0" x-data="auditApp" x-cloak>
 
     <!-- Toasts -->
     <div class="fixed top-6 left-1/2 transform -translate-x-1/2 z-[100] no-print" x-show="toast.show" x-transition x-cloak>
@@ -693,12 +692,12 @@
         </div>
     </div>
 
-    <!-- Header -->
+    <!-- Header Desktop -->
     <header class="bg-white border-b border-slate-200 shadow-sm no-print sticky top-0 z-40">
-        <div class="max-w-7xl mx-auto px-4 md:px-5 py-3 grid grid-cols-2 gap-4 md:flex md:flex-row md:items-center md:justify-between">
+        <div class="max-w-7xl mx-auto px-4 md:px-5 py-3 flex items-center justify-between gap-4">
             
             <!-- 1. LOGO -->
-            <div class="flex items-center space-x-3 col-span-1 order-1 md:w-auto shrink-0">
+            <div class="flex items-center space-x-3 shrink-0">
                 <div class="bg-indigo-600 text-white p-2 md:p-2.5 rounded-xl font-black text-sm md:text-xl tracking-wider shadow-md">QMS</div>
                 <div>
                     <h1 class="text-sm md:text-lg font-bold tracking-tight text-slate-900 flex items-center gap-2">
@@ -707,39 +706,38 @@
                 </div>
             </div>
 
-            <!-- 2. TABS NAVIGATION -->
-            <div x-show="userRole !== 'guest'" class="col-span-2 order-3 md:order-2 flex md:flex-1 md:justify-center items-center gap-3 overflow-x-auto custom-scrollbar pb-1 md:pb-0" x-transition x-cloak>
+            <!-- 2. DESKTOP TABS NAVIGATION -->
+            <div class="hidden md:flex flex-1 justify-center items-center" x-show="userRole !== 'guest'" x-cloak>
                 
-                <!-- TABS PIC -->
-                <div x-show="userRole === 'pic'" class="flex gap-1 bg-slate-100 p-1.5 rounded-xl border border-slate-200 shrink-0 w-max mx-auto">
-                    <button @click="activeModule = '5r'" :class="activeModule === '5r' ? 'bg-white text-indigo-600 shadow-sm border-slate-200' : 'text-slate-500 hover:text-slate-700'" class="px-5 py-2 text-xs font-bold rounded-lg border border-transparent transition whitespace-nowrap"><i class="ph ph-calendar-check mr-1"></i> Ceklis 5R</button>
-                    <button @click="activeModule = 'p3k'" :class="activeModule === 'p3k' ? 'bg-white text-rose-600 shadow-sm border-slate-200' : 'text-slate-500 hover:text-slate-700'" class="px-5 py-2 text-xs font-bold rounded-lg border border-transparent transition whitespace-nowrap"><i class="ph ph-first-aid mr-1"></i> Inspeksi P3K</button>
-                </div>
-
-                <!-- TABS ADMIN / VISITOR -->
-                <div x-show="userRole === 'admin' || userRole === 'visitor'" class="flex items-center gap-2 shrink-0 w-max mx-auto">
-                    <!-- Admin Menu Tabs -->
-                    <div x-show="userRole === 'admin'" class="flex gap-1 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
-                        <button @click="adminTab = 'matrix'" :class="adminTab === 'matrix' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200'" class="px-4 py-2 text-xs font-bold rounded-lg transition whitespace-nowrap flex items-center gap-1.5"><i class="ph ph-table text-sm"></i> Matriks</button>
-                        <button @click="adminTab = 'users'" :class="adminTab === 'users' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200'" class="px-4 py-2 text-xs font-bold rounded-lg transition whitespace-nowrap flex items-center gap-1.5"><i class="ph ph-users text-sm"></i> Tim</button>
-                        <button @click="adminTab = 'items'" :class="adminTab === 'items' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200'" class="px-4 py-2 text-xs font-bold rounded-lg transition whitespace-nowrap flex items-center gap-1.5"><i class="ph ph-list-checks text-sm"></i> Tugas</button>
+                <!-- Desktop TABS PIC -->
+                <template x-if="userRole === 'pic'">
+                    <div class="flex gap-1 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
+                        <button @click="activeModule = '5r'" :class="activeModule === '5r' ? 'bg-white text-indigo-600 shadow-sm border-slate-200' : 'text-slate-500 hover:text-slate-700'" class="px-5 py-2 text-xs font-bold rounded-lg border border-transparent transition whitespace-nowrap"><i class="ph ph-calendar-check mr-1 text-base"></i> Ceklis 5R</button>
+                        <button @click="activeModule = 'p3k'" :class="activeModule === 'p3k' ? 'bg-white text-rose-600 shadow-sm border-slate-200' : 'text-slate-500 hover:text-slate-700'" class="px-5 py-2 text-xs font-bold rounded-lg border border-transparent transition whitespace-nowrap"><i class="ph ph-first-aid mr-1 text-base"></i> Inspeksi P3K</button>
                     </div>
+                </template>
 
-                    <!-- Sub Menu Matrix (5R/P3K) -->
-                    <div x-show="adminTab === 'matrix' || userRole === 'visitor'" class="flex gap-1 bg-indigo-50 p-1.5 rounded-xl border border-indigo-100">
-                        <button @click="activeModule = '5r'" :class="activeModule === '5r' ? 'bg-indigo-600 text-white shadow-sm' : 'text-indigo-600 hover:bg-indigo-100'" class="px-4 py-2 text-xs font-bold rounded-lg transition whitespace-nowrap flex items-center gap-1"><i class="ph ph-files text-sm"></i> Lap. 5R</button>
-                        <button @click="activeModule = 'p3k'" :class="activeModule === 'p3k' ? 'bg-rose-600 text-white shadow-sm' : 'text-rose-600 hover:bg-rose-100'" class="px-4 py-2 text-xs font-bold rounded-lg transition whitespace-nowrap flex items-center gap-1"><i class="ph ph-first-aid text-sm"></i> Lap. P3K</button>
+                <!-- Desktop TABS ADMIN / VISITOR -->
+                <template x-if="userRole === 'admin' || userRole === 'visitor'">
+                    <div class="flex gap-1 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
+                        <button @click="adminTab = 'matrix'" :class="adminTab === 'matrix' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200'" class="px-5 py-2 text-xs font-bold rounded-lg transition whitespace-nowrap flex items-center gap-2"><i class="ph ph-table text-base"></i> Matriks Rekap</button>
+                        <template x-if="userRole === 'admin'">
+                            <button @click="adminTab = 'users'" :class="adminTab === 'users' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200'" class="px-5 py-2 text-xs font-bold rounded-lg transition whitespace-nowrap flex items-center gap-2"><i class="ph ph-users text-base"></i> Kelola Tim</button>
+                        </template>
+                        <template x-if="userRole === 'admin'">
+                            <button @click="adminTab = 'items'" :class="adminTab === 'items' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200'" class="px-5 py-2 text-xs font-bold rounded-lg transition whitespace-nowrap flex items-center gap-2"><i class="ph ph-list-checks text-base"></i> Kelola Tugas</button>
+                        </template>
                     </div>
-                </div>
+                </template>
             </div>
 
             <!-- 3. USER INFO / LOGOUT -->
-            <div class="flex items-center justify-end col-span-1 order-2 md:order-3 md:w-auto shrink-0 ml-auto">
+            <div class="flex items-center justify-end shrink-0">
                 <template x-if="userRole === 'guest'">
                     <span class="text-xs bg-slate-100 px-4 py-2 rounded-full text-slate-500 font-semibold border border-slate-200">Silakan Masuk</span>
                 </template>
                 <template x-if="userRole !== 'guest'">
-                    <div class="flex items-center gap-3 bg-slate-50 pl-4 pr-1.5 py-1.5 rounded-full border border-slate-200 shadow-sm w-fit">
+                    <div class="flex items-center gap-3 bg-slate-50 pl-4 pr-1.5 py-1.5 rounded-full border border-slate-200 shadow-sm">
                         <div class="text-right hidden md:block">
                             <p class="text-xs font-bold text-slate-800" x-text="currentUser?.nama"></p>
                         </div>
@@ -753,7 +751,48 @@
         </div>
     </header>
 
-    <main class="flex-grow max-w-7xl w-full mx-auto p-4 md:p-6 print-container">
+    <!-- Mobile Bottom Navigation -->
+    <nav x-show="userRole !== 'guest'" class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)] z-50 px-2 py-2 pb-[calc(env(safe-area-inset-bottom)+10px)] flex justify-around items-center no-print" x-cloak>
+        
+        <!-- Mobile PIC NAV -->
+        <template x-if="userRole === 'pic'">
+            <div class="flex w-full gap-2 px-2">
+                <button @click="activeModule = '5r'" :class="activeModule === '5r' ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : 'bg-transparent text-slate-500 border-transparent'" class="flex-1 flex flex-col items-center p-2 rounded-xl border transition">
+                    <i class="ph ph-calendar-check text-2xl mb-1"></i>
+                    <span class="text-[10px] font-bold">Ceklis 5R</span>
+                </button>
+                <button @click="activeModule = 'p3k'" :class="activeModule === 'p3k' ? 'bg-rose-50 text-rose-600 border-rose-200' : 'bg-transparent text-slate-500 border-transparent'" class="flex-1 flex flex-col items-center p-2 rounded-xl border transition">
+                    <i class="ph ph-first-aid text-2xl mb-1"></i>
+                    <span class="text-[10px] font-bold">Kotak P3K</span>
+                </button>
+            </div>
+        </template>
+
+        <!-- Mobile ADMIN/VISITOR NAV -->
+        <template x-if="userRole === 'admin' || userRole === 'visitor'">
+            <div class="flex w-full gap-1 px-1">
+                <button @click="adminTab = 'matrix'" :class="adminTab === 'matrix' ? 'bg-slate-800 text-white shadow-md' : 'bg-transparent text-slate-500 hover:bg-slate-50'" class="flex-1 flex flex-col items-center py-2 rounded-xl transition">
+                    <i class="ph ph-table text-xl mb-1"></i>
+                    <span class="text-[10px] font-bold">Matriks</span>
+                </button>
+                <template x-if="userRole === 'admin'">
+                    <button @click="adminTab = 'users'" :class="adminTab === 'users' ? 'bg-slate-800 text-white shadow-md' : 'bg-transparent text-slate-500 hover:bg-slate-50'" class="flex-1 flex flex-col items-center py-2 rounded-xl transition">
+                        <i class="ph ph-users text-xl mb-1"></i>
+                        <span class="text-[10px] font-bold">Tim</span>
+                    </button>
+                </template>
+                <template x-if="userRole === 'admin'">
+                    <button @click="adminTab = 'items'" :class="adminTab === 'items' ? 'bg-slate-800 text-white shadow-md' : 'bg-transparent text-slate-500 hover:bg-slate-50'" class="flex-1 flex flex-col items-center py-2 rounded-xl transition">
+                        <i class="ph ph-list-checks text-xl mb-1"></i>
+                        <span class="text-[10px] font-bold">Tugas</span>
+                    </button>
+                </template>
+            </div>
+        </template>
+    </nav>
+
+    <!-- Margin bottom mobile (pb-24) agar tabel tidak tertutup Bottom Nav -->
+    <main class="flex-grow max-w-7xl w-full mx-auto p-4 md:p-6 pb-24 md:pb-6 print-container">
         
         <!-- Login Form -->
         <div x-show="userRole === 'guest'" class="max-w-md mx-auto mt-20 bg-white rounded-3xl shadow-xl shadow-slate-200/50 p-10 border border-slate-100 no-print" x-transition>
@@ -909,14 +948,14 @@
             
             <!-- Tab Rekap Matriks -->
             <div x-show="adminTab === 'matrix' || userRole === 'visitor'" class="space-y-6">
-                <div class="bg-white p-8 rounded-3xl shadow-xl border border-slate-100 mt-2">
+                <div class="bg-white p-6 md:p-8 rounded-3xl shadow-xl border border-slate-100">
+                    
+                    <!-- Header Matrix -->
                     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-5 mb-8">
-                        <div>
-                            <h3 class="text-2xl font-black text-slate-800 flex items-center gap-3">
-                                <i class="ph ph-chart-bar text-indigo-600 bg-indigo-50 p-2 rounded-xl"></i>
-                                <span x-text="activeModule === '5r' ? 'Laporan Matriks 5R' : 'Laporan Inspeksi Kotak P3K'"></span>
-                            </h3>
-                        </div>
+                        <h3 class="text-2xl font-black text-slate-800 flex items-center gap-3">
+                            <i class="ph ph-chart-bar text-indigo-600 bg-indigo-50 p-2 rounded-xl"></i>
+                            <span x-text="activeModule === '5r' ? 'Laporan Matriks 5R' : 'Laporan Inspeksi Kotak P3K'"></span>
+                        </h3>
                         <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
                             <button x-show="userRole === 'admin' && activeModule === '5r'" @click="openAuditModal()" class="flex-1 md:flex-none bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-2xl text-sm font-bold shadow-sm flex items-center justify-center gap-2 transition">
                                 <i class="ph ph-clipboard-text text-lg"></i> <span>Input 5R</span>
@@ -930,46 +969,60 @@
                         </div>
                     </div>
 
-                    <!-- Filter Area -->
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 p-5 bg-slate-50 rounded-2xl mb-8 border border-slate-100">
-                        <div x-show="activeModule === '5r'">
-                            <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Bulan</label>
-                            <select x-model="selectedMonth" class="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm font-medium focus:ring-2 outline-none">
-                                <option value="0">Jan</option><option value="1">Feb</option><option value="2">Mar</option><option value="3">Apr</option><option value="4">Mei</option><option value="5">Jun</option><option value="6">Jul</option><option value="7">Agu</option><option value="8">Sep</option><option value="9">Okt</option><option value="10">Nov</option><option value="11">Des</option>
-                            </select>
+                    <!-- Filter Area terintegrasi dengan Tab Laporan -->
+                    <div class="flex flex-col xl:flex-row gap-5 p-5 bg-slate-50 rounded-2xl mb-8 border border-slate-200">
+                        
+                        <!-- Toggle Lap 5R / Lap P3K -->
+                        <div class="w-full xl:w-auto xl:border-r border-slate-300 xl:pr-5 shrink-0 flex flex-col justify-center">
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Pilih Laporan</label>
+                            <div class="flex gap-2 bg-slate-200 p-1.5 rounded-xl border border-slate-300 w-full xl:w-fit">
+                                <button @click="activeModule = '5r'" :class="activeModule === '5r' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'" class="flex-1 xl:flex-none px-6 py-2.5 text-xs font-bold rounded-lg transition flex items-center justify-center gap-2 whitespace-nowrap"><i class="ph ph-calendar-check text-lg"></i> Laporan 5R</button>
+                                <button @click="activeModule = 'p3k'" :class="activeModule === 'p3k' ? 'bg-white text-rose-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'" class="flex-1 xl:flex-none px-6 py-2.5 text-xs font-bold rounded-lg transition flex items-center justify-center gap-2 whitespace-nowrap"><i class="ph ph-first-aid text-lg"></i> Laporan P3K</button>
+                            </div>
                         </div>
-                        <div x-show="activeModule === 'p3k'">
-                            <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Periode Laporan</label>
-                            <select x-model="selectedSemester" class="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm font-medium focus:ring-2 outline-none">
-                                <option value="1">Periode 1 (Jan - Apr)</option>
-                                <option value="2">Periode 2 (Mei - Agu)</option>
-                                <option value="3">Periode 3 (Sep - Des)</option>
-                            </select>
+
+                        <!-- Dropdown Filters -->
+                        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 w-full flex-1">
+                            <div x-show="activeModule === '5r'">
+                                <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Bulan</label>
+                                <select x-model="selectedMonth" class="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm font-medium focus:ring-2 outline-none">
+                                    <option value="0">Jan</option><option value="1">Feb</option><option value="2">Mar</option><option value="3">Apr</option><option value="4">Mei</option><option value="5">Jun</option><option value="6">Jul</option><option value="7">Agu</option><option value="8">Sep</option><option value="9">Okt</option><option value="10">Nov</option><option value="11">Des</option>
+                                </select>
+                            </div>
+                            <div x-show="activeModule === 'p3k'">
+                                <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Periode Laporan</label>
+                                <select x-model="selectedSemester" class="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm font-medium focus:ring-2 outline-none">
+                                    <option value="1">Periode 1 (Jan - Apr)</option>
+                                    <option value="2">Periode 2 (Mei - Agu)</option>
+                                    <option value="3">Periode 3 (Sep - Des)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Tahun</label>
+                                <select x-model="selectedYear" class="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm font-medium focus:ring-2 outline-none">
+                                    <option value="2026">2026</option> <option value="2027">2027</option> <option value="2028">2028</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Filter Lokasi HUB</label>
+                                <select x-model="selectedHub" class="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm font-medium focus:ring-2 outline-none">
+                                    <template x-for="hub in getUniqueHubs()" :key="hub"><option :value="hub" x-text="hub"></option></template>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Filter Personil</label>
+                                <select x-model="selectedPicId" class="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm font-medium focus:ring-2 outline-none">
+                                    <option value="all">Semua Personil</option>
+                                    <template x-for="usr in users.filter(u => u.level === 'pic' && (selectedHub === 'all' || u.hub === selectedHub))" :key="usr.userId"><option :value="usr.userId" x-text="usr.nama"></option></template>
+                                </select>
+                            </div>
                         </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Tahun</label>
-                            <select x-model="selectedYear" class="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm font-medium focus:ring-2 outline-none">
-                                <option value="2026">2026</option> <option value="2027">2027</option> <option value="2028">2028</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Filter Lokasi HUB</label>
-                            <select x-model="selectedHub" class="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm font-medium focus:ring-2 outline-none">
-                                <template x-for="hub in getUniqueHubs()" :key="hub"><option :value="hub" x-text="hub"></option></template>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Filter Personil</label>
-                            <select x-model="selectedPicId" class="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm font-medium focus:ring-2 outline-none">
-                                <option value="all">Semua Personil</option>
-                                <template x-for="usr in users.filter(u => u.level === 'pic' && (selectedHub === 'all' || u.hub === selectedHub))" :key="usr.userId"><option :value="usr.userId" x-text="usr.nama"></option></template>
-                            </select>
-                        </div>
+
                     </div>
 
                     <!-- Notifikasi Bantuan Inline Edit -->
                     <div x-show="userRole === 'admin' && (selectedHub === 'all' || selectedPicId === 'all')" class="mb-5 p-4 bg-amber-50 border border-amber-200 text-amber-700 rounded-2xl text-xs font-bold flex items-center gap-3">
-                        <i class="ph ph-warning-circle text-2xl"></i>
+                        <i class="ph ph-warning-circle text-2xl shrink-0"></i>
                         <p>Untuk dapat mengubah/mengedit data secara langsung (Live Edit) di dalam tabel di bawah, silakan pilih <span class="text-amber-900 underline">Filter Lokasi HUB</span> dan <span class="text-amber-900 underline">Filter Personil</span> secara spesifik terlebih dahulu.</p>
                     </div>
 
@@ -1108,7 +1161,7 @@
             </div>
 
             <!-- Tab Kelola Tim (Manajemen User & P3K Config) -->
-            <div x-show="adminTab === 'users'" class="bg-white p-6 md:p-8 rounded-3xl shadow-xl border border-slate-100 mt-2">
+            <div x-show="adminTab === 'users'" class="bg-white p-6 md:p-8 rounded-3xl shadow-xl border border-slate-100">
                 <div class="flex justify-between items-center mb-6">
                     <h3 class="text-2xl font-black text-slate-800 flex items-center gap-3"><i class="ph ph-users text-indigo-600 bg-indigo-50 p-2 rounded-xl"></i>Kelola Tim & Hak Akses</h3>
                     <button @click="openAddUserModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-sm flex items-center gap-2 transition"><i class="ph ph-plus-circle"></i> Tambah User</button>
@@ -1159,7 +1212,7 @@
             </div>
 
             <!-- Tab Kelola Tugas 5R -->
-            <div x-show="adminTab === 'items'" class="bg-white p-6 md:p-8 rounded-3xl shadow-xl border border-slate-100 mt-2">
+            <div x-show="adminTab === 'items'" class="bg-white p-6 md:p-8 rounded-3xl shadow-xl border border-slate-100">
                 <div class="flex justify-between items-center mb-6">
                     <h3 class="text-xl md:text-2xl font-black text-slate-800 flex items-center gap-3"><i class="ph ph-list-checks text-indigo-600 bg-indigo-50 p-2 rounded-xl"></i>Kelola Tugas 5R</h3>
                     <button @click="openAddItemModal()" class="w-10 h-10 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-md flex items-center justify-center transition" title="Tambah Tugas">
