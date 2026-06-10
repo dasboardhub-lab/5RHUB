@@ -25,9 +25,9 @@
                 currentUser: null,
                 
                 // Module Navigation
-                activeModule: '5r', // '5r' atau 'p3k'
+                activeModule: '5r', 
                 adminTab: 'matrix',
-                selectedSemester: 1, // Tambahan state untuk P3K
+                selectedSemester: 1, 
                 
                 selectedMonth: new Date().getMonth(), 
                 selectedYear: new Date().getFullYear(), 
@@ -51,7 +51,7 @@
                 activeChecklistItems: [],
                 auditLogs: [],
 
-                // P3K Data (Sesuai PDF)
+                // P3K Data
                 p3kModal: { show: false, week: 1, tipe: 'A', dateFilled: '', responses: {} },
                 p3kLogs: [],
                 p3kItems: [
@@ -357,40 +357,12 @@
                 },
 
                 openP3kModal() {
-                    // Otomatis deteksi minggu dari tanggal saat ini
                     this.p3kModal.week = this.calculateCurrentWeek();
-                    // Otomatis deteksi tipe dari konfigurasi admin untuk user ini
                     this.p3kModal.tipe = this.currentUser.p3kType || 'A';
-                    this.p3kModal.month = new Date().getMonth(); // Menyimpan data spesifik di bulan pengisian
+                    this.p3kModal.month = new Date().getMonth(); 
                     
-                    // Simpan tanggal pengisian aktual
                     const today = new Date();
                     this.p3kModal.dateFilled = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth()+1).toString().padStart(2, '0')}/${today.getFullYear()}`;
-
-                    this.loadP3kExistingLog();
-                    this.p3kModal.show = true;
-                },
-
-                adminEditP3k(monthNum, weekNum) {
-                    if(this.userRole !== 'admin') return;
-                    
-                    if(this.selectedHub === 'all') {
-                        this.showToast('Harap pilih Filter Lokasi HUB spesifik terlebih dahulu untuk mengedit data.', 'error');
-                        return;
-                    }
-
-                    this.p3kModal.month = monthNum;
-                    this.p3kModal.week = weekNum;
-                    
-                    const existingLog = this.getP3kLogForPeriod(monthNum, weekNum);
-                    this.p3kModal.tipe = existingLog ? existingLog.tipeKotak : 'A';
-                    
-                    if (!existingLog) {
-                        const today = new Date();
-                        this.p3kModal.dateFilled = `${today.getDate().toString().padStart(2, '0')}/${(parseInt(monthNum)+1).toString().padStart(2, '0')}/${this.selectedYear}`;
-                    } else {
-                        this.p3kModal.dateFilled = existingLog.dateFilled;
-                    }
 
                     this.loadP3kExistingLog();
                     this.p3kModal.show = true;
@@ -427,8 +399,8 @@
                         parsedResponses[key] = this.p3kModal.responses[key] === '' ? 0 : parseInt(this.p3kModal.responses[key]);
                     }
 
-                    const picIdToSave = existingLog ? existingLog.picId : this.currentUser.userId;
-                    const picNameToSave = existingLog ? existingLog.picName : this.currentUser.nama;
+                    const picIdToSave = existingLog ? existingLog.picId : (this.selectedPicId !== 'all' && this.userRole === 'admin' ? this.selectedPicId : this.currentUser.userId);
+                    const picNameToSave = existingLog ? existingLog.picName : (this.selectedPicId !== 'all' && this.userRole === 'admin' ? (this.users.find(u => u.userId === this.selectedPicId)?.nama || picIdToSave) : this.currentUser.nama);
                     const hubToSave = existingLog ? existingLog.hub : targetHub;
 
                     const newLog = {
@@ -477,6 +449,151 @@
                         if (this.selectedPicId !== 'all') logsForPeriod = logsForPeriod.filter(log => log.picId === this.selectedPicId);
                     }
                     return logsForPeriod.length > 0 ? logsForPeriod[0] : null;
+                },
+
+                // FITUR INLINE EDIT P3K
+                getP3kValue(itemId, monthNum, weekNum) {
+                    const log = this.getP3kLogForPeriod(monthNum, weekNum);
+                    if (!log || log.answers[itemId] === undefined) return '';
+                    return log.answers[itemId];
+                },
+
+                async updateP3kInline(itemId, monthNum, weekNum, value) {
+                    if(this.selectedHub === 'all' || this.selectedPicId === 'all') return;
+                    
+                    let val = value === '' ? 0 : parseInt(value);
+                    
+                    const existingLogIndex = this.p3kLogs.findIndex(log => 
+                        log.year == this.selectedYear && 
+                        log.month == monthNum && 
+                        log.week == weekNum &&
+                        log.hub === this.selectedHub &&
+                        log.picId === this.selectedPicId
+                    );
+
+                    if (existingLogIndex !== -1) {
+                        let log = this.p3kLogs[existingLogIndex];
+                        log.answers[itemId] = val;
+                        if (this.isSupabaseReady) {
+                            await supabase.from('p3k_logs').update({ answers: log.answers }).eq('id', log.id);
+                        }
+                        this.showToast('Tersimpan', 'success');
+                    } else {
+                        const logId = 'p3k-' + Date.now();
+                        const today = new Date();
+                        const dateFilled = `${today.getDate().toString().padStart(2, '0')}/${(parseInt(monthNum)+1).toString().padStart(2, '0')}/${this.selectedYear}`;
+                        const picUser = this.users.find(u => u.userId === this.selectedPicId);
+                        const tipeKotak = picUser ? (picUser.p3kType || 'A') : 'A';
+                        const picName = picUser ? picUser.nama : this.selectedPicId;
+
+                        const newLog = {
+                            id: logId,
+                            year: this.selectedYear,
+                            month: monthNum,
+                            week: weekNum,
+                            tipeKotak: tipeKotak,
+                            picId: this.selectedPicId,
+                            picName: picName,
+                            hub: this.selectedHub,
+                            dateFilled: dateFilled,
+                            answers: { [itemId]: val }
+                        };
+                        if (this.isSupabaseReady) {
+                            await supabase.from('p3k_logs').insert([newLog]);
+                        }
+                        this.p3kLogs.push(newLog);
+                        this.showToast('Tersimpan', 'success');
+                    }
+                    this.saveToStorage();
+                    this.p3kLogs = [...this.p3kLogs]; // Memicu re-render UI
+                },
+
+                async updateP3kMetaInline(monthNum, weekNum, field, value) {
+                    if(this.selectedHub === 'all' || this.selectedPicId === 'all') return;
+                    
+                    const existingLogIndex = this.p3kLogs.findIndex(log => 
+                        log.year == this.selectedYear && 
+                        log.month == monthNum && 
+                        log.week == weekNum &&
+                        log.hub === this.selectedHub &&
+                        log.picId === this.selectedPicId
+                    );
+
+                    if (existingLogIndex !== -1) {
+                        let log = this.p3kLogs[existingLogIndex];
+                        log[field] = value;
+                        if (this.isSupabaseReady) {
+                            await supabase.from('p3k_logs').update({ [field]: value }).eq('id', log.id);
+                        }
+                    } else {
+                        const logId = 'p3k-' + Date.now();
+                        const picUser = this.users.find(u => u.userId === this.selectedPicId);
+                        const tipeKotak = picUser ? (picUser.p3kType || 'A') : 'A';
+                        const picName = picUser ? picUser.nama : this.selectedPicId;
+
+                        let defaultDate = `${new Date().getDate().toString().padStart(2, '0')}/${(parseInt(monthNum)+1).toString().padStart(2, '0')}/${this.selectedYear}`;
+                        
+                        const newLog = {
+                            id: logId,
+                            year: this.selectedYear,
+                            month: monthNum,
+                            week: weekNum,
+                            tipeKotak: tipeKotak,
+                            picId: this.selectedPicId,
+                            picName: picName,
+                            hub: this.selectedHub,
+                            dateFilled: field === 'dateFilled' ? value : defaultDate,
+                            answers: {}
+                        };
+                        if (this.isSupabaseReady) {
+                            await supabase.from('p3k_logs').insert([newLog]);
+                        }
+                        this.p3kLogs.push(newLog);
+                    }
+                    this.saveToStorage();
+                    this.p3kLogs = [...this.p3kLogs]; 
+                    this.showToast('Tanggal tersimpan', 'success');
+                },
+
+                // FITUR INLINE EDIT 5R
+                async toggle5RInline(itemId, dateString) {
+                    if(this.selectedHub === 'all' || this.selectedPicId === 'all') {
+                        this.showToast('Pilih HUB dan PIC spesifik untuk mengedit!', 'error');
+                        return;
+                    }
+
+                    const existingLogIndex = this.auditLogs.findIndex(log => 
+                        log.date === dateString && 
+                        log.hub === this.selectedHub &&
+                        log.picId === this.selectedPicId
+                    );
+
+                    if (existingLogIndex !== -1) {
+                        let log = this.auditLogs[existingLogIndex];
+                        log.answers[itemId] = !log.answers[itemId];
+                        if (this.isSupabaseReady) {
+                            await supabase.from('logs').update({ answers: log.answers }).eq('id', log.id);
+                        }
+                    } else {
+                        const logId = 'log-' + Date.now();
+                        const picUser = this.users.find(u => u.userId === this.selectedPicId);
+                        const picName = picUser ? picUser.nama : this.selectedPicId;
+
+                        const newLog = {
+                            id: logId,
+                            date: dateString,
+                            picId: this.selectedPicId,
+                            picName: picName,
+                            hub: this.selectedHub,
+                            answers: { [itemId]: true }
+                        };
+                        if (this.isSupabaseReady) {
+                            await supabase.from('logs').insert([newLog]);
+                        }
+                        this.auditLogs.push(newLog);
+                    }
+                    this.saveToStorage();
+                    this.auditLogs = [...this.auditLogs]; // Memicu re-render UI
                 },
 
                 getP3kStatus(itemId, monthNum, weekNum) {
@@ -666,19 +783,25 @@
                         <thead>
                             <tr class="bg-slate-50 border-b border-slate-200">
                                 <th rowspan="2" class="p-3 text-xs font-bold text-slate-600 uppercase min-w-[200px] border-r border-slate-200 align-middle sticky left-0 z-20 bg-slate-50 shadow-[1px_0_0_#e2e8f0]">ITEM TUGAS 5R</th>
-                                <template x-for="day in daysInMonthArray"><th :class="day.isSunday ? 'bg-rose-50 text-rose-500' : 'text-slate-500'" class="py-1.5 text-[9px] font-bold text-center border-l w-8 border-b" x-text="day.dayName"></th></template>
+                                <template x-for="day in daysInMonthArray" :key="'pic5r-h1-'+day.dayNum">
+                                    <th :class="day.isSunday ? 'bg-rose-50 text-rose-500' : 'text-slate-500'" class="py-1.5 text-[9px] font-bold text-center border-l w-8 border-b" x-text="day.dayName"></th>
+                                </template>
                             </tr>
                             <tr class="bg-slate-50 border-b border-slate-200">
-                                <template x-for="day in daysInMonthArray"><th :class="day.isSunday ? 'bg-rose-50 text-rose-600' : 'text-slate-700'" class="py-1.5 text-[10px] font-black text-center border-l w-8" x-text="day.dayNum"></th></template>
+                                <template x-for="day in daysInMonthArray" :key="'pic5r-h2-'+day.dayNum">
+                                    <th :class="day.isSunday ? 'bg-rose-50 text-rose-600' : 'text-slate-700'" class="py-1.5 text-[10px] font-black text-center border-l w-8" x-text="day.dayNum"></th>
+                                </template>
                             </tr>
                         </thead>
-                        <template x-for="areaName in Object.keys(allowedChecklistGroups)" :key="areaName">
+                        <template x-for="areaName in Object.keys(allowedChecklistGroups)" :key="'pic5r-area-'+areaName">
                             <tbody>
                                 <tr class="bg-indigo-50/50 border-b border-slate-200"><td colspan="40" class="p-3 text-xs font-black text-indigo-900 uppercase tracking-wider sticky left-0 z-10 bg-indigo-50/50" x-text="areaName"></td></tr>
-                                <template x-for="item in allowedChecklistGroups[areaName]" :key="item.id">
+                                <template x-for="item in allowedChecklistGroups[areaName]" :key="'pic5r-item-'+item.id">
                                     <tr class="border-b hover:bg-slate-50 transition">
                                         <td class="p-3 border-r sticky left-0 z-10 bg-white shadow-[1px_0_0_#e2e8f0]"><p class="text-[11px] font-semibold text-slate-700" x-text="item.deskripsi"></p></td>
-                                        <template x-for="day in daysInMonthArray"><td :class="day.isSunday ? 'bg-rose-50/30' : ''" class="p-0 border-l text-center align-middle h-8"><span x-html="getCombinedAuditStatus(item.id, day.dateString)"></span></td></template>
+                                        <template x-for="day in daysInMonthArray" :key="'pic5r-td-'+day.dayNum">
+                                            <td :class="day.isSunday ? 'bg-rose-50/30' : ''" class="p-0 border-l text-center align-middle h-8"><span x-html="getCombinedAuditStatus(item.id, day.dateString)"></span></td>
+                                        </template>
                                     </tr>
                                 </template>
                             </tbody>
@@ -701,13 +824,13 @@
                         <thead>
                             <tr class="bg-slate-50 border-b border-slate-200">
                                 <th rowspan="2" class="p-3 text-xs font-bold text-slate-600 uppercase min-w-[200px] border-r align-middle sticky left-0 z-20 bg-slate-50 shadow-[1px_0_0_#e2e8f0]">ISI KOTAK P3K</th>
-                                <template x-for="m in monthsInSemester">
+                                <template x-for="m in monthsInSemester" :key="'picp3k-h1-'+m">
                                     <th colspan="5" class="py-2 text-[11px] font-bold text-center border-l border-slate-300 text-slate-700 bg-slate-100 uppercase" x-text="getMonthName(m)"></th>
                                 </template>
                             </tr>
                             <tr class="bg-slate-50 border-b border-slate-200">
-                                <template x-for="m in monthsInSemester">
-                                    <template x-for="w in [1, 2, 3, 4, 5]">
+                                <template x-for="m in monthsInSemester" :key="'picp3k-h2m-'+m">
+                                    <template x-for="w in [1, 2, 3, 4, 5]" :key="'picp3k-h2w-'+w">
                                         <th class="py-1.5 text-[9px] font-bold text-center border-l border-slate-200 text-slate-600 w-10" x-text="'M'+w"></th>
                                     </template>
                                 </template>
@@ -720,11 +843,10 @@
                                     <td class="p-3 border-r sticky left-0 z-10 bg-white shadow-[1px_0_0_#e2e8f0]">
                                         <p class="text-xs font-bold text-slate-800" x-text="item.name"></p>
                                     </td>
-                                    <template x-for="m in monthsInSemester">
-                                        <template x-for="w in [1, 2, 3, 4, 5]">
+                                    <template x-for="m in monthsInSemester" :key="'picp3k-bm-'+m">
+                                        <template x-for="w in [1, 2, 3, 4, 5]" :key="'picp3k-bw-'+w">
                                             <td class="p-1 border-l border-slate-200 text-center align-middle" 
-                                                :class="[w % 2 === 0 ? 'bg-slate-50/50' : '', userRole === 'admin' ? 'cursor-pointer hover:bg-rose-100 transition' : '']" 
-                                                @click="adminEditP3k(m, w)"
+                                                :class="w % 2 === 0 ? 'bg-slate-50/50' : ''" 
                                                 x-html="getP3kStatus(item.id, m, w)"></td>
                                         </template>
                                     </template>
@@ -733,16 +855,16 @@
                             <!-- Metadata Rows -->
                             <tr class="border-t-2 border-slate-200 bg-rose-50/30">
                                 <td class="p-3 border-r sticky left-0 z-10 bg-rose-50 shadow-[1px_0_0_#e2e8f0] text-right text-[10px] font-bold text-slate-600 uppercase tracking-wider">Tgl Inspeksi</td>
-                                <template x-for="m in monthsInSemester">
-                                    <template x-for="w in [1, 2, 3, 4, 5]">
+                                <template x-for="m in monthsInSemester" :key="'picp3k-d1-'+m">
+                                    <template x-for="w in [1, 2, 3, 4, 5]" :key="'picp3k-d2-'+w">
                                         <td class="p-1 border-l border-slate-200 text-center align-middle text-[9px] font-semibold text-slate-600" x-text="getP3kMeta(m, w, 'dateFilled')"></td>
                                     </template>
                                 </template>
                             </tr>
                             <tr class="border-b bg-rose-50/30">
                                 <td class="p-3 border-r sticky left-0 z-10 bg-rose-50 shadow-[1px_0_0_#e2e8f0] text-right text-[10px] font-bold text-slate-600 uppercase tracking-wider">Nama Inspektur</td>
-                                <template x-for="m in monthsInSemester">
-                                    <template x-for="w in [1, 2, 3, 4, 5]">
+                                <template x-for="m in monthsInSemester" :key="'picp3k-n1-'+m">
+                                    <template x-for="w in [1, 2, 3, 4, 5]" :key="'picp3k-n2-'+w">
                                         <td class="p-1 border-l border-slate-200 text-center align-middle text-[9px] font-black text-rose-700" x-text="getP3kMeta(m, w, 'picName')"></td>
                                     </template>
                                 </template>
@@ -825,27 +947,51 @@
                         </div>
                     </div>
 
+                    <!-- Notifikasi Bantuan Inline Edit -->
+                    <div x-show="userRole === 'admin' && (selectedHub === 'all' || selectedPicId === 'all')" class="mb-5 p-4 bg-amber-50 border border-amber-200 text-amber-700 rounded-2xl text-xs font-bold flex items-center gap-3">
+                        <i class="ph ph-warning-circle text-2xl"></i>
+                        <p>Untuk dapat mengubah/mengedit data secara langsung (Live Edit) di dalam tabel di bawah, silakan pilih <span class="text-amber-900 underline">Filter Lokasi HUB</span> dan <span class="text-amber-900 underline">Filter Personil</span> secara spesifik terlebih dahulu.</p>
+                    </div>
+
                     <!-- View Tabel Admin 5R -->
                     <div x-show="activeModule === '5r'" class="overflow-x-auto custom-scrollbar border border-slate-200 rounded-2xl">
                         <table class="w-full text-left border-collapse min-w-[1000px]">
                             <thead>
                                 <tr class="bg-slate-50 border-b border-slate-200">
                                     <th rowspan="2" class="p-3 text-xs font-bold text-slate-600 uppercase min-w-[200px] border-r align-middle sticky left-0 z-20 bg-slate-50 shadow-[1px_0_0_#e2e8f0]">ITEM TUGAS 5R</th>
-                                    <template x-for="day in daysInMonthArray"><th :class="day.isSunday ? 'bg-rose-50 text-rose-500' : 'text-slate-500'" class="py-1.5 text-[9px] font-bold text-center border-l w-8 border-b"><span x-text="day.dayName"></span></th></template>
+                                    <template x-for="day in daysInMonthArray" :key="'admin5r-h1-'+day.dayNum">
+                                        <th :class="day.isSunday ? 'bg-rose-50 text-rose-500' : 'text-slate-500'" class="py-1.5 text-[9px] font-bold text-center border-l w-8 border-b"><span x-text="day.dayName"></span></th>
+                                    </template>
                                 </tr>
                                 <tr class="bg-slate-50 border-b border-slate-200">
-                                    <template x-for="day in daysInMonthArray"><th :class="day.isSunday ? 'bg-rose-50 text-rose-600' : 'text-slate-700'" class="py-1.5 text-[10px] font-black text-center border-l w-8"><span x-text="day.dayNum"></span></th></template>
+                                    <template x-for="day in daysInMonthArray" :key="'admin5r-h2-'+day.dayNum">
+                                        <th :class="day.isSunday ? 'bg-rose-50 text-rose-600' : 'text-slate-700'" class="py-1.5 text-[10px] font-black text-center border-l w-8"><span x-text="day.dayNum"></span></th>
+                                    </template>
                                 </tr>
                             </thead>
-                            <template x-for="areaName in Object.keys(groupedChecklist)" :key="areaName">
+                            <template x-for="areaName in Object.keys(groupedChecklist)" :key="'admin5r-area-'+areaName">
                                 <tbody>
                                     <tr class="bg-indigo-50/50 border-b border-slate-200"><td colspan="40" class="p-3 text-xs font-black text-indigo-900 uppercase tracking-wider sticky left-0 z-10 bg-indigo-50/50" x-text="areaName"></td></tr>
-                                    <template x-for="item in groupedChecklist[areaName]" :key="item.id">
+                                    <template x-for="item in groupedChecklist[areaName]" :key="'admin5r-item-'+item.id">
                                         <tr class="border-b hover:bg-slate-50 transition">
                                             <td class="p-3 border-r sticky left-0 z-10 bg-white shadow-[1px_0_0_#e2e8f0]"><p class="text-[11px] font-semibold text-slate-700" x-text="item.deskripsi"></p></td>
-                                            <template x-for="day in daysInMonthArray">
+                                            <template x-for="day in daysInMonthArray" :key="'admin5r-td-'+day.dayNum">
                                                 <td :class="[day.isSunday ? 'bg-rose-50/30' : '']" class="p-0 border-l text-center align-middle h-8 group relative">
-                                                    <span x-html="getCombinedAuditStatus(item.id, day.dateString)"></span>
+                                                    
+                                                    <!-- Admin Inline Edit -->
+                                                    <template x-if="userRole === 'admin' && selectedHub !== 'all' && selectedPicId !== 'all'">
+                                                        <button @click="toggle5RInline(item.id, day.dateString)" class="w-full h-full flex items-center justify-center hover:bg-indigo-100 transition cursor-pointer">
+                                                            <span x-html="getCombinedAuditStatus(item.id, day.dateString)"></span>
+                                                        </button>
+                                                    </template>
+
+                                                    <!-- Read Only View -->
+                                                    <template x-if="userRole !== 'admin' || selectedHub === 'all' || selectedPicId === 'all'">
+                                                        <div class="w-full h-full flex items-center justify-center">
+                                                            <span x-html="getCombinedAuditStatus(item.id, day.dateString)"></span>
+                                                        </div>
+                                                    </template>
+
                                                 </td>
                                             </template>
                                         </tr>
@@ -861,27 +1007,45 @@
                             <thead>
                                 <tr class="bg-slate-50 border-b border-slate-200">
                                     <th rowspan="2" class="p-3 text-xs font-bold text-slate-600 uppercase min-w-[200px] border-r align-middle sticky left-0 z-20 bg-slate-50 shadow-[1px_0_0_#e2e8f0]">ISI KOTAK P3K</th>
-                                    <template x-for="m in monthsInSemester">
+                                    <template x-for="m in monthsInSemester" :key="'adminp3k-h1-'+m">
                                         <th colspan="5" class="py-2 text-[11px] font-bold text-center border-l border-slate-300 text-slate-700 bg-slate-100 uppercase" x-text="getMonthName(m)"></th>
                                     </template>
                                 </tr>
                                 <tr class="bg-slate-50 border-b border-slate-200">
-                                    <template x-for="m in monthsInSemester">
-                                        <template x-for="w in [1, 2, 3, 4, 5]">
+                                    <template x-for="m in monthsInSemester" :key="'adminp3k-h2m-'+m">
+                                        <template x-for="w in [1, 2, 3, 4, 5]" :key="'adminp3k-h2w-'+w">
                                             <th class="py-1.5 text-[9px] font-bold text-center border-l border-slate-200 text-slate-600 w-10" x-text="'M'+w"></th>
                                         </template>
                                     </template>
                                 </tr>
                             </thead>
                             <tbody>
-                                <template x-for="item in p3kItems" :key="item.id">
+                                <template x-for="item in p3kItems" :key="'adminp3k-item-'+item.id">
                                     <tr class="border-b hover:bg-slate-50 transition">
                                         <td class="p-3 border-r sticky left-0 z-10 bg-white shadow-[1px_0_0_#e2e8f0]">
                                             <p class="text-xs font-bold text-slate-800" x-text="item.name"></p>
                                         </td>
-                                        <template x-for="m in monthsInSemester">
-                                            <template x-for="w in [1, 2, 3, 4, 5]">
-                                                <td class="p-1 border-l border-slate-200 text-center align-middle" :class="w % 2 === 0 ? 'bg-slate-50/50' : ''" x-html="getP3kStatus(item.id, m, w)"></td>
+                                        <template x-for="m in monthsInSemester" :key="'adminp3k-bm-'+m">
+                                            <template x-for="w in [1, 2, 3, 4, 5]" :key="'adminp3k-bw-'+w">
+                                                <td class="p-1 border-l border-slate-200 text-center align-middle relative" :class="w % 2 === 0 ? 'bg-slate-50/50' : ''">
+                                                    
+                                                    <!-- Admin Inline Edit -->
+                                                    <template x-if="userRole === 'admin' && selectedHub !== 'all' && selectedPicId !== 'all'">
+                                                        <div class="flex items-center justify-center p-1">
+                                                            <input type="number" min="0" 
+                                                                :value="getP3kValue(item.id, m, w)" 
+                                                                @change="updateP3kInline(item.id, m, w, $event.target.value)"
+                                                                class="w-full max-w-[40px] text-center bg-transparent border-b border-slate-300 focus:border-rose-500 outline-none text-[11px] font-bold text-rose-700 transition"
+                                                                placeholder="-">
+                                                        </div>
+                                                    </template>
+
+                                                    <!-- Read Only View -->
+                                                    <template x-if="userRole !== 'admin' || selectedHub === 'all' || selectedPicId === 'all'">
+                                                        <span x-html="getP3kStatus(item.id, m, w)"></span>
+                                                    </template>
+
+                                                </td>
                                             </template>
                                         </template>
                                     </tr>
@@ -889,16 +1053,28 @@
                                 <!-- Metadata Rows -->
                                 <tr class="border-t-2 border-slate-200 bg-rose-50/30">
                                     <td class="p-3 border-r sticky left-0 z-10 bg-rose-50 shadow-[1px_0_0_#e2e8f0] text-right text-[10px] font-bold text-slate-600 uppercase tracking-wider">Tanggal Inspeksi</td>
-                                    <template x-for="m in monthsInSemester">
-                                        <template x-for="w in [1, 2, 3, 4, 5]">
-                                            <td class="p-1 border-l border-slate-200 text-center align-middle text-[9px] font-semibold text-slate-600" x-text="getP3kMeta(m, w, 'dateFilled')"></td>
+                                    <template x-for="m in monthsInSemester" :key="'adminp3k-d1-'+m">
+                                        <template x-for="w in [1, 2, 3, 4, 5]" :key="'adminp3k-d2-'+w">
+                                            <td class="p-1 border-l border-slate-200 text-center align-middle">
+                                                <!-- Admin Inline Date Edit -->
+                                                <template x-if="userRole === 'admin' && selectedHub !== 'all' && selectedPicId !== 'all'">
+                                                    <input type="text" :value="getP3kMeta(m, w, 'dateFilled') === '-' ? '' : getP3kMeta(m, w, 'dateFilled')" 
+                                                        @change="updateP3kMetaInline(m, w, 'dateFilled', $event.target.value)" 
+                                                        class="w-full text-center bg-transparent border-b border-rose-300 focus:border-rose-600 outline-none text-[10px] font-bold text-slate-800 transition" 
+                                                        placeholder="DD/MM/YY">
+                                                </template>
+                                                <!-- Read Only Date -->
+                                                <template x-if="userRole !== 'admin' || selectedHub === 'all' || selectedPicId === 'all'">
+                                                    <span class="text-[9px] font-semibold text-slate-600" x-text="getP3kMeta(m, w, 'dateFilled')"></span>
+                                                </template>
+                                            </td>
                                         </template>
                                     </template>
                                 </tr>
                                 <tr class="border-b bg-rose-50/30">
                                     <td class="p-3 border-r sticky left-0 z-10 bg-rose-50 shadow-[1px_0_0_#e2e8f0] text-right text-[10px] font-bold text-slate-600 uppercase tracking-wider">Nama Inspektur</td>
-                                    <template x-for="m in monthsInSemester">
-                                        <template x-for="w in [1, 2, 3, 4, 5]">
+                                    <template x-for="m in monthsInSemester" :key="'adminp3k-n1-'+m">
+                                        <template x-for="w in [1, 2, 3, 4, 5]" :key="'adminp3k-n2-'+w">
                                             <td class="p-1 border-l border-slate-200 text-center align-middle text-[9px] font-black text-rose-700" x-text="getP3kMeta(m, w, 'picName')"></td>
                                         </template>
                                     </template>
@@ -932,7 +1108,7 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 text-sm">
-                            <template x-for="usr in users" :key="usr.userId">
+                            <template x-for="usr in users" :key="'user-'+usr.userId">
                                 <tr class="hover:bg-slate-50">
                                     <td class="p-4 font-black text-indigo-700" x-text="usr.userId"></td>
                                     <td class="p-4 font-bold text-slate-700" x-text="usr.nama"></td>
@@ -981,7 +1157,7 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 text-sm">
-                            <template x-for="item in activeChecklistItems" :key="item.id">
+                            <template x-for="item in activeChecklistItems" :key="'task-'+item.id">
                                 <tr class="hover:bg-slate-50 transition">
                                     <td class="p-4 font-black text-indigo-700" x-text="item.area"></td>
                                     <td class="p-4 font-medium text-slate-700" x-text="item.deskripsi"></td>
@@ -1019,23 +1195,28 @@
             <!-- Print Tabel (Tergantung Module Aktif) -->
             <div x-show="activeModule === '5r'" class="border rounded border-slate-900 w-full overflow-hidden">
                 <table class="w-full text-left border-collapse border border-slate-900 table-fixed">
-                    <!-- Head & Body Print 5R (Sama dengan aslinya) -->
                     <thead>
                         <tr class="bg-slate-100 border-b border-slate-500">
                             <th rowspan="2" class="p-1 font-bold border-r border-slate-500 w-[38%]">ITEM CEK</th>
-                            <template x-for="day in daysInMonthArray"><th class="p-0.5 text-[7px] text-center border-l border-b border-slate-500 w-[2%]"><span x-text="day.dayName"></span></th></template>
+                            <template x-for="day in daysInMonthArray" :key="'printh1-'+day.dayNum">
+                                <th class="p-0.5 text-[7px] text-center border-l border-b border-slate-500 w-[2%]"><span x-text="day.dayName"></span></th>
+                            </template>
                         </tr>
                         <tr class="bg-slate-100 border-b border-slate-500">
-                            <template x-for="day in daysInMonthArray"><th class="p-0.5 text-[8px] font-black text-center border-l border-slate-500"><span x-text="day.dayNum"></span></th></template>
+                            <template x-for="day in daysInMonthArray" :key="'printh2-'+day.dayNum">
+                                <th class="p-0.5 text-[8px] font-black text-center border-l border-slate-500"><span x-text="day.dayNum"></span></th>
+                            </template>
                         </tr>
                     </thead>
-                    <template x-for="areaName in Object.keys(groupedChecklist)" :key="areaName">
+                    <template x-for="areaName in Object.keys(groupedChecklist)" :key="'printarea-'+areaName">
                         <tbody>
                             <tr class="bg-slate-200 border-b border-slate-500"><td colspan="40" class="p-1 text-[8px] font-black uppercase border-slate-500" x-text="areaName"></td></tr>
-                            <template x-for="item in groupedChecklist[areaName]" :key="item.id">
+                            <template x-for="item in groupedChecklist[areaName]" :key="'printitem-'+item.id">
                                 <tr class="border-b border-slate-400">
                                     <td class="p-1 border-r border-slate-500 text-[8px] font-medium" x-text="item.deskripsi"></td>
-                                    <template x-for="day in daysInMonthArray"><td class="p-0 border-l border-slate-500 text-center align-middle h-4"><span x-html="getCombinedAuditStatus(item.id, day.dateString)"></span></td></template>
+                                    <template x-for="day in daysInMonthArray" :key="'printtd-'+day.dayNum">
+                                        <td class="p-0 border-l border-slate-500 text-center align-middle h-4"><span x-html="getCombinedAuditStatus(item.id, day.dateString)"></span></td>
+                                    </template>
                                 </tr>
                             </template>
                         </tbody>
@@ -1049,24 +1230,24 @@
                     <thead>
                         <tr class="bg-slate-100 border-b border-slate-500">
                             <th rowspan="2" class="p-1 font-bold border-r border-slate-500 w-[15%] align-middle text-[8px]">ISI KOTAK P3K</th>
-                            <template x-for="m in monthsInSemester">
+                            <template x-for="m in monthsInSemester" :key="'printp3kh1-'+m">
                                 <th colspan="5" class="p-1 text-[7px] text-center font-bold border-l border-slate-500 uppercase" x-text="getMonthName(m)"></th>
                             </template>
                         </tr>
                         <tr class="bg-slate-100 border-b border-slate-500">
-                            <template x-for="m in monthsInSemester">
-                                <template x-for="w in [1, 2, 3, 4, 5]">
+                            <template x-for="m in monthsInSemester" :key="'printp3kh2-'+m">
+                                <template x-for="w in [1, 2, 3, 4, 5]" :key="'printp3kh2w-'+w">
                                     <th class="p-0.5 text-[6px] text-center border-l border-slate-500 font-bold w-[2.8%]" x-text="'M'+w"></th>
                                 </template>
                             </template>
                         </tr>
                     </thead>
                     <tbody>
-                        <template x-for="item in p3kItems" :key="item.id">
+                        <template x-for="item in p3kItems" :key="'printp3kitem-'+item.id">
                             <tr class="border-b border-slate-400">
                                 <td class="p-1 border-r border-slate-500 text-[7px] font-bold" x-text="item.name"></td>
-                                <template x-for="m in monthsInSemester">
-                                    <template x-for="w in [1, 2, 3, 4, 5]">
+                                <template x-for="m in monthsInSemester" :key="'printp3ktd1-'+m">
+                                    <template x-for="w in [1, 2, 3, 4, 5]" :key="'printp3ktd2-'+w">
                                         <td class="p-0.5 border-l border-slate-500 text-center text-[7px] font-bold" x-html="getP3kStatus(item.id, m, w)"></td>
                                     </template>
                                 </template>
@@ -1074,16 +1255,16 @@
                         </template>
                         <tr class="border-t-2 border-slate-500 bg-slate-50">
                             <td class="p-1 border-r border-slate-500 text-[6px] font-bold text-right uppercase">Tanggal Inspeksi</td>
-                            <template x-for="m in monthsInSemester">
-                                <template x-for="w in [1, 2, 3, 4, 5]">
+                            <template x-for="m in monthsInSemester" :key="'printp3kdate1-'+m">
+                                <template x-for="w in [1, 2, 3, 4, 5]" :key="'printp3kdate2-'+w">
                                     <td class="p-0.5 border-l border-slate-500 text-center text-[5px]" x-text="getP3kMeta(m, w, 'dateFilled')"></td>
                                 </template>
                             </template>
                         </tr>
                         <tr class="bg-slate-50">
                             <td class="p-1 border-r border-slate-500 text-[6px] font-bold text-right uppercase">Inspektur</td>
-                            <template x-for="m in monthsInSemester">
-                                <template x-for="w in [1, 2, 3, 4, 5]">
+                            <template x-for="m in monthsInSemester" :key="'printp3kpic1-'+m">
+                                <template x-for="w in [1, 2, 3, 4, 5]" :key="'printp3kpic2-'+w">
                                     <td class="p-0.5 border-l border-slate-500 text-center text-[5px] font-bold" x-text="getP3kMeta(m, w, 'picName')"></td>
                                 </template>
                             </template>
@@ -1142,7 +1323,7 @@
                             <span class="text-xs font-bold text-slate-700 group-hover:text-indigo-600 transition">Akses Semua Area (ALL)</span>
                         </label>
                         <div class="border-t border-slate-200 my-2"></div>
-                        <template x-for="area in getUniqueAreas()" :key="area">
+                        <template x-for="area in getUniqueAreas()" :key="'area-'+area">
                             <label class="flex items-center gap-2 mb-2 cursor-pointer group">
                                 <input type="checkbox" :value="area" x-model="userForm.assignedAreas" class="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer">
                                 <span class="text-xs font-medium text-slate-600 group-hover:text-indigo-600 transition" x-text="area"></span>
@@ -1213,11 +1394,11 @@
             <form @submit.prevent="triggerConfirm('Kirim Laporan 5R', 'Pastikan data ceklis valid.', 'submitAudit')" class="flex flex-col flex-1 overflow-hidden">
                 <div class="p-6 space-y-5 flex-1 overflow-y-auto custom-scrollbar bg-slate-50">
                     <input type="date" x-model="auditModal.date" class="w-full bg-white p-3 rounded-xl border border-slate-200 font-bold text-slate-800" readonly>
-                    <template x-for="areaName in Object.keys(allowedChecklistGroups)" :key="areaName">
+                    <template x-for="areaName in Object.keys(allowedChecklistGroups)" :key="'form5r-'+areaName">
                         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
                             <h4 class="font-bold text-indigo-900 mb-3 border-b border-slate-100 pb-2" x-text="areaName"></h4>
                             <div class="space-y-2">
-                                <template x-for="item in allowedChecklistGroups[areaName]" :key="item.id">
+                                <template x-for="item in allowedChecklistGroups[areaName]" :key="'form5r-item-'+item.id">
                                     <label class="flex items-center justify-between p-3 rounded-lg border cursor-pointer group" :class="auditModal.responses[item.id] ? 'bg-emerald-50 border-emerald-300' : 'bg-slate-50 border-slate-100'">
                                         <span class="text-sm font-bold w-[85%]" :class="auditModal.responses[item.id] ? 'text-emerald-900' : 'text-slate-600'" x-text="item.deskripsi"></span>
                                         <input type="checkbox" x-model="auditModal.responses[item.id]" class="w-6 h-6 rounded-md border-slate-300 text-emerald-600 focus:ring-emerald-500">
@@ -1293,7 +1474,7 @@
                             <span class="text-[10px] font-bold bg-rose-50 text-rose-600 px-2 py-1 rounded">Target Standar (<span x-text="p3kModal.tipe"></span>)</span>
                         </div>
                         <div class="space-y-3">
-                            <template x-for="(item, index) in p3kItems" :key="item.id">
+                            <template x-for="(item, index) in p3kItems" :key="'formp3k-'+item.id">
                                 <div class="flex items-center justify-between p-3 rounded-lg border bg-slate-50 border-slate-100 hover:border-rose-300 transition group">
                                     <div class="w-[70%]">
                                         <p class="text-xs font-bold text-slate-800 leading-tight"><span x-text="(index+1)+'. '"></span><span x-text="item.name"></span></p>
