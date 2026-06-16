@@ -795,28 +795,60 @@
     <main class="flex-grow max-w-7xl w-full mx-auto p-4 md:p-6 pb-24 md:pb-6 print-container">
         
         <!-- Login Form -->
-        <div x-show="userRole === 'guest'" class="max-w-md mx-auto mt-20 bg-white rounded-3xl shadow-xl shadow-slate-200/50 p-10 border border-slate-100 no-print" x-transition>
-            <div class="text-center mb-8">
-                <div class="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <i class="ph ph-lock-key text-3xl"></i>
+        <div x-show="userRole === 'guest'" class="min-h-[80vh] flex items-center justify-center px-2 no-print" x-transition x-cloak>
+            <div class="max-w-4xl w-full bg-white rounded-3xl shadow-2xl flex flex-col md:flex-row overflow-hidden border border-slate-100">
+                
+                <div class="md:w-1/2 bg-gradient-to-br from-slate-900 via-indigo-900 to-slate-800 p-8 md:p-12 text-white flex flex-col justify-between relative overflow-hidden">
+                    <div class="absolute inset-0 bg-white opacity-5" style="background-image: radial-gradient(circle at 2px 2px, white 1px, transparent 0); background-size: 24px 24px;"></div>
+                    
+                    <div class="relative z-10">
+                        <div class="w-14 h-14 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/20 mb-8">
+                            <i class="ph ph-calendar-check text-3xl text-indigo-300"></i>
+                        </div>
+                        <h1 class="text-3xl md:text-4xl font-black tracking-tight mb-4 leading-tight">Sistem Audit<br><span class="text-indigo-400">5R & P3K</span></h1>
+                        <p class="text-slate-300 font-medium leading-relaxed mb-8 text-sm md:text-base">Membangun budaya kerja produktif aman dan efisien melalui standar area kerja.</p>
+
+                        <div class="flex flex-wrap gap-2">
+                            <span class="px-3 py-1.5 bg-indigo-500/20 rounded-lg text-xs font-bold border border-indigo-400/30 text-indigo-200">Ringkas</span>
+                            <span class="px-3 py-1.5 bg-indigo-500/20 rounded-lg text-xs font-bold border border-indigo-400/30 text-indigo-200">Rapi</span>
+                            <span class="px-3 py-1.5 bg-indigo-500/20 rounded-lg text-xs font-bold border border-indigo-400/30 text-indigo-200">Resik</span>
+                            <span class="px-3 py-1.5 bg-indigo-500/20 rounded-lg text-xs font-bold border border-indigo-400/30 text-indigo-200">Rawat</span>
+                            <span class="px-3 py-1.5 bg-indigo-500/20 rounded-lg text-xs font-bold border border-indigo-400/30 text-indigo-200">Rajin</span>
+                        </div>
+                    </div>
                 </div>
-                <h2 class="text-2xl font-black text-slate-800">Masuk Sistem</h2>
+
+                <div class="md:w-1/2 p-8 md:p-12 flex flex-col justify-center bg-white relative">
+                    <div class="mb-8">
+                        <h2 class="text-2xl font-black text-slate-800">Selamat Datang</h2>
+                        <p class="text-sm text-slate-500 font-medium mt-1">Masuk dengan ID dan kata sandi Anda</p>
+                    </div>
+
+                    <form @submit.prevent="handleLogin()" class="space-y-5">
+                        <div>
+                            <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">ID Pengguna</label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                    <i class="ph ph-user text-lg text-slate-400"></i>
+                                </div>
+                                <input type="text" x-model="loginId" class="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-white outline-none transition text-sm font-bold text-slate-800" placeholder="Silahkan Masukkan ID Anda" required>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Kata Sandi</label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                    <i class="ph ph-lock-key text-lg text-slate-400"></i>
+                                </div>
+                                <input type="password" x-model="loginPassword" class="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-white outline-none transition text-sm font-bold text-slate-800" placeholder="••••••••" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="w-full bg-slate-900 hover:bg-indigo-600 text-white font-bold py-4 rounded-xl shadow-lg mt-6 flex justify-center items-center gap-2 transition transform hover:scale-[1.02] active:scale-95">
+                            <span>Masuk ke Panel</span><i class="ph ph-arrow-right font-bold text-lg"></i>
+                        </button>
+                    </form>
+                </div>
             </div>
-            <form @submit.prevent="handleLogin()">
-                <div class="space-y-5">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase mb-2">ID Pengguna</label>
-                        <input type="text" x-model="loginId" class="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition text-sm font-medium" placeholder="Contoh: 1001 / admin" required>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase mb-2">Kata Sandi</label>
-                        <input type="password" x-model="loginPassword" class="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition text-sm font-medium" required>
-                    </div>
-                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-2xl shadow-lg mt-4 flex justify-center items-center gap-2">
-                        <span>Masuk Sekarang</span><i class="ph ph-arrow-right font-bold"></i>
-                    </button>
-                </div>
-            </form>
         </div>
 
         <!-- Dashboard PIC -->
