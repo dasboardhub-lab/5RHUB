@@ -52,7 +52,7 @@
                 auditLogs: [],
 
                 // P3K Data
-                p3kModal: { show: false, week: 1, tipe: 'A', dateFilled: '', responses: {} },
+                p3kModal: { show: false, week: 1, month: 0, inputDate: '', tipe: 'A', dateFilled: '', responses: {} },
                 p3kLogs: [],
                 p3kItems: [
                     { id: 'p1', name: 'Kassa Steril', a: 20, b: 40, c: 40, photo: 'data:image/jpeg;base64,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' },
@@ -160,16 +160,40 @@
                             else { await supabase.from('items').insert(defaultItems); this.activeChecklistItems = defaultItems; }
 
                             if (logsData && logsData.length > 0) this.auditLogs = logsData;
-                            if (p3kLogsData && p3kLogsData.length > 0) this.p3kLogs = p3kLogsData;
-                            else this.p3kLogs = JSON.parse(localStorage.getItem('audit5r_p3klogs_v2')) || [];
-                        } else {
-                            this.users = JSON.parse(localStorage.getItem('audit5r_users_v7')) || defaultUsers;
-                            this.activeChecklistItems = JSON.parse(localStorage.getItem('audit5r_items_v7')) || defaultItems;
-                            this.auditLogs = JSON.parse(localStorage.getItem('audit5r_logs_v7')) || [];
-                            this.p3kLogs = JSON.parse(localStorage.getItem('audit5r_p3klogs_v2')) || [];
-                        }
+                        if (p3kLogsData && p3kLogsData.length > 0) this.p3kLogs = p3kLogsData;
+                        else this.p3kLogs = JSON.parse(localStorage.getItem('audit5r_p3klogs_v2')) || [];
+                    } else {
+                        this.users = JSON.parse(localStorage.getItem('audit5r_users_v7')) || defaultUsers;
+                        this.activeChecklistItems = JSON.parse(localStorage.getItem('audit5r_items_v7')) || defaultItems;
+                        this.auditLogs = JSON.parse(localStorage.getItem('audit5r_logs_v7')) || [];
+                        this.p3kLogs = JSON.parse(localStorage.getItem('audit5r_p3klogs_v2')) || [];
+                    }
 
-                        const hubs = this.getUniqueHubs();
+                    this.p3kLogs = this.p3kLogs.map(log => {
+                        if (log.dateFilled) {
+                            const parts = log.dateFilled.split('/');
+                            if (parts.length === 3) {
+                                const d = parseInt(parts[0]);
+                                const m = parseInt(parts[1]) - 1;
+                                const y = parseInt(parts[2]);
+                                const dateObj = new Date(y, m, d);
+                                if (!isNaN(dateObj.getTime())) {
+                                    const mw = this.calculateMonthAndWeek(dateObj);
+                                    if (log.month != mw.month || log.week != mw.week) {
+                                        log.month = mw.month;
+                                        log.week = mw.week;
+                                        log.year = mw.year.toString();
+                                        if (this.isSupabaseReady) {
+                                            supabase.from('p3k_logs').update({ month: mw.month, week: mw.week, year: mw.year.toString() }).eq('id', log.id).then();
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        return log;
+                    });
+
+                    const hubs = this.getUniqueHubs();
                         if (hubs.length > 0 && this.selectedHub === '') this.selectedHub = hubs[0];
                         
                     } catch (error) {
@@ -211,6 +235,8 @@
                     if (this.confirmModal.actionType === 'deleteItem') this.executeDeleteItem(this.confirmModal.targetId);
                     if (this.confirmModal.actionType === 'submitAudit') this.executeSubmitAudit();
                     if (this.confirmModal.actionType === 'submitP3k') this.executeSubmitP3k();
+                    if (this.confirmModal.actionType === 'delete5RLog') this.executeDelete5RLog(this.confirmModal.targetId);
+                    if (this.confirmModal.actionType === 'deleteP3kLog') this.executeDeleteP3kLog(this.confirmModal.targetId);
                     this.confirmModal.show = false;
                 },
 
@@ -352,25 +378,98 @@
                 },
 
                 /* --- P3K Logic --- */
-                calculateCurrentWeek() {
-                    const today = new Date();
-                    const date = today.getDate();
-                    return Math.ceil(date / 7) > 5 ? 5 : Math.ceil(date / 7);
+                calculateMonthAndWeek(dateObj) {
+                    let d = new Date(dateObj.getTime());
+                    let day = d.getDay();
+                    let isoDay = day === 0 ? 7 : day; // 1 (Senin) - 7 (Minggu)
+
+                    // Geser ke hari Kamis di minggu yang sama
+                    d.setDate(d.getDate() - isoDay + 4);
+
+                    let targetMonth = d.getMonth();
+                    let targetYear = d.getFullYear();
+
+                    // Cari hari Kamis pertama di bulan target
+                    let firstThursday = new Date(targetYear, targetMonth, 1);
+                    while (firstThursday.getDay() !== 4) {
+                        firstThursday.setDate(firstThursday.getDate() + 1);
+                    }
+
+                    // Hitung selisih minggu menggunakan UTC agar menghindari anomali zona waktu
+                    let diffTime = Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - 
+                                   Date.UTC(firstThursday.getFullYear(), firstThursday.getMonth(), firstThursday.getDate());
+                    let diffWeeks = Math.round(diffTime / (1000 * 60 * 60 * 24 * 7));
+
+                    let weekNum = 1 + diffWeeks;
+
+                    // Batasi hingga minggu ke-5 sesuai kapasitas UI
+                    if (weekNum > 5) weekNum = 5;
+
+                    return { month: targetMonth, week: weekNum, year: targetYear };
                 },
 
-                openP3kModal() {
-                    this.p3kModal.week = this.calculateCurrentWeek();
-                    this.p3kModal.tipe = this.currentUser.p3kType || 'A';
-                    this.p3kModal.month = new Date().getMonth(); 
+                getWeeksForMonth(monthNum) {
+                    let maxWeek = 4; // Minimal selalu ada 4 minggu
+                    const year = parseInt(this.selectedYear);
+                    const daysInMonth = new Date(year, parseInt(monthNum) + 1, 0).getDate();
                     
-                    const today = new Date();
-                    this.p3kModal.dateFilled = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth()+1).toString().padStart(2, '0')}/${today.getFullYear()}`;
+                    // Cek akhir bulan ini
+                    for(let d = 21; d <= daysInMonth; d++) {
+                        let mw = this.calculateMonthAndWeek(new Date(year, parseInt(monthNum), d));
+                        if(mw.month == monthNum && mw.year == year && mw.week > maxWeek) {
+                            maxWeek = mw.week;
+                        }
+                    }
+                    // Cek awal bulan depan (minggu 5 kadang jatuh di tanggal muda bulan berikutnya)
+                    for(let d = 1; d <= 6; d++) {
+                        let mw = this.calculateMonthAndWeek(new Date(year, parseInt(monthNum) + 1, d));
+                        if(mw.month == monthNum && mw.year == year && mw.week > maxWeek) {
+                            maxWeek = mw.week;
+                        }
+                    }
+                    
+                    let weeks = [];
+                for(let i = 1; i <= maxWeek; i++) {
+                    weeks.push(i);
+                }
+                return weeks;
+            },
 
-                    this.loadP3kExistingLog();
-                    this.p3kModal.show = true;
-                },
+            syncPeriodFromInputDate() {
+                if(!this.p3kModal.inputDate) return;
+                
+                const parts = this.p3kModal.inputDate.split('-');
+                const y = parseInt(parts[0]);
+                const m = parseInt(parts[1]);
+                const d_str = parseInt(parts[2]);
+                const dateObj = new Date(y, m - 1, d_str);
+                
+                const mw = this.calculateMonthAndWeek(dateObj);
 
-                loadP3kExistingLog() {
+                this.p3kModal.month = mw.month;
+                this.p3kModal.week = mw.week;
+                this.selectedYear = mw.year.toString();
+
+                this.p3kModal.dateFilled = `${String(d_str).padStart(2, '0')}/${String(m).padStart(2, '0')}/${y}`;
+            },
+
+            openP3kModal() {
+                const today = new Date();
+                
+                const yyyy = today.getFullYear();
+                const mm = String(today.getMonth() + 1).padStart(2, '0');
+                const dd = String(today.getDate()).padStart(2, '0');
+                this.p3kModal.inputDate = `${yyyy}-${mm}-${dd}`; 
+                
+                this.syncPeriodFromInputDate();
+
+                this.p3kModal.tipe = this.currentUser.p3kType || 'A';
+                
+                this.loadP3kExistingLog();
+                this.p3kModal.show = true;
+            },
+
+            loadP3kExistingLog() {
                     const existingLog = this.getP3kLogForPeriod(this.p3kModal.month, this.p3kModal.week);
 
                     this.p3kModal.responses = {};
@@ -524,8 +623,25 @@
                     if (existingLogIndex !== -1) {
                         let log = this.p3kLogs[existingLogIndex];
                         log[field] = value;
+                        
+                        if (field === 'dateFilled') {
+                            const parts = value.split('/');
+                            if (parts.length === 3) {
+                                const d = parseInt(parts[0]);
+                                const m = parseInt(parts[1]) - 1;
+                                const y = parseInt(parts[2]);
+                                const dateObj = new Date(y, m, d);
+                                if (!isNaN(dateObj.getTime())) {
+                                    const mw = this.calculateMonthAndWeek(dateObj);
+                                    log.month = mw.month;
+                                    log.week = mw.week;
+                                    log.year = mw.year.toString();
+                                }
+                            }
+                        }
+
                         if (this.isSupabaseReady) {
-                            await supabase.from('p3k_logs').update({ [field]: value }).eq('id', log.id);
+                            await supabase.from('p3k_logs').update({ [field]: value, month: log.month, week: log.week, year: log.year }).eq('id', log.id);
                         }
                     } else {
                         const logId = 'p3k-' + Date.now();
@@ -596,6 +712,34 @@
                     }
                     this.saveToStorage();
                     this.auditLogs = [...this.auditLogs]; // Memicu re-render UI
+                },
+
+                hasLogForDate(dateString) {
+                    if(this.userRole !== 'admin' || this.selectedHub === 'all' || this.selectedPicId === 'all') return false;
+                    let log = this.auditLogs.find(l => l.date === dateString && l.hub === this.selectedHub && l.picId === this.selectedPicId);
+                    return !!log;
+                },
+
+                async executeDelete5RLog(dateString) {
+                    const index = this.auditLogs.findIndex(l => l.date === dateString && l.hub === this.selectedHub && l.picId === this.selectedPicId);
+                    if (index !== -1) {
+                        const logId = this.auditLogs[index].id;
+                        this.auditLogs.splice(index, 1);
+                        if (this.isSupabaseReady) await supabase.from('logs').delete().eq('id', logId);
+                        this.saveToStorage();
+                        this.showToast('Data laporan 5R berhasil dihapus');
+                    }
+                },
+
+                async executeDeleteP3kLog(payload) {
+                    const { month, week } = payload;
+                    const log = this.getP3kLogForPeriod(month, week);
+                    if (log) {
+                        this.p3kLogs = this.p3kLogs.filter(l => l.id !== log.id);
+                        if (this.isSupabaseReady) await supabase.from('p3k_logs').delete().eq('id', log.id);
+                        this.saveToStorage();
+                        this.showToast('Data inspeksi P3K berhasil dihapus');
+                    }
                 },
 
                 getP3kStatus(itemId, monthNum, weekNum) {
@@ -925,12 +1069,12 @@
                             <tr class="bg-slate-50 border-b border-slate-200">
                                 <th rowspan="2" class="p-2 md:p-3 text-[10px] md:text-xs font-bold text-slate-600 uppercase w-[150px] md:w-[250px] max-w-[150px] md:max-w-[250px] border-r align-middle sticky left-0 z-20 bg-slate-50 shadow-[1px_0_0_#e2e8f0]">ISI KOTAK P3K</th>
                                 <template x-for="m in monthsInSemester" :key="'picp3k-h1-'+m">
-                                    <th colspan="5" class="py-2 text-[11px] font-bold text-center border-l border-slate-300 text-slate-700 bg-slate-100 uppercase" x-text="getMonthName(m)"></th>
+                                    <th :colspan="getWeeksForMonth(m).length" class="py-2 text-[11px] font-bold text-center border-l border-slate-300 text-slate-700 bg-slate-100 uppercase" x-text="getMonthName(m)"></th>
                                 </template>
                             </tr>
                             <tr class="bg-slate-50 border-b border-slate-200">
                                 <template x-for="m in monthsInSemester" :key="'picp3k-h2m-'+m">
-                                    <template x-for="w in [1, 2, 3, 4, 5]" :key="'picp3k-h2w-'+w">
+                                    <template x-for="w in getWeeksForMonth(m)" :key="'picp3k-h2w-'+w">
                                         <th class="py-1.5 text-[9px] font-bold text-center border-l border-slate-200 text-slate-600 w-10" x-text="'M'+w"></th>
                                     </template>
                                 </template>
@@ -944,7 +1088,7 @@
                                         <p class="text-[10px] md:text-xs font-bold text-slate-800 leading-tight" x-text="item.name"></p>
                                     </td>
                                     <template x-for="m in monthsInSemester" :key="'picp3k-bm-'+m">
-                                        <template x-for="w in [1, 2, 3, 4, 5]" :key="'picp3k-bw-'+w">
+                                        <template x-for="w in getWeeksForMonth(m)" :key="'picp3k-bw-'+w">
                                             <td class="p-1 border-l border-slate-200 text-center align-middle" 
                                                 :class="w % 2 === 0 ? 'bg-slate-50/50' : ''" 
                                                 x-html="getP3kStatus(item.id, m, w)"></td>
@@ -956,7 +1100,7 @@
                             <tr class="border-t-2 border-slate-200 bg-rose-50/30">
                                 <td class="p-2 md:p-3 border-r sticky left-0 z-10 bg-rose-50 shadow-[1px_0_0_#e2e8f0] text-right text-[9px] md:text-[10px] font-bold text-slate-600 uppercase tracking-wider leading-tight w-[150px] md:w-[250px] max-w-[150px] md:max-w-[250px] whitespace-normal">Tgl Inspeksi</td>
                                 <template x-for="m in monthsInSemester" :key="'picp3k-d1-'+m">
-                                    <template x-for="w in [1, 2, 3, 4, 5]" :key="'picp3k-d2-'+w">
+                                    <template x-for="w in getWeeksForMonth(m)" :key="'picp3k-d2-'+w">
                                         <td class="p-1 border-l border-slate-200 text-center align-middle text-[9px] font-semibold text-slate-600" x-text="getP3kMeta(m, w, 'dateFilled')"></td>
                                     </template>
                                 </template>
@@ -964,7 +1108,7 @@
                             <tr class="border-b bg-rose-50/30">
                                 <td class="p-2 md:p-3 border-r sticky left-0 z-10 bg-rose-50 shadow-[1px_0_0_#e2e8f0] text-right text-[9px] md:text-[10px] font-bold text-slate-600 uppercase tracking-wider leading-tight w-[150px] md:w-[250px] max-w-[150px] md:max-w-[250px] whitespace-normal">Nama Inspektur</td>
                                 <template x-for="m in monthsInSemester" :key="'picp3k-n1-'+m">
-                                    <template x-for="w in [1, 2, 3, 4, 5]" :key="'picp3k-n2-'+w">
+                                    <template x-for="w in getWeeksForMonth(m)" :key="'picp3k-n2-'+w">
                                         <td class="p-1 border-l border-slate-200 text-center align-middle text-[9px] font-black text-rose-700" x-text="getP3kMeta(m, w, 'picName')"></td>
                                     </template>
                                 </template>
@@ -1045,7 +1189,7 @@
                                 <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Filter Personil</label>
                                 <select x-model="selectedPicId" class="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm font-medium focus:ring-2 outline-none">
                                     <option value="all">Semua Personil</option>
-                                    <template x-for="usr in users.filter(u => u.level === 'pic' && (selectedHub === 'all' || u.hub === selectedHub))" :key="usr.userId"><option :value="usr.userId" x-text="usr.nama"></option></template>
+                                    <template x-for="usr in users.filter(u => selectedHub === 'all' || u.hub === selectedHub || u.hub === 'ALL')" :key="usr.userId"><option :value="usr.userId" x-text="usr.nama"></option></template>
                                 </select>
                             </div>
                         </div>
@@ -1063,14 +1207,14 @@
                         <table class="w-full text-left border-collapse min-w-[1000px]">
                             <thead>
                                 <tr class="bg-slate-50 border-b border-slate-200">
-                                    <th rowspan="2" class="p-2 md:p-3 text-[10px] md:text-xs font-bold text-slate-600 uppercase min-w-[130px] md:min-w-[200px] border-r align-middle sticky left-0 z-20 bg-slate-50 shadow-[1px_0_0_#e2e8f0]">ITEM TUGAS 5R</th>
+                                    <th rowspan="2" class="p-2 md:p-3 text-[10px] md:text-xs font-bold text-slate-600 uppercase min-w-[130px] md:min-w-[200px] border-r border-slate-200 align-middle sticky left-0 z-20 bg-slate-50 shadow-[1px_0_0_#e2e8f0]">ITEM TUGAS 5R</th>
                                     <template x-for="day in daysInMonthArray" :key="'admin5r-h1-'+day.dayNum">
-                                        <th :class="day.isSunday ? 'bg-rose-50 text-rose-500' : 'text-slate-500'" class="py-1.5 text-[9px] font-bold text-center border-l w-8 border-b"><span x-text="day.dayName"></span></th>
+                                        <th :class="day.isSunday ? 'bg-rose-50 text-rose-500' : 'text-slate-500'" class="py-1.5 text-[9px] font-bold text-center border-l w-8 border-b" x-text="day.dayName"></th>
                                     </template>
                                 </tr>
                                 <tr class="bg-slate-50 border-b border-slate-200">
                                     <template x-for="day in daysInMonthArray" :key="'admin5r-h2-'+day.dayNum">
-                                        <th :class="day.isSunday ? 'bg-rose-50 text-rose-600' : 'text-slate-700'" class="py-1.5 text-[10px] font-black text-center border-l w-8"><span x-text="day.dayNum"></span></th>
+                                        <th :class="day.isSunday ? 'bg-rose-50 text-rose-600' : 'text-slate-700'" class="py-1.5 text-[10px] font-black text-center border-l w-8" x-text="day.dayNum"></th>
                                     </template>
                                 </tr>
                             </thead>
@@ -1081,28 +1225,41 @@
                                         <tr class="border-b hover:bg-slate-50 transition">
                                             <td class="p-2 md:p-3 border-r sticky left-0 z-10 bg-white shadow-[1px_0_0_#e2e8f0]"><p class="text-[10px] md:text-[11px] font-semibold text-slate-700 leading-tight" x-text="item.deskripsi"></p></td>
                                             <template x-for="day in daysInMonthArray" :key="'admin5r-td-'+day.dayNum">
-                                                <td :class="[day.isSunday ? 'bg-rose-50/30' : '']" class="p-0 border-l text-center align-middle h-8 group relative">
+                                                <td :class="day.isSunday ? 'bg-rose-50/30' : ''" class="p-0 border-l text-center align-middle h-8 relative">
                                                     
                                                     <!-- Admin Inline Edit -->
                                                     <template x-if="userRole === 'admin' && selectedHub !== 'all' && selectedPicId !== 'all'">
-                                                        <button @click="toggle5RInline(item.id, day.dateString)" class="w-full h-full flex items-center justify-center hover:bg-indigo-100 transition cursor-pointer">
+                                                        <button @click="toggle5RInline(item.id, day.dateString)" class="w-full h-full absolute inset-0 flex items-center justify-center hover:bg-indigo-100 transition cursor-pointer">
                                                             <span x-html="getCombinedAuditStatus(item.id, day.dateString)"></span>
                                                         </button>
                                                     </template>
 
                                                     <!-- Read Only View -->
                                                     <template x-if="userRole !== 'admin' || selectedHub === 'all' || selectedPicId === 'all'">
-                                                        <div class="w-full h-full flex items-center justify-center">
+                                                        <div class="w-full h-full absolute inset-0 flex items-center justify-center">
                                                             <span x-html="getCombinedAuditStatus(item.id, day.dateString)"></span>
                                                         </div>
                                                     </template>
-
                                                 </td>
                                             </template>
                                         </tr>
                                     </template>
                                 </tbody>
                             </template>
+                            <tbody>
+                                <tr class="bg-rose-50/50 border-t-2 border-rose-200">
+                                    <td class="p-2 md:p-3 border-r sticky left-0 z-10 bg-rose-50 shadow-[1px_0_0_#e2e8f0] text-right text-[10px] md:text-xs font-bold text-rose-600 uppercase tracking-wider">-</td>
+                                    <template x-for="day in daysInMonthArray" :key="'admin5r-del-'+day.dayNum">
+                                        <td class="p-1 border-l border-slate-200 text-center align-middle h-10">
+                                            <template x-if="userRole === 'admin' && selectedHub !== 'all' && selectedPicId !== 'all' && hasLogForDate(day.dateString)">
+                                                <button @click="triggerConfirm('Hapus Laporan', 'Yakin ingin menghapus seluruh laporan 5R pada tanggal ini?', 'delete5RLog', day.dateString)" class="w-7 h-7 rounded-lg bg-rose-100 text-rose-500 hover:bg-rose-500 hover:text-white flex items-center justify-center mx-auto transition" title="Hapus Data">
+                                                    <i class="ph ph-trash text-sm"></i>
+                                                </button>
+                                            </template>
+                                        </td>
+                                    </template>
+                                </tr>
+                            </tbody>
                         </table>
                     </div>
 
@@ -1113,12 +1270,12 @@
                                 <tr class="bg-slate-50 border-b border-slate-200">
                                     <th rowspan="2" class="p-2 md:p-3 text-[10px] md:text-xs font-bold text-slate-600 uppercase w-[150px] md:w-[250px] max-w-[150px] md:max-w-[250px] border-r align-middle sticky left-0 z-20 bg-slate-50 shadow-[1px_0_0_#e2e8f0]">ISI KOTAK P3K</th>
                                     <template x-for="m in monthsInSemester" :key="'adminp3k-h1-'+m">
-                                        <th colspan="5" class="py-2 text-[11px] font-bold text-center border-l border-slate-300 text-slate-700 bg-slate-100 uppercase" x-text="getMonthName(m)"></th>
+                                        <th :colspan="getWeeksForMonth(m).length" class="py-2 text-[11px] font-bold text-center border-l border-slate-300 text-slate-700 bg-slate-100 uppercase" x-text="getMonthName(m)"></th>
                                     </template>
                                 </tr>
                                 <tr class="bg-slate-50 border-b border-slate-200">
                                     <template x-for="m in monthsInSemester" :key="'adminp3k-h2m-'+m">
-                                        <template x-for="w in [1, 2, 3, 4, 5]" :key="'adminp3k-h2w-'+w">
+                                        <template x-for="w in getWeeksForMonth(m)" :key="'adminp3k-h2w-'+w">
                                             <th class="py-1.5 text-[9px] font-bold text-center border-l border-slate-200 text-slate-600 w-10" x-text="'M'+w"></th>
                                         </template>
                                     </template>
@@ -1131,7 +1288,7 @@
                                             <p class="text-[10px] md:text-xs font-bold text-slate-800 leading-tight" x-text="item.name"></p>
                                         </td>
                                         <template x-for="m in monthsInSemester" :key="'adminp3k-bm-'+m">
-                                            <template x-for="w in [1, 2, 3, 4, 5]" :key="'adminp3k-bw-'+w">
+                                            <template x-for="w in getWeeksForMonth(m)" :key="'adminp3k-bw-'+w">
                                                 <td class="p-1 border-l border-slate-200 text-center align-middle relative" :class="w % 2 === 0 ? 'bg-slate-50/50' : ''">
                                                     
                                                     <!-- Admin Inline Edit -->
@@ -1159,7 +1316,7 @@
                                 <tr class="border-t-2 border-slate-200 bg-rose-50/30">
                                     <td class="p-2 md:p-3 border-r sticky left-0 z-10 bg-rose-50 shadow-[1px_0_0_#e2e8f0] text-right text-[9px] md:text-[10px] font-bold text-slate-600 uppercase tracking-wider leading-tight w-[150px] md:w-[250px] max-w-[150px] md:max-w-[250px] whitespace-normal">Tanggal Inspeksi</td>
                                     <template x-for="m in monthsInSemester" :key="'adminp3k-d1-'+m">
-                                        <template x-for="w in [1, 2, 3, 4, 5]" :key="'adminp3k-d2-'+w">
+                                        <template x-for="w in getWeeksForMonth(m)" :key="'adminp3k-d2-'+w">
                                             <td class="p-1 border-l border-slate-200 text-center align-middle">
                                                 <!-- Admin Inline Date Edit -->
                                                 <template x-if="userRole === 'admin' && selectedHub !== 'all' && selectedPicId !== 'all'">
@@ -1179,8 +1336,22 @@
                                 <tr class="border-b bg-rose-50/30">
                                     <td class="p-2 md:p-3 border-r sticky left-0 z-10 bg-rose-50 shadow-[1px_0_0_#e2e8f0] text-right text-[9px] md:text-[10px] font-bold text-slate-600 uppercase tracking-wider leading-tight w-[150px] md:w-[250px] max-w-[150px] md:max-w-[250px] whitespace-normal">Nama Inspektur</td>
                                     <template x-for="m in monthsInSemester" :key="'adminp3k-n1-'+m">
-                                        <template x-for="w in [1, 2, 3, 4, 5]" :key="'adminp3k-n2-'+w">
+                                        <template x-for="w in getWeeksForMonth(m)" :key="'adminp3k-n2-'+w">
                                             <td class="p-1 border-l border-slate-200 text-center align-middle text-[9px] font-black text-rose-700" x-text="getP3kMeta(m, w, 'picName')"></td>
+                                        </template>
+                                    </template>
+                                </tr>
+                                <tr class="bg-rose-50/50 border-t border-rose-200">
+                                    <td class="p-2 md:p-3 border-r sticky left-0 z-10 bg-rose-50 shadow-[1px_0_0_#e2e8f0] text-right text-[10px] md:text-xs font-bold text-rose-600 uppercase tracking-wider leading-tight w-[150px] md:w-[250px] max-w-[150px] md:max-w-[250px] whitespace-normal">Hapus Data</td>
+                                    <template x-for="m in monthsInSemester" :key="'adminp3k-del1-'+m">
+                                        <template x-for="w in getWeeksForMonth(m)" :key="'adminp3k-del2-'+w">
+                                            <td class="p-1 border-l border-slate-200 text-center align-middle">
+                                                <template x-if="userRole === 'admin' && selectedHub !== 'all' && selectedPicId !== 'all' && getP3kLogForPeriod(m, w)">
+                                                    <button @click="triggerConfirm('Hapus Inspeksi', 'Yakin ingin menghapus seluruh data P3K pada minggu ini?', 'deleteP3kLog', {month: m, week: w})" class="w-7 h-7 rounded-lg bg-rose-100 text-rose-500 hover:bg-rose-500 hover:text-white flex items-center justify-center mx-auto transition" title="Hapus Data">
+                                                        <i class="ph ph-trash text-sm"></i>
+                                                    </button>
+                                                </template>
+                                            </td>
                                         </template>
                                     </template>
                                 </tr>
@@ -1336,12 +1507,12 @@
                         <tr class="bg-slate-100 border-b border-slate-500">
                             <th rowspan="2" class="p-1 font-bold border-r border-slate-500 w-[20%] align-middle text-[8px]">ISI KOTAK P3K</th>
                             <template x-for="m in monthsInSemester" :key="'printp3kh1-'+m">
-                                <th colspan="5" class="p-1 text-[7px] text-center font-bold border-l border-slate-500 uppercase" x-text="getMonthName(m)"></th>
+                                <th :colspan="getWeeksForMonth(m).length" class="p-1 text-[7px] text-center font-bold border-l border-slate-500 uppercase" x-text="getMonthName(m)"></th>
                             </template>
                         </tr>
                         <tr class="bg-slate-100 border-b border-slate-500">
                             <template x-for="m in monthsInSemester" :key="'printp3kh2-'+m">
-                                <template x-for="w in [1, 2, 3, 4, 5]" :key="'printp3kh2w-'+w">
+                                <template x-for="w in getWeeksForMonth(m)" :key="'printp3kh2w-'+w">
                                     <th class="p-0.5 text-[6px] text-center border-l border-slate-500 font-bold w-[4%]" x-text="'M'+w"></th>
                                 </template>
                             </template>
@@ -1352,7 +1523,7 @@
                             <tr class="border-b border-slate-400">
                                 <td class="p-1 border-r border-slate-500 text-[7px] font-bold" x-text="item.name"></td>
                                 <template x-for="m in monthsInSemester" :key="'printp3ktd1-'+m">
-                                    <template x-for="w in [1, 2, 3, 4, 5]" :key="'printp3ktd2-'+w">
+                                    <template x-for="w in getWeeksForMonth(m)" :key="'printp3ktd2-'+w">
                                         <td class="p-0.5 border-l border-slate-500 text-center text-[7px] font-bold" x-html="getP3kStatus(item.id, m, w)"></td>
                                     </template>
                                 </template>
@@ -1361,7 +1532,7 @@
                         <tr class="border-t-2 border-slate-500 bg-slate-50">
                             <td class="p-1 border-r border-slate-500 text-[6px] font-bold text-right uppercase">Tanggal Inspeksi</td>
                             <template x-for="m in monthsInSemester" :key="'printp3kdate1-'+m">
-                                <template x-for="w in [1, 2, 3, 4, 5]" :key="'printp3kdate2-'+w">
+                                <template x-for="w in getWeeksForMonth(m)" :key="'printp3kdate2-'+w">
                                     <td class="p-0.5 border-l border-slate-500 text-center text-[5px]" x-text="getP3kMeta(m, w, 'dateFilled')"></td>
                                 </template>
                             </template>
@@ -1369,7 +1540,7 @@
                         <tr class="bg-slate-50">
                             <td class="p-1 border-r border-slate-500 text-[6px] font-bold text-right uppercase">Inspektur</td>
                             <template x-for="m in monthsInSemester" :key="'printp3kpic1-'+m">
-                                <template x-for="w in [1, 2, 3, 4, 5]" :key="'printp3kpic2-'+w">
+                                <template x-for="w in getWeeksForMonth(m)" :key="'printp3kpic2-'+w">
                                     <td class="p-0.5 border-l border-slate-500 text-center text-[5px] font-bold" x-text="getP3kMeta(m, w, 'picName')"></td>
                                 </template>
                             </template>
@@ -1535,26 +1706,11 @@
                     
                     <div class="grid grid-cols-2 gap-4">
                         <div class="bg-rose-50 p-3 rounded-xl border border-rose-100 flex flex-col justify-center">
-                            <label class="block text-[10px] font-bold text-rose-500 uppercase mb-0.5">Jadwal Inspeksi</label>
-                            
-                            <template x-if="userRole === 'admin'">
-                                <div class="space-y-2 mt-1">
-                                    <select x-model="p3kModal.month" @change="loadP3kExistingLog()" class="w-full text-xs font-bold p-1 rounded border border-rose-200 text-rose-700 bg-white outline-none">
-                                        <option value="0">Januari</option><option value="1">Februari</option><option value="2">Maret</option><option value="3">April</option><option value="4">Mei</option><option value="5">Juni</option><option value="6">Juli</option><option value="7">Agustus</option><option value="8">September</option><option value="9">Oktober</option><option value="10">November</option><option value="11">Desember</option>
-                                    </select>
-                                    <select x-model="p3kModal.week" @change="loadP3kExistingLog()" class="w-full text-xs font-bold p-1 rounded border border-rose-200 text-rose-700 bg-white outline-none">
-                                        <option value="1">Minggu 1</option><option value="2">Minggu 2</option><option value="3">Minggu 3</option><option value="4">Minggu 4</option><option value="5">Minggu 5</option>
-                                    </select>
-                                    <input type="text" x-model="p3kModal.dateFilled" class="w-full text-xs font-bold p-1 rounded border border-rose-200 text-rose-700 bg-white outline-none" placeholder="Tgl Cth: 20/06/2026">
-                                </div>
-                            </template>
-                            
-                            <template x-if="userRole !== 'admin'">
-                                <div>
-                                    <div class="font-black text-rose-800 text-lg">Minggu ke-<span x-text="p3kModal.week"></span></div>
-                                    <div class="text-xs font-bold text-rose-600">Tgl: <span x-text="p3kModal.dateFilled"></span></div>
-                                </div>
-                            </template>
+                            <label class="block text-[10px] font-bold text-rose-500 uppercase mb-0.5">Tanggal Inspeksi</label>
+                            <input type="date" x-model="p3kModal.inputDate" @change="syncPeriodFromInputDate(); loadP3kExistingLog()" class="w-full text-sm font-bold p-2 mt-1 rounded-lg border border-rose-300 text-rose-700 bg-white outline-none focus:ring-2 focus:ring-rose-400">
+                            <div class="mt-2 text-[10px] font-bold text-rose-700 bg-rose-100/50 p-1.5 rounded border border-rose-200/50">
+                                Masuk ke: <span class="font-black uppercase" x-text="getMonthName(p3kModal.month) + ' (Minggu ' + p3kModal.week + ')'"></span>
+                            </div>
                         </div>
                         <div class="bg-slate-100 p-3 rounded-xl border border-slate-200 flex flex-col justify-center">
                             <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Tipe Kotak</label>
