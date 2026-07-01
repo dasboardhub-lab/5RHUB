@@ -1189,7 +1189,7 @@
                                 <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Filter Personil</label>
                                 <select x-model="selectedPicId" class="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm font-medium focus:ring-2 outline-none">
                                     <option value="all">Semua Personil</option>
-                                    <template x-for="usr in users.filter(u => selectedHub === 'all' || u.hub === selectedHub || u.hub === 'ALL')" :key="usr.userId"><option :value="usr.userId" x-text="usr.nama"></option></template>
+                                    <template x-for="usr in users.filter(u => u.level !== 'admin' && (selectedHub === 'all' || u.hub === selectedHub || u.hub === 'ALL'))" :key="usr.userId"><option :value="usr.userId" x-text="usr.nama"></option></template>
                                 </select>
                             </div>
                         </div>
@@ -1246,20 +1246,6 @@
                                     </template>
                                 </tbody>
                             </template>
-                            <tbody>
-                                <tr class="bg-rose-50/50 border-t-2 border-rose-200">
-                                    <td class="p-2 md:p-3 border-r sticky left-0 z-10 bg-rose-50 shadow-[1px_0_0_#e2e8f0] text-right text-[10px] md:text-xs font-bold text-rose-600 uppercase tracking-wider">-</td>
-                                    <template x-for="day in daysInMonthArray" :key="'admin5r-del-'+day.dayNum">
-                                        <td class="p-1 border-l border-slate-200 text-center align-middle h-10">
-                                            <template x-if="userRole === 'admin' && selectedHub !== 'all' && selectedPicId !== 'all' && hasLogForDate(day.dateString)">
-                                                <button @click="triggerConfirm('Hapus Laporan', 'Yakin ingin menghapus seluruh laporan 5R pada tanggal ini?', 'delete5RLog', day.dateString)" class="w-7 h-7 rounded-lg bg-rose-100 text-rose-500 hover:bg-rose-500 hover:text-white flex items-center justify-center mx-auto transition" title="Hapus Data">
-                                                    <i class="ph ph-trash text-sm"></i>
-                                                </button>
-                                            </template>
-                                        </td>
-                                    </template>
-                                </tr>
-                            </tbody>
                         </table>
                     </div>
 
@@ -1338,20 +1324,6 @@
                                     <template x-for="m in monthsInSemester" :key="'adminp3k-n1-'+m">
                                         <template x-for="w in getWeeksForMonth(m)" :key="'adminp3k-n2-'+w">
                                             <td class="p-1 border-l border-slate-200 text-center align-middle text-[9px] font-black text-rose-700" x-text="getP3kMeta(m, w, 'picName')"></td>
-                                        </template>
-                                    </template>
-                                </tr>
-                                <tr class="bg-rose-50/50 border-t border-rose-200">
-                                    <td class="p-2 md:p-3 border-r sticky left-0 z-10 bg-rose-50 shadow-[1px_0_0_#e2e8f0] text-right text-[10px] md:text-xs font-bold text-rose-600 uppercase tracking-wider leading-tight w-[150px] md:w-[250px] max-w-[150px] md:max-w-[250px] whitespace-normal">Hapus Data</td>
-                                    <template x-for="m in monthsInSemester" :key="'adminp3k-del1-'+m">
-                                        <template x-for="w in getWeeksForMonth(m)" :key="'adminp3k-del2-'+w">
-                                            <td class="p-1 border-l border-slate-200 text-center align-middle">
-                                                <template x-if="userRole === 'admin' && selectedHub !== 'all' && selectedPicId !== 'all' && getP3kLogForPeriod(m, w)">
-                                                    <button @click="triggerConfirm('Hapus Inspeksi', 'Yakin ingin menghapus seluruh data P3K pada minggu ini?', 'deleteP3kLog', {month: m, week: w})" class="w-7 h-7 rounded-lg bg-rose-100 text-rose-500 hover:bg-rose-500 hover:text-white flex items-center justify-center mx-auto transition" title="Hapus Data">
-                                                        <i class="ph ph-trash text-sm"></i>
-                                                    </button>
-                                                </template>
-                                            </td>
                                         </template>
                                     </template>
                                 </tr>
